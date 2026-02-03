@@ -255,6 +255,9 @@
   ;; Phase 24: Nonce Manager
   (run-nonce-manager-tests)
 
+  ;; Phase 25: Transaction Simulation & Estimation
+  (run-simulate-tests)
+
   (format t "~%========================================~%")
   (format t "Results: ~A passed, ~A failed~%" *tests-passed* *tests-failed*)
   (format t "========================================~%")

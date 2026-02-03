@@ -21,6 +21,10 @@
             ((== first-byte 2)
              (%decode-eip1559 (types:bytes-drop 1 raw)))
 
+            ;; Type 3: EIP-4844 (blob transaction)
+            ((== first-byte 3)
+             (%decode-eip4844 (types:bytes-drop 1 raw)))
+
             ;; Legacy: first byte >= 0xc0 (RLP list prefix)
             ((>= first-byte #xc0)
              (%decode-legacy raw))
@@ -178,4 +182,42 @@
                                    (_ Nil))))
                 (Ok (make-transaction EIP1559Tx chain-id nonce max-priority max-fee
                                       gas-limit to value data access-list)))))
-         (_ (Err (types:TransactionError "Expected RLP list for EIP-1559 tx"))))))))
+         (_ (Err (types:TransactionError "Expected RLP list for EIP-1559 tx")))))))
+
+  (declare %decode-blob-versioned-hashes (rlp:RlpItem -> BlobVersionedHashes))
+  (define (%decode-blob-versioned-hashes item)
+    "Decode blob versioned hashes from an RLP item"
+    (match item
+      ((rlp:RlpList hash-items)
+       (map %rlp-item-to-bytes hash-items))
+      ((rlp:RlpBytes _) Nil)))
+
+  (declare %decode-eip4844 (types:Bytes -> (types:Web3Result Transaction)))
+  (define (%decode-eip4844 payload)
+    "Decode an EIP-4844 blob transaction (after removing type prefix)"
+    (match (rlp:rlp-decode payload)
+      ((Err _e) (Err (types:TransactionError "Invalid RLP in EIP-4844 tx")))
+      ((Ok (Tuple item _))
+       (match item
+         ((rlp:RlpList items)
+          (if (< (list:length items) 11)
+              (Err (types:TransactionError "EIP-4844 tx needs 11+ fields"))
+              ;; [chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value, data,
+              ;;  accessList, maxFeePerBlobGas, blobVersionedHashes, ...]
+              (let ((chain-id (%rlp-bytes-to-u64 (%rlp-item-to-bytes (%nth-rlp-item 0 items))))
+                    (nonce (%rlp-bytes-to-u64 (%rlp-item-to-bytes (%nth-rlp-item 1 items))))
+                    (max-priority (%rlp-bytes-to-u256 (%rlp-item-to-bytes (%nth-rlp-item 2 items))))
+                    (max-fee (%rlp-bytes-to-u256 (%rlp-item-to-bytes (%nth-rlp-item 3 items))))
+                    (gas-limit (%rlp-bytes-to-u64 (%rlp-item-to-bytes (%nth-rlp-item 4 items))))
+                    (to (%rlp-bytes-to-address (%rlp-item-to-bytes (%nth-rlp-item 5 items))))
+                    (value (%rlp-bytes-to-u256 (%rlp-item-to-bytes (%nth-rlp-item 6 items))))
+                    (data (%rlp-item-to-bytes (%nth-rlp-item 7 items)))
+                    (access-list (match (%nth-rlp-item 8 items)
+                                   ((rlp:RlpList al-items) (%decode-access-list-items al-items))
+                                   (_ Nil)))
+                    (max-fee-per-blob-gas (%rlp-bytes-to-u256 (%rlp-item-to-bytes (%nth-rlp-item 9 items))))
+                    (blob-hashes (%decode-blob-versioned-hashes (%nth-rlp-item 10 items))))
+                (Ok (make-blob-transaction chain-id nonce max-priority max-fee
+                                           gas-limit to value data access-list
+                                           max-fee-per-blob-gas blob-hashes)))))
+         (_ (Err (types:TransactionError "Expected RLP list for EIP-4844 tx"))))))))

@@ -16,10 +16,19 @@
    #:LegacyTx
    #:EIP2930Tx
    #:EIP1559Tx
+   #:EIP4844Tx
+
+   ;; Access list types
+   #:AccessListEntry
+   #:AccessList
+
+   ;; Blob transaction types (EIP-4844)
+   #:BlobVersionedHashes
 
    ;; Transaction struct
    #:Transaction
    #:make-transaction
+   #:make-blob-transaction
    #:tx-type
    #:tx-chain-id
    #:tx-nonce
@@ -31,6 +40,8 @@
    #:tx-value
    #:tx-data
    #:tx-access-list
+   #:tx-max-fee-per-blob-gas
+   #:tx-blob-versioned-hashes
 
    ;; Encoding
    #:tx-encode-for-signing

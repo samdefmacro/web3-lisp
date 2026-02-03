@@ -450,6 +450,22 @@
                (:file "types")
                (:file "manager")))
 
+;;; Transaction Simulation and Gas Estimation
+(asdf:defsystem "web3/simulate"
+  :description "Transaction simulation and gas estimation helpers"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/transaction"
+               "web3/provider"
+               "web3/gas")
+  :pathname "src/simulate/"
+  :serial t
+  :components ((:file "package")
+               (:file "simulate")))
+
 ;;; Meta-system that loads everything
 (asdf:defsystem "web3"
   :description "Complete Ethereum library in Coalton"
@@ -485,7 +501,8 @@
                "web3/blob"
                "web3/kzg"
                "web3/siwe"
-               "web3/nonce-manager"))
+               "web3/nonce-manager"
+               "web3/simulate"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -524,6 +541,7 @@
                (:file "blob-tests")
                (:file "kzg-tests")
                (:file "siwe-tests")
-               (:file "nonce-manager-tests"))
+               (:file "nonce-manager-tests")
+               (:file "simulate-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))

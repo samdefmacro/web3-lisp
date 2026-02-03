@@ -57,6 +57,11 @@
                             Nil))))))
           al)))
 
+  (declare %encode-blob-versioned-hashes (BlobVersionedHashes -> rlp:RlpItem))
+  (define (%encode-blob-versioned-hashes hashes)
+    "Encode blob versioned hashes as RLP list of 32-byte items"
+    (rlp:RlpList (map (fn (h) (rlp:RlpBytes h)) hashes)))
+
   ;;; Transaction encoding for signing
 
   (declare tx-encode-for-signing (Transaction -> types:Bytes))
@@ -106,7 +111,27 @@
                                               (Cons (%u256-to-rlp-item (tx-value tx))
                                                     (Cons (rlp:RlpBytes (tx-data tx))
                                                           (Cons (%encode-access-list (tx-access-list tx))
-                                                                Nil))))))))))))))))
+                                                                Nil)))))))))))))
+
+      ((EIP4844Tx)
+       ;; Type 3: 0x03 || RLP([chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value,
+       ;;                      data, accessList, maxFeePerBlobGas, blobVersionedHashes])
+       (types:bytes-append
+        (types:bytes-from-list (Cons 3 Nil))
+        (rlp:rlp-encode
+         (rlp:RlpList
+          (Cons (%u64-to-rlp-item (tx-chain-id tx))
+                (Cons (%u64-to-rlp-item (tx-nonce tx))
+                      (Cons (%u256-to-rlp-item (tx-max-priority-fee tx))
+                            (Cons (%u256-to-rlp-item (tx-max-fee tx))
+                                  (Cons (%u64-to-rlp-item (tx-gas-limit tx))
+                                        (Cons (%address-to-rlp-item (tx-to tx))
+                                              (Cons (%u256-to-rlp-item (tx-value tx))
+                                                    (Cons (rlp:RlpBytes (tx-data tx))
+                                                          (Cons (%encode-access-list (tx-access-list tx))
+                                                                (Cons (%u256-to-rlp-item (tx-max-fee-per-blob-gas tx))
+                                                                      (Cons (%encode-blob-versioned-hashes (tx-blob-versioned-hashes tx))
+                                                                            Nil))))))))))))))))))
 
 ;;; Coalton toplevel for signed-tx-encode (needs lisp interop for v computation)
 (coalton-toplevel
@@ -171,4 +196,27 @@
                                                               (Cons (%encode-access-list (tx-access-list tx))
                                                                     (Cons (%u64-to-rlp-item v-u64)
                                                                           (Cons r-item
-                                                                                (Cons s-item Nil)))))))))))))))))))))
+                                                                                (Cons s-item Nil)))))))))))))))))
+
+        ((EIP4844Tx)
+         ;; Type 3: 0x03 || RLP([chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value,
+         ;;                      data, accessList, maxFeePerBlobGas, blobVersionedHashes, v, r, s])
+         (let ((v-u64 (lisp U64 (v-raw) v-raw)))
+           (types:bytes-append
+            (types:bytes-from-list (Cons 3 Nil))
+            (rlp:rlp-encode
+             (rlp:RlpList
+              (Cons (%u64-to-rlp-item (tx-chain-id tx))
+                    (Cons (%u64-to-rlp-item (tx-nonce tx))
+                          (Cons (%u256-to-rlp-item (tx-max-priority-fee tx))
+                                (Cons (%u256-to-rlp-item (tx-max-fee tx))
+                                      (Cons (%u64-to-rlp-item (tx-gas-limit tx))
+                                            (Cons (%address-to-rlp-item (tx-to tx))
+                                                  (Cons (%u256-to-rlp-item (tx-value tx))
+                                                        (Cons (rlp:RlpBytes (tx-data tx))
+                                                              (Cons (%encode-access-list (tx-access-list tx))
+                                                                    (Cons (%u256-to-rlp-item (tx-max-fee-per-blob-gas tx))
+                                                                          (Cons (%encode-blob-versioned-hashes (tx-blob-versioned-hashes tx))
+                                                                                (Cons (%u64-to-rlp-item v-u64)
+                                                                                      (Cons r-item
+                                                                                            (Cons s-item Nil)))))))))))))))))))))))
