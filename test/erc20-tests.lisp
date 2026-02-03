@@ -240,6 +240,21 @@
   ;; Phase 19: Block Parsing
   (run-block-tests)
 
+  ;; Phase 20: Units (parseUnits/formatUnits)
+  (run-units-tests)
+
+  ;; Phase 21: Blob (EIP-4844)
+  (run-blob-tests)
+
+  ;; Phase 22: KZG Commitments
+  (run-kzg-tests)
+
+  ;; Phase 23: SIWE (Sign-In with Ethereum)
+  (run-siwe-tests)
+
+  ;; Phase 24: Nonce Manager
+  (run-nonce-manager-tests)
+
   (format t "~%========================================~%")
   (format t "Results: ~A passed, ~A failed~%" *tests-passed* *tests-failed*)
   (format t "========================================~%")

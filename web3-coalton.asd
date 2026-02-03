@@ -375,6 +375,81 @@
   :components ((:file "package")
                (:file "block")))
 
+;;; Units - parseUnits/formatUnits with custom decimals
+(asdf:defsystem "web3/units"
+  :description "Ethereum unit conversions - parseUnits/formatUnits with custom decimals"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types")
+  :pathname "src/units/"
+  :serial t
+  :components ((:file "package")
+               (:file "units")))
+
+;;; Blob - EIP-4844 blob data encoding
+(asdf:defsystem "web3/blob"
+  :description "EIP-4844 blob data encoding and manipulation"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/crypto"
+               "ironclad")
+  :pathname "src/blob/"
+  :serial t
+  :components ((:file "package")
+               (:file "constants")
+               (:file "blob")))
+
+;;; KZG - KZG commitments for EIP-4844 blobs
+(asdf:defsystem "web3/kzg"
+  :description "KZG commitments for EIP-4844 blob transactions"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/blob"
+               "cffi")
+  :pathname "src/kzg/"
+  :serial t
+  :components ((:file "package")
+               (:file "types")
+               (:file "ffi")
+               (:file "kzg")))
+
+;;; SIWE - Sign-In with Ethereum (ERC-4361)
+(asdf:defsystem "web3/siwe"
+  :description "Sign-In with Ethereum (ERC-4361) implementation"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/signature"
+               "split-sequence")
+  :pathname "src/siwe/"
+  :serial t
+  :components ((:file "package")
+               (:file "types")
+               (:file "message")
+               (:file "verify")))
+
+;;; Nonce Manager - Multi-address/chain nonce tracking
+(asdf:defsystem "web3/nonce-manager"
+  :description "Nonce management for multi-address/chain transaction tracking"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/provider")
+  :pathname "src/nonce-manager/"
+  :serial t
+  :components ((:file "package")
+               (:file "types")
+               (:file "manager")))
+
 ;;; Meta-system that loads everything
 (asdf:defsystem "web3"
   :description "Complete Ethereum library in Coalton"
@@ -405,7 +480,12 @@
                "web3/receipt"
                "web3/signature"
                "web3/chain"
-               "web3/block"))
+               "web3/block"
+               "web3/units"
+               "web3/blob"
+               "web3/kzg"
+               "web3/siwe"
+               "web3/nonce-manager"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -439,6 +519,11 @@
                (:file "receipt-tests")
                (:file "signature-tests")
                (:file "chain-tests")
-               (:file "block-tests"))
+               (:file "block-tests")
+               (:file "units-tests")
+               (:file "blob-tests")
+               (:file "kzg-tests")
+               (:file "siwe-tests")
+               (:file "nonce-manager-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))
