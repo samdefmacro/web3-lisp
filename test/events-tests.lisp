@@ -126,4 +126,236 @@
            (result (coalton:coalton
                     (web3/events:decode-indexed-uint256
                      (coalton:lisp web3/types:Bytes () topic)))))
-      (assert (not (is-ok result))))))
+      (assert (not (is-ok result)))))
+
+  ;;; =========================================================================
+  ;;; Additional Event Signature Tests
+  ;;; =========================================================================
+
+  (test-case "ERC-721 Transfer topic = 0xddf252ad..."
+    ;; ERC-721 Transfer has same signature as ERC-20 for first 3 params
+    ;; keccak256("Transfer(address,address,uint256)")
+    (let ((topic (coalton:coalton (web3/events:erc721-transfer-topic coalton:Unit))))
+      (assert (= (length topic) 32))
+      (assert (= (aref topic 0) #xdd))
+      (assert (= (aref topic 1) #xf2))
+      (assert (= (aref topic 2) #x52))
+      (assert (= (aref topic 3) #xad))))
+
+  (test-case "ERC-721 Approval topic = 0x8c5be1e5..."
+    ;; ERC-721 Approval also has same signature as ERC-20
+    (let ((topic (coalton:coalton (web3/events:erc721-approval-topic coalton:Unit))))
+      (assert (= (length topic) 32))
+      (assert (= (aref topic 0) #x8c))
+      (assert (= (aref topic 1) #x5b))))
+
+  (test-case "event-signature for custom event"
+    (let ((sig (coalton:coalton (web3/events:event-signature "Deposit(address,uint256)"))))
+      (assert (= (length sig) 32))))
+
+  (test-case "event-signature for complex event"
+    ;; Event with multiple indexed parameters
+    (let ((sig (coalton:coalton (web3/events:event-signature "Swap(address,address,int256,int256,uint160,uint128,int24)"))))
+      (assert (= (length sig) 32))))
+
+  (test-case "event-signature is deterministic"
+    (let ((sig1 (coalton:coalton (web3/events:event-signature "MyEvent(uint256)")))
+          (sig2 (coalton:coalton (web3/events:event-signature "MyEvent(uint256)"))))
+      ;; Same signature should produce same topic
+      (assert (= (aref sig1 0) (aref sig2 0)))
+      (assert (= (aref sig1 31) (aref sig2 31)))))
+
+  (test-case "different events have different signatures"
+    (let ((sig1 (coalton:coalton (web3/events:event-signature "EventA(uint256)")))
+          (sig2 (coalton:coalton (web3/events:event-signature "EventB(uint256)"))))
+      ;; Different events should produce different topics
+      (assert (not (and (= (aref sig1 0) (aref sig2 0))
+                        (= (aref sig1 1) (aref sig2 1))
+                        (= (aref sig1 2) (aref sig2 2))
+                        (= (aref sig1 3) (aref sig2 3)))))))
+
+  ;;; =========================================================================
+  ;;; Additional Indexed Parameter Decoding Tests
+  ;;; =========================================================================
+
+  (test-case "decode-indexed-address with zero address"
+    (let* ((topic (result-value (coalton:coalton
+                                 (web3/types:hex-decode
+                                  "0000000000000000000000000000000000000000000000000000000000000000"))))
+           (result (coalton:coalton
+                    (web3/events:decode-indexed-address
+                     (coalton:lisp web3/types:Bytes () topic)))))
+      (assert (is-ok result))
+      (let ((addr-hex (coalton:coalton
+                       (web3/address:address-to-hex
+                        (coalton:lisp web3/address:Address () (result-value result))))))
+        (assert (string-equal (string-downcase addr-hex)
+                              "0x0000000000000000000000000000000000000000")))))
+
+  (test-case "decode-indexed-address with max address"
+    (let* ((topic (result-value (coalton:coalton
+                                 (web3/types:hex-decode
+                                  "000000000000000000000000ffffffffffffffffffffffffffffffffffffffff"))))
+           (result (coalton:coalton
+                    (web3/events:decode-indexed-address
+                     (coalton:lisp web3/types:Bytes () topic)))))
+      (assert (is-ok result))
+      (let ((addr-hex (coalton:coalton
+                       (web3/address:address-to-hex
+                        (coalton:lisp web3/address:Address () (result-value result))))))
+        (assert (string-equal (string-downcase addr-hex)
+                              "0xffffffffffffffffffffffffffffffffffffffff")))))
+
+  (test-case "decode-indexed-uint256 with zero"
+    (let* ((topic (result-value (coalton:coalton
+                                 (web3/types:hex-decode
+                                  "0000000000000000000000000000000000000000000000000000000000000000"))))
+           (result (coalton:coalton
+                    (web3/events:decode-indexed-uint256
+                     (coalton:lisp web3/types:Bytes () topic)))))
+      (assert (is-ok result))
+      (let ((value (result-value result)))
+        (let ((expected (coalton:coalton (web3/types:u256-zero coalton:Unit))))
+          (assert (coalton:coalton
+                   (web3/types:u256-equal?
+                    (coalton:lisp web3/types:U256 () value)
+                    (coalton:lisp web3/types:U256 () expected))))))))
+
+  (test-case "decode-indexed-uint256 with large value"
+    ;; Max uint256 = 2^256 - 1 = all ff's
+    (let* ((topic (result-value (coalton:coalton
+                                 (web3/types:hex-decode
+                                  "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"))))
+           (result (coalton:coalton
+                    (web3/events:decode-indexed-uint256
+                     (coalton:lisp web3/types:Bytes () topic)))))
+      (assert (is-ok result))
+      (let ((value (result-value result)))
+        (let ((expected (coalton:coalton (web3/types:u256-max coalton:Unit))))
+          (assert (coalton:coalton
+                   (web3/types:u256-equal?
+                    (coalton:lisp web3/types:U256 () value)
+                    (coalton:lisp web3/types:U256 () expected))))))))
+
+  (test-case "decode-indexed-uint256 with 1 ETH in wei"
+    ;; 1 ETH = 1e18 wei = 0xDE0B6B3A7640000
+    (let* ((topic (result-value (coalton:coalton
+                                 (web3/types:hex-decode
+                                  "0000000000000000000000000000000000000000000000000de0b6b3a7640000"))))
+           (result (coalton:coalton
+                    (web3/events:decode-indexed-uint256
+                     (coalton:lisp web3/types:Bytes () topic)))))
+      (assert (is-ok result))
+      (let ((value (result-value result)))
+        (let ((expected (coalton:coalton (web3/types:u256-from-integer 1000000000000000000))))
+          (assert (coalton:coalton
+                   (web3/types:u256-equal?
+                    (coalton:lisp web3/types:U256 () value)
+                    (coalton:lisp web3/types:U256 () expected))))))))
+
+  (test-case "decode-indexed-address rejects empty bytes"
+    (let* ((topic (result-value (coalton:coalton (web3/types:hex-decode ""))))
+           (result (coalton:coalton
+                    (web3/events:decode-indexed-address
+                     (coalton:lisp web3/types:Bytes () topic)))))
+      (assert (not (is-ok result)))))
+
+  (test-case "decode-indexed-uint256 rejects empty bytes"
+    (let* ((topic (result-value (coalton:coalton (web3/types:hex-decode ""))))
+           (result (coalton:coalton
+                    (web3/events:decode-indexed-uint256
+                     (coalton:lisp web3/types:Bytes () topic)))))
+      (assert (not (is-ok result)))))
+
+  ;;; =========================================================================
+  ;;; matches-event-signature Tests
+  ;;; =========================================================================
+
+  (test-case "matches-event-signature? returns true for matching topic"
+    ;; Create an EventLog with Transfer topic and test against Transfer signature
+    (let* ((transfer-topic (coalton:coalton (web3/events:erc20-transfer-topic coalton:Unit)))
+           (zero-addr (result-value (coalton:coalton
+                                     (web3/address:address-from-hex
+                                      "0x0000000000000000000000000000000000000001"))))
+           (empty-data (coalton:coalton (web3/types:bytes-empty coalton:Unit)))
+           ;; Create EventLog with Transfer topic
+           (event-log (coalton:coalton
+                       (web3/events:EventLog
+                        (coalton:lisp web3/address:Address () zero-addr)
+                        (coalton:Cons (coalton:lisp web3/types:Bytes () transfer-topic) coalton:Nil)
+                        (coalton:lisp web3/types:Bytes () empty-data)
+                        coalton-prelude:None
+                        coalton-prelude:None
+                        coalton-prelude:None)))
+           ;; Test against Transfer signature - expect match
+           (expected-topic (coalton:coalton (web3/events:event-signature "Transfer(address,address,uint256)")))
+           (matches (coalton:coalton
+                     (web3/events:matches-event-signature?
+                      (coalton:lisp web3/types:Bytes () expected-topic)
+                      (coalton:lisp web3/events:EventLog () event-log)))))
+      (assert (eq matches coalton:True))))
+
+  (test-case "matches-event-signature? returns false for non-matching topic"
+    ;; Create EventLog with Transfer topic but test against Approval signature
+    (let* ((transfer-topic (coalton:coalton (web3/events:erc20-transfer-topic coalton:Unit)))
+           (zero-addr (result-value (coalton:coalton
+                                     (web3/address:address-from-hex
+                                      "0x0000000000000000000000000000000000000001"))))
+           (empty-data (coalton:coalton (web3/types:bytes-empty coalton:Unit)))
+           (event-log (coalton:coalton
+                       (web3/events:EventLog
+                        (coalton:lisp web3/address:Address () zero-addr)
+                        (coalton:Cons (coalton:lisp web3/types:Bytes () transfer-topic) coalton:Nil)
+                        (coalton:lisp web3/types:Bytes () empty-data)
+                        coalton-prelude:None
+                        coalton-prelude:None
+                        coalton-prelude:None)))
+           ;; Test against Approval signature - expect no match
+           (expected-topic (coalton:coalton (web3/events:event-signature "Approval(address,address,uint256)")))
+           (matches (coalton:coalton
+                     (web3/events:matches-event-signature?
+                      (coalton:lisp web3/types:Bytes () expected-topic)
+                      (coalton:lisp web3/events:EventLog () event-log)))))
+      (assert (eq matches coalton:False))))
+
+  (test-case "matches-event-signature? with approval topic"
+    ;; Create EventLog with Approval topic and test against Approval signature
+    (let* ((approval-topic (coalton:coalton (web3/events:erc20-approval-topic coalton:Unit)))
+           (zero-addr (result-value (coalton:coalton
+                                     (web3/address:address-from-hex
+                                      "0x0000000000000000000000000000000000000001"))))
+           (empty-data (coalton:coalton (web3/types:bytes-empty coalton:Unit)))
+           (event-log (coalton:coalton
+                       (web3/events:EventLog
+                        (coalton:lisp web3/address:Address () zero-addr)
+                        (coalton:Cons (coalton:lisp web3/types:Bytes () approval-topic) coalton:Nil)
+                        (coalton:lisp web3/types:Bytes () empty-data)
+                        coalton-prelude:None
+                        coalton-prelude:None
+                        coalton-prelude:None)))
+           ;; Test against Approval signature - expect match
+           (expected-topic (coalton:coalton (web3/events:event-signature "Approval(address,address,uint256)")))
+           (matches (coalton:coalton
+                     (web3/events:matches-event-signature?
+                      (coalton:lisp web3/types:Bytes () expected-topic)
+                      (coalton:lisp web3/events:EventLog () event-log)))))
+      (assert (eq matches coalton:True))))
+
+  ;;; =========================================================================
+  ;;; Additional Event Topic Tests
+  ;;; =========================================================================
+
+  (test-case "ERC-20 and ERC-721 Transfer topics are identical"
+    ;; Both standards use Transfer(address,address,uint256)
+    (let ((erc20-topic (coalton:coalton (web3/events:erc20-transfer-topic coalton:Unit)))
+          (erc721-topic (coalton:coalton (web3/events:erc721-transfer-topic coalton:Unit))))
+      (assert (= (aref erc20-topic 0) (aref erc721-topic 0)))
+      (assert (= (aref erc20-topic 1) (aref erc721-topic 1)))
+      (assert (= (aref erc20-topic 31) (aref erc721-topic 31)))))
+
+  (test-case "ERC-721 and ERC-1155 ApprovalForAll topics are identical"
+    ;; Both use ApprovalForAll(address,address,bool)
+    (let ((erc721-topic (coalton:coalton (web3/events:erc721-approval-for-all-topic coalton:Unit)))
+          (erc1155-topic (coalton:coalton (web3/events:erc1155-approval-for-all-topic coalton:Unit))))
+      (assert (= (aref erc721-topic 0) (aref erc1155-topic 0)))
+      (assert (= (aref erc721-topic 31) (aref erc1155-topic 31))))))
