@@ -341,6 +341,28 @@
                       (coalton:lisp web3/events:EventLog () event-log)))))
       (assert (eq matches coalton:True))))
 
+  (test-case "matches-event-signature? returns false for empty topics"
+    ;; EventLog with empty topics list should return False
+    (let* ((zero-addr (result-value (coalton:coalton
+                                     (web3/address:address-from-hex
+                                      "0x0000000000000000000000000000000000000001"))))
+           (empty-data (coalton:coalton (web3/types:bytes-empty coalton:Unit)))
+           ;; Create EventLog with NO topics (empty list)
+           (event-log (coalton:coalton
+                       (web3/events:EventLog
+                        (coalton:lisp web3/address:Address () zero-addr)
+                        coalton:Nil  ; Empty topics list
+                        (coalton:lisp web3/types:Bytes () empty-data)
+                        coalton-prelude:None
+                        coalton-prelude:None
+                        coalton-prelude:None)))
+           (expected-topic (coalton:coalton (web3/events:event-signature "Transfer(address,address,uint256)")))
+           (matches (coalton:coalton
+                     (web3/events:matches-event-signature?
+                      (coalton:lisp web3/types:Bytes () expected-topic)
+                      (coalton:lisp web3/events:EventLog () event-log)))))
+      (assert (eq matches coalton:False))))
+
   ;;; =========================================================================
   ;;; Additional Event Topic Tests
   ;;; =========================================================================

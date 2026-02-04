@@ -144,7 +144,9 @@
     (let ((result (coalton:coalton (web3/rlp:rlp-encode-integer 65536))))
       (assert (= (length result) 4))
       (assert (= (aref result 0) #x83))
-      (assert (= (aref result 1) #x01))))
+      (assert (= (aref result 1) #x01))
+      (assert (= (aref result 2) #x00))
+      (assert (= (aref result 3) #x00))))
 
   (test-case "RLP encode string 'hello world'"
     ;; 11 chars, RLP = [0x8b, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd']
@@ -210,7 +212,7 @@
       (assert (= (aref result 3) 3))))
 
   (test-case "RLP encode byte 0x00"
-    ;; Zero byte needs a length prefix: [0x00] -> [0x00]
+    ;; Zero byte (< 0x80) encodes as itself: [0x00] -> [0x00]
     (let ((result (coalton:coalton
                    (web3/rlp:rlp-encode
                     (web3/rlp:RlpBytes
