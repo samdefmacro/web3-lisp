@@ -283,4 +283,335 @@
                (number (coalton:coalton
                         (web3/block:header-number
                          (coalton:lisp web3/block:BlockHeader () header)))))
-          (assert (= number 68943)))))))  ; 0x10d4f
+          (assert (= number 68943))))))  ; 0x10d4f
+
+  ;;; =========================================================================
+  ;;; Additional Withdrawal Tests
+  ;;; =========================================================================
+
+  (test-case "withdrawal-address accessor works"
+    (let* ((addr (result-value (coalton:coalton
+                                (web3/address:address-from-hex
+                                 "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"))))
+           (withdrawal (coalton:coalton
+                        (web3/block:make-withdrawal
+                         5 200
+                         (coalton:lisp web3/address:Address () addr)
+                         500000)))
+           (retrieved-addr (coalton:coalton
+                            (web3/block:withdrawal-address
+                             (coalton:lisp web3/block:Withdrawal () withdrawal))))
+           (addr-hex (coalton:coalton
+                      (web3/address:address-to-hex
+                       (coalton:lisp web3/address:Address () retrieved-addr)))))
+      (assert (string-equal (string-downcase addr-hex)
+                            "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"))))
+
+  (test-case "withdrawal with zero amount"
+    (let* ((addr (result-value (coalton:coalton
+                                (web3/address:address-from-hex
+                                 "0x0000000000000000000000000000000000000001"))))
+           (withdrawal (coalton:coalton
+                        (web3/block:make-withdrawal
+                         0 0
+                         (coalton:lisp web3/address:Address () addr)
+                         0))))
+      (assert (= (coalton:coalton
+                  (web3/block:withdrawal-index
+                   (coalton:lisp web3/block:Withdrawal () withdrawal)))
+                 0))
+      (assert (= (coalton:coalton
+                  (web3/block:withdrawal-amount
+                   (coalton:lisp web3/block:Withdrawal () withdrawal)))
+                 0))))
+
+  (test-case "withdrawal with large validator index"
+    (let* ((addr (result-value (coalton:coalton
+                                (web3/address:address-from-hex
+                                 "0x0000000000000000000000000000000000000001"))))
+           (withdrawal (coalton:coalton
+                        (web3/block:make-withdrawal
+                         999999 1000000
+                         (coalton:lisp web3/address:Address () addr)
+                         32000000000))))  ; 32 ETH in Gwei
+      (assert (= (coalton:coalton
+                  (web3/block:withdrawal-validator-index
+                   (coalton:lisp web3/block:Withdrawal () withdrawal)))
+                 1000000))))
+
+  ;;; =========================================================================
+  ;;; Additional Block Header Accessor Tests
+  ;;; =========================================================================
+
+  (test-case "header-hash returns correct hash"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (hash (coalton:coalton
+                      (web3/block:header-hash
+                       (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (= (length hash) 32))
+          (assert (= (aref hash 0) #xab))
+          (assert (= (aref hash 1) #xcd))))))
+
+  (test-case "header-miner returns correct address"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0xd8da6bf26964af9d7eed9e03e53415d37aa96045\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (miner (coalton:coalton
+                       (web3/block:header-miner
+                        (coalton:lisp web3/block:BlockHeader () header))))
+               (miner-hex (coalton:coalton
+                           (web3/address:address-to-hex
+                            (coalton:lisp web3/address:Address () miner)))))
+          (assert (string-equal (string-downcase miner-hex)
+                                "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))))))
+
+  (test-case "header-extra-data returns correct bytes"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0xdeadbeef\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (extra-data (coalton:coalton
+                            (web3/block:header-extra-data
+                             (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (= (length extra-data) 4))
+          (assert (= (aref extra-data 0) #xde))
+          (assert (= (aref extra-data 1) #xad))
+          (assert (= (aref extra-data 2) #xbe))
+          (assert (= (aref extra-data 3) #xef))))))
+
+  (test-case "header-size returns correct value"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x1234\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (size (coalton:coalton
+                      (web3/block:header-size
+                       (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (= size #x1234))))))
+
+  ;;; =========================================================================
+  ;;; Pre-Merge Block Tests (PoW)
+  ;;; =========================================================================
+
+  (test-case "is-post-merge returns false for pre-merge block"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x1234567890abcdef\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x2000000\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (post-merge (coalton:coalton
+                            (web3/block:is-post-merge
+                             (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (not post-merge))))))
+
+  (test-case "is-post-shanghai returns false for pre-Shanghai block"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (post-shanghai (coalton:coalton
+                               (web3/block:is-post-shanghai
+                                (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (not post-shanghai))))))
+
+  (test-case "is-post-cancun returns false for pre-Cancun block"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\",\"withdrawalsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (post-cancun (coalton:coalton
+                             (web3/block:is-post-cancun
+                              (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (not post-cancun))))))
+
+  ;;; =========================================================================
+  ;;; Gas Utilization Edge Cases
+  ;;; =========================================================================
+
+  (test-case "gas-utilization with 100% usage"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x1c9c380\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (utilization (coalton:coalton
+                             (web3/block:gas-utilization
+                              (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (= utilization 100))))))
+
+  (test-case "gas-utilization with 0% usage"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (utilization (coalton:coalton
+                             (web3/block:gas-utilization
+                              (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (= utilization 0))))))
+
+  ;;; =========================================================================
+  ;;; Block Accessor Tests
+  ;;; =========================================================================
+
+  (test-case "block-transactions returns empty list for block without txs"
+    (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x220\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\",\"transactions\":[],\"uncles\":[]}}")
+           (result (coalton:coalton
+                    (web3/block:parse-get-block-response
+                     (coalton:lisp coalton:String () response)
+                     coalton:False))))
+      (assert (result-ok-p result))
+      (let ((block-opt (result-value result)))
+        (assert (typep block-opt 'coalton-library/classes::optional/some))
+        (let* ((block (slot-value block-opt 'coalton-library/classes::|_0|))
+               (txs (coalton:coalton
+                     (web3/block:block-transactions
+                      (coalton:lisp web3/block:Block () block))))
+               (tx-count (coalton:coalton
+                          (coalton-library/list:length
+                           (coalton:lisp (coalton:List web3/block:BlockTx) () txs)))))
+          (assert (= tx-count 0))))))
+
+  (test-case "block-uncles returns empty list for block without uncles"
+    (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x220\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\",\"transactions\":[],\"uncles\":[]}}")
+           (result (coalton:coalton
+                    (web3/block:parse-get-block-response
+                     (coalton:lisp coalton:String () response)
+                     coalton:False))))
+      (assert (result-ok-p result))
+      (let ((block-opt (result-value result)))
+        (assert (typep block-opt 'coalton-library/classes::optional/some))
+        (let* ((block (slot-value block-opt 'coalton-library/classes::|_0|))
+               (uncles (coalton:coalton
+                        (web3/block:block-uncles
+                         (coalton:lisp web3/block:Block () block))))
+               (uncle-count (coalton:coalton
+                             (coalton-library/list:length
+                              (coalton:lisp (coalton:List web3/types:Bytes) () uncles)))))
+          (assert (= uncle-count 0))))))
+
+  (test-case "block-withdrawals returns empty list for pre-Shanghai block"
+    (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x220\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\",\"transactions\":[],\"uncles\":[]}}")
+           (result (coalton:coalton
+                    (web3/block:parse-get-block-response
+                     (coalton:lisp coalton:String () response)
+                     coalton:False))))
+      (assert (result-ok-p result))
+      (let ((block-opt (result-value result)))
+        (assert (typep block-opt 'coalton-library/classes::optional/some))
+        (let* ((block (slot-value block-opt 'coalton-library/classes::|_0|))
+               (withdrawals (coalton:coalton
+                             (web3/block:block-withdrawals
+                              (coalton:lisp web3/block:Block () block))))
+               (withdrawal-count (coalton:coalton
+                                  (coalton-library/list:length
+                                   (coalton:lisp (coalton:List web3/block:Withdrawal) () withdrawals)))))
+          (assert (= withdrawal-count 0))))))
+
+  ;;; =========================================================================
+  ;;; Block Number Edge Cases
+  ;;; =========================================================================
+
+  (test-case "block-tag-to-string for block 0 (genesis)"
+    (let ((result (coalton:coalton (web3/block:block-tag-to-string (web3/block:TagNumber 0)))))
+      (assert (string= result "0x0"))))
+
+  (test-case "block-tag-to-string for large block number"
+    (let ((result (coalton:coalton (web3/block:block-tag-to-string (web3/block:TagNumber 20000000)))))
+      (assert (string= result "0x1312D00"))))
+
+  ;;; =========================================================================
+  ;;; Cancun Block Fields Tests
+  ;;; =========================================================================
+
+  (test-case "header-blob-gas-used accessor"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\",\"blobGasUsed\":\"0x60000\",\"excessBlobGas\":\"0x20000\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (blob-gas-opt (coalton:coalton
+                              (web3/block:header-blob-gas-used
+                               (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (typep blob-gas-opt 'coalton-library/classes::optional/some))
+          (let ((blob-gas (slot-value blob-gas-opt 'coalton-library/classes::|_0|)))
+            (assert (= blob-gas #x60000)))))))
+
+  (test-case "header-excess-blob-gas accessor"
+    (let* ((json-str "{\"number\":\"0x1\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"sha3Uncles\":\"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347\",\"logsBloom\":\"0x00\",\"transactionsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"stateRoot\":\"0xd5855eb08b3387c0af375e9cdb6acfc05eb8f519e419b874b6ff2ffda7ed1dff\",\"receiptsRoot\":\"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"size\":\"0x100\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"timestamp\":\"0x65b9a123\",\"blobGasUsed\":\"0x60000\",\"excessBlobGas\":\"0x40000\"}")
+           (json-bytes (make-array (length json-str) :element-type 't
+                                   :fill-pointer (length json-str) :adjustable t)))
+      (dotimes (i (length json-str))
+        (setf (aref json-bytes i) (char-code (char json-str i))))
+      (let ((result (coalton:coalton
+                     (web3/block:parse-block-header
+                      (coalton:lisp web3/types:Bytes () json-bytes)))))
+        (assert (result-ok-p result))
+        (let* ((header (result-value result))
+               (excess-blob-opt (coalton:coalton
+                                 (web3/block:header-excess-blob-gas
+                                  (coalton:lisp web3/block:BlockHeader () header)))))
+          (assert (typep excess-blob-opt 'coalton-library/classes::optional/some))
+          (let ((excess-blob (slot-value excess-blob-opt 'coalton-library/classes::|_0|)))
+            (assert (= excess-blob #x40000))))))))
+
