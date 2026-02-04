@@ -64,4 +64,7 @@
   (:documentation "Pure CL test runners for web3-coalton library")
   (:use #:cl)
   (:export
-   #:run-all-tests))
+   #:run-all-tests
+   ;; Helper predicates for testing Coalton values
+   #:optional-some-p
+   #:optional-none-p))

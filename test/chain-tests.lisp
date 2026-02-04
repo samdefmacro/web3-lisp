@@ -104,39 +104,39 @@
 
   (test-case "get-chain-by-id finds mainnet"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-id 1))))
-      (assert (typep result 'coalton-library/classes::optional/some))
-      (let* ((chain (cl:slot-value result 'coalton-library/classes::|_0|))
+      (assert (optional-some-p chain-tests))
+      (let* ((chain (result-value result))
              (name (coalton:coalton (web3/chain:chain-name
                                      (coalton:lisp web3/chain:Chain () chain)))))
         (assert (string= name "Ethereum")))))
 
   (test-case "get-chain-by-id finds polygon"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-id 137))))
-      (assert (typep result 'coalton-library/classes::optional/some))
-      (let* ((chain (cl:slot-value result 'coalton-library/classes::|_0|))
+      (assert (optional-some-p chain-tests))
+      (let* ((chain (result-value result))
              (name (coalton:coalton (web3/chain:chain-name
                                      (coalton:lisp web3/chain:Chain () chain)))))
         (assert (string= name "Polygon")))))
 
   (test-case "get-chain-by-id returns None for unknown"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-id 99999))))
-      (assert (typep result 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p result))))
 
   (test-case "get-chain-by-name finds by full name"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "Ethereum"))))
-      (assert (typep result 'coalton-library/classes::optional/some))))
+      (assert (optional-some-p chain-tests))))
 
   (test-case "get-chain-by-name finds by short name"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "eth"))))
-      (assert (typep result 'coalton-library/classes::optional/some))))
+      (assert (optional-some-p chain-tests))))
 
   (test-case "get-chain-by-name is case-insensitive"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "POLYGON"))))
-      (assert (typep result 'coalton-library/classes::optional/some))))
+      (assert (optional-some-p chain-tests))))
 
   (test-case "get-chain-by-name returns None for unknown"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "NotAChain"))))
-      (assert (typep result 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p result))))
 
   ;;; =========================================================================
   ;;; Chain List Tests

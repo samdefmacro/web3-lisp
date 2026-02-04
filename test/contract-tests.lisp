@@ -84,8 +84,8 @@
                     (web3/contract:get-function
                      (coalton:lisp web3/contract:Contract () contract)
                      "nonexistent"))))
-      ;; Coalton None is a singleton - use equal for comparison
-      (assert (equal fn-opt coalton-library/classes:None))))
+      ;; Check if result is None using helper
+      (assert (optional-none-p fn-opt))))
 
   (test-case "get-event finds Transfer"
     (let* ((addr-result (coalton:coalton
@@ -394,7 +394,7 @@
                     (web3/contract:get-function-by-selector
                      (coalton:lisp web3/contract:Contract () contract)
                      (coalton:lisp web3/types:Bytes () selector)))))
-      (assert (typep fn-opt 'coalton-library/classes::optional/some))))
+      (assert (optional-some-p fn-opt))))
 
   (test-case "get-function-by-selector returns None for unknown selector"
     (let* ((addr-result (coalton:coalton
@@ -413,7 +413,7 @@
                     (web3/contract:get-function-by-selector
                      (coalton:lisp web3/contract:Contract () contract)
                      (coalton:lisp web3/types:Bytes () selector)))))
-      (assert (typep fn-opt 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p fn-opt))))
 
   (test-case "get-event-by-topic finds Transfer"
     (let* ((addr-result (coalton:coalton
@@ -435,7 +435,7 @@
                     (web3/contract:get-event-by-topic
                      (coalton:lisp web3/contract:Contract () contract)
                      (coalton:lisp web3/types:Bytes () topic)))))
-      (assert (typep ev-opt 'coalton-library/classes::optional/some))))
+      (assert (optional-some-p ev-opt))))
 
   (test-case "get-event-by-topic returns None for unknown topic"
     (let* ((addr-result (coalton:coalton
@@ -453,7 +453,7 @@
                     (web3/contract:get-event-by-topic
                      (coalton:lisp web3/contract:Contract () contract)
                      (coalton:lisp web3/types:Bytes () topic)))))
-      (assert (typep ev-opt 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p ev-opt))))
 
   ;;; =========================================================================
   ;;; Additional Function Lookup Tests
@@ -476,7 +476,7 @@
                        (web3/contract:get-function
                         (coalton:lisp web3/contract:Contract () contract)
                         (coalton:lisp coalton:String () fn-name)))))
-          (assert (typep fn-opt 'coalton-library/classes::optional/some))))))
+          (assert (optional-some-p fn-opt))))))
 
   (test-case "get-event finds Approval event"
     (let* ((addr-result (coalton:coalton
@@ -492,7 +492,7 @@
                     (web3/contract:get-event
                      (coalton:lisp web3/contract:Contract () contract)
                      "Approval"))))
-      (assert (typep ev-opt 'coalton-library/classes::optional/some))))
+      (assert (optional-some-p ev-opt))))
 
   (test-case "get-event returns None for unknown event"
     (let* ((addr-result (coalton:coalton
@@ -508,7 +508,7 @@
                     (web3/contract:get-event
                      (coalton:lisp web3/contract:Contract () contract)
                      "NonexistentEvent"))))
-      (assert (typep ev-opt 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p ev-opt))))
 
   ;;; =========================================================================
   ;;; CallBuilder Edge Cases
@@ -812,4 +812,4 @@
                     (web3/contract:get-function
                      (coalton:lisp web3/contract:Contract () contract)
                      "anyFunction"))))
-      (assert (typep fn-opt 'coalton-library/classes::optional/none)))))
+      (assert (optional-none-p fn-opt)))))

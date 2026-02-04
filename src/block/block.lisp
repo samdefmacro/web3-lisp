@@ -316,14 +316,82 @@
                   (web3/types::u256-from-integer
                    (cl:parse-integer clean :radix 16 :junk-allowed cl:t))))))
 
-(cl:defun make-coalton-some (value)
-  "Create a Coalton Some value"
-  (cl:make-instance 'coalton-library/classes::optional/some
-                    'coalton-library/classes::|_0| value))
+;; Helper to check if Result is Ok (by checking type name string)
+(cl:defun %is-ok-p (result)
+  "Check if Coalton Result is Ok"
+  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
+    (cl:search "OK" type-name)))
 
-(cl:defun make-coalton-none ()
-  "Create a Coalton None value"
-  (cl:make-instance 'coalton-library/classes::optional/none))
+;; Helper to extract value from Ok (slot _0)
+(cl:defun %unwrap-ok (result)
+  "Extract the inner value from Ok"
+  (cl:slot-value result 'coalton-library/classes::|_0|))
+
+;; Store generic typed None values for reuse
+(cl:defvar *none-ufix* nil)
+(cl:defvar *none-u256* nil)
+(cl:defvar *none-bytes* nil)
+
+(cl:defun make-coalton-some-ufix (value)
+  "Create a Coalton Some UFix value"
+  (coalton:coalton (Some (coalton:lisp coalton:UFix () value))))
+
+(cl:defun make-coalton-some-u256 (value)
+  "Create a Coalton Some U256 value"
+  (coalton:coalton (Some (coalton:lisp web3/types:U256 () value))))
+
+(cl:defun make-coalton-some-bytes (value)
+  "Create a Coalton Some Bytes value"
+  (coalton:coalton (Some (coalton:lisp web3/types:Bytes () value))))
+
+(cl:defun make-coalton-none-ufix ()
+  "Create a Coalton None for Optional UFix"
+  (cl:or *none-ufix*
+         (cl:setf *none-ufix* (coalton:coalton (the (Optional coalton:UFix) None)))))
+
+(cl:defun make-coalton-none-u256 ()
+  "Create a Coalton None for Optional U256"
+  (cl:or *none-u256*
+         (cl:setf *none-u256* (coalton:coalton (the (Optional web3/types:U256) None)))))
+
+(cl:defun make-coalton-none-bytes ()
+  "Create a Coalton None for Optional Bytes"
+  (cl:or *none-bytes*
+         (cl:setf *none-bytes* (coalton:coalton (the (Optional web3/types:Bytes) None)))))
+
+;; Helper function to create Err results without interning locked symbols
+(cl:defun make-err-provider (msg)
+  "Create a Coalton Err with ProviderError"
+  (coalton:coalton (Err (web3/types:ProviderError (coalton:lisp coalton:String () msg)))))
+
+;; Result helpers for specific types
+(cl:defun make-ok-withdrawal (value)
+  "Create Ok Withdrawal result"
+  (coalton:coalton (Ok (coalton:lisp web3/block:Withdrawal () value))))
+
+(cl:defun make-ok-block-header (value)
+  "Create Ok BlockHeader result"
+  (coalton:coalton (Ok (coalton:lisp web3/block:BlockHeader () value))))
+
+(cl:defun make-ok-block (value)
+  "Create Ok Block result"
+  (coalton:coalton (Ok (coalton:lisp web3/block:Block () value))))
+
+;; Block-specific helpers for Optional Block
+(cl:defvar *none-block* nil)
+
+(cl:defun make-coalton-none-block ()
+  "Create a Coalton None for Optional Block"
+  (cl:or *none-block*
+         (cl:setf *none-block* (coalton:coalton (the (Optional web3/block:Block) None)))))
+
+(cl:defun make-coalton-some-block (blk)
+  "Create a Coalton Some Block value"
+  (coalton:coalton (Some (coalton:lisp web3/block:Block () blk))))
+
+(cl:defun make-ok-optional-block (value)
+  "Create Ok (Optional Block) result"
+  (coalton:coalton (Ok (coalton:lisp (Optional web3/block:Block) () value))))
 
 (cl:defun camel-to-lisp-case (str)
   "Convert camelCase to LISP-CASE"
@@ -345,28 +413,28 @@
 (cl:defun parse-optional-ufix (hex-str)
   "Parse optional hex string to Optional UFix"
   (cl:if (cl:or (cl:null hex-str) (cl:string= hex-str ""))
-         (make-coalton-none)
-         (make-coalton-some (parse-hex-to-ufix hex-str))))
+         (make-coalton-none-ufix)
+         (make-coalton-some-ufix (parse-hex-to-ufix hex-str))))
 
 (cl:defun parse-optional-u256 (hex-str)
   "Parse optional hex string to Optional U256"
   (cl:if (cl:or (cl:null hex-str) (cl:string= hex-str ""))
-         (make-coalton-none)
-         (make-coalton-some (parse-hex-to-u256 hex-str))))
+         (make-coalton-none-u256)
+         (make-coalton-some-u256 (parse-hex-to-u256 hex-str))))
 
 (cl:defun parse-optional-bytes (hex-str)
   "Parse optional hex string to Optional Bytes"
   (cl:if (cl:or (cl:null hex-str) (cl:string= hex-str ""))
-         (make-coalton-none)
-         (make-coalton-some (parse-hex-to-bytes hex-str))))
+         (make-coalton-none-bytes)
+         (make-coalton-some-bytes (parse-hex-to-bytes hex-str))))
 
 (cl:defun parse-address-from-hex (hex-str)
   "Parse address from hex string"
   (cl:let ((result (coalton:coalton
                     (web3/address:address-from-hex
                      (coalton:lisp coalton:String () hex-str)))))
-    (cl:if (cl:typep result 'coalton-library/classes::result/ok)
-           (cl:slot-value result 'coalton-library/classes::|_0|)
+    (cl:if (%is-ok-p result)
+           (%unwrap-ok result)
            ;; Return zero address on error
            (coalton:coalton (web3/address:address-zero coalton:Unit)))))
 
@@ -385,21 +453,16 @@
           (cl:let* ((json-str (cl:map 'cl:string #'cl:code-char json-bytes))
                     (obj (cl:ignore-errors (json:decode-json-from-string json-str))))
             (cl:if (cl:null obj)
-                   (cl:make-instance 'coalton-library/classes::result/err
-                                     'coalton-library/classes::|_0|
-                                     (types:ProviderError "Invalid JSON"))
+                   (make-err-provider "Invalid JSON")
                    (cl:let ((w (Withdrawal
                                 (parse-hex-to-ufix (json-get obj "index"))
                                 (parse-hex-to-ufix (json-get obj "validatorIndex"))
                                 (parse-address-from-hex (json-get obj "address"))
                                 (parse-hex-to-ufix (json-get obj "amount")))))
-                     (cl:make-instance 'coalton-library/classes::result/ok
-                                       'coalton-library/classes::|_0| w))))
+                     (make-ok-withdrawal w))))
         (cl:error (e)
           (cl:declare (cl:ignore e))
-          (cl:make-instance 'coalton-library/classes::result/err
-                            'coalton-library/classes::|_0|
-                            (types:ProviderError "Parse error"))))))
+          (make-err-provider "Parse error")))))
 
   ;;; =========================================================================
   ;;; Block Header Parsing
@@ -413,9 +476,7 @@
           (cl:let* ((json-str (cl:map 'cl:string #'cl:code-char json-bytes))
                     (obj (cl:ignore-errors (json:decode-json-from-string json-str))))
             (cl:if (cl:null obj)
-                   (cl:make-instance 'coalton-library/classes::result/err
-                                     'coalton-library/classes::|_0|
-                                     (types:ProviderError "Invalid JSON"))
+                   (make-err-provider "Invalid JSON")
                    (cl:let ((header
                              (%BlockHeader
                               (parse-hex-to-ufix (json-get obj "number"))
@@ -439,13 +500,10 @@
                               (parse-optional-bytes (json-get obj "withdrawalsRoot"))
                               (parse-optional-ufix (json-get obj "blobGasUsed"))
                               (parse-optional-ufix (json-get obj "excessBlobGas")))))
-                     (cl:make-instance 'coalton-library/classes::result/ok
-                                       'coalton-library/classes::|_0| header))))
+                     (make-ok-block-header header))))
         (cl:error (e)
           (cl:declare (cl:ignore e))
-          (cl:make-instance 'coalton-library/classes::result/err
-                            'coalton-library/classes::|_0|
-                            (types:ProviderError "Parse error"))))))
+          (make-err-provider "Parse error")))))
 
   ;;; =========================================================================
   ;;; Full Block Parsing
@@ -459,9 +517,7 @@
           (cl:let* ((json-str (cl:map 'cl:string #'cl:code-char json-bytes))
                     (obj (cl:ignore-errors (json:decode-json-from-string json-str))))
             (cl:if (cl:null obj)
-                   (cl:make-instance 'coalton-library/classes::result/err
-                                     'coalton-library/classes::|_0|
-                                     (types:ProviderError "Invalid JSON"))
+                   (make-err-provider "Invalid JSON")
                    (cl:let* ((header
                               (%BlockHeader
                                (parse-hex-to-ufix (json-get obj "number"))
@@ -526,13 +582,10 @@
                                      :initial-value Nil
                                      :from-end cl:t)))
                             (block (%Block header txs uncles withdrawals)))
-                     (cl:make-instance 'coalton-library/classes::result/ok
-                                       'coalton-library/classes::|_0| block))))
+                     (make-ok-block block))))
         (cl:error (e)
           (cl:declare (cl:ignore e))
-          (cl:make-instance 'coalton-library/classes::result/err
-                            'coalton-library/classes::|_0|
-                            (types:ProviderError "Parse error"))))))
+          (make-err-provider "Parse error")))))
 
   ;;; =========================================================================
   ;;; JSON-RPC Request Encoding
@@ -572,15 +625,10 @@
                     (rpc-err (json-get obj "error")))
             (cl:cond
               (rpc-err
-               (cl:make-instance 'coalton-library/classes::result/err
-                                 'coalton-library/classes::|_0|
-                                 (types:ProviderError
-                                  (cl:or (json-get rpc-err "message") "Unknown error"))))
+               (make-err-provider (cl:or (json-get rpc-err "message") "Unknown error")))
               ((cl:null result)
                ;; Block not found
-               (cl:make-instance 'coalton-library/classes::result/ok
-                                 'coalton-library/classes::|_0|
-                                 (make-coalton-none)))
+               (make-ok-optional-block (make-coalton-none-block)))
               (cl:t
                ;; Parse the block
                (cl:let* ((header
@@ -644,14 +692,10 @@
                                   :initial-value Nil
                                   :from-end cl:t)))
                          (block (%Block header txs uncles withdrawals)))
-                 (cl:make-instance 'coalton-library/classes::result/ok
-                                   'coalton-library/classes::|_0|
-                                   (make-coalton-some block))))))
+                 (make-ok-optional-block (make-coalton-some-block block))))))
         (cl:error (e)
           (cl:declare (cl:ignore e))
-          (cl:make-instance 'coalton-library/classes::result/err
-                            'coalton-library/classes::|_0|
-                            (types:ProviderError "Parse error")))))))
+          (make-err-provider "Parse error"))))))
 
 
 ;;; =========================================================================

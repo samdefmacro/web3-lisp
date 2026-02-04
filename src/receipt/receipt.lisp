@@ -222,14 +222,25 @@
              (cl:dotimes (i (cl:min 32 (cl:length bytes)) result)
                (cl:setf (cl:aref result i) (cl:aref bytes i)))))))
 
+;; Helper to check if a Result is Ok (by checking type name string)
+(cl:defun %result-ok-p (result)
+  "Check if Coalton Result is Ok"
+  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
+    (cl:search "OK" type-name)))
+
+;; Helper to extract value from Ok (slot _0)
+(cl:defun %unwrap-ok (result)
+  "Extract the inner value from Ok"
+  (cl:slot-value result 'coalton-library/classes::|_0|))
+
 (cl:defun %parse-address (hex-str)
   "Parse hex string to Address"
   (cl:if hex-str
          (cl:let ((result (coalton:coalton
                            (web3/address:address-from-hex
                             (coalton:lisp coalton:String () hex-str)))))
-           (cl:if (cl:typep result 'coalton-library/classes::result/ok)
-                  (cl:slot-value result 'coalton-library/classes::|_0|)
+           (cl:if (%result-ok-p result)
+                  (%unwrap-ok result)
                   cl:nil))
          cl:nil))
 
@@ -237,9 +248,8 @@
   "Parse hex string to Optional Address"
   (cl:let ((addr (%parse-address hex-str)))
     (cl:if addr
-           (cl:make-instance 'coalton-library/classes::optional/some
-                             'coalton-library/classes::|_0| addr)
-           (cl:make-instance 'coalton-library/classes::optional/none))))
+           (coalton:coalton (Some (coalton:lisp addr:Address () addr)))
+           (coalton:coalton (the (Optional addr:Address) None)))))
 
 (cl:defun %parse-status (status-hex)
   "Parse status field to ReceiptStatus"
@@ -361,10 +371,9 @@
       (cl:let* ((parsed (cl-json:decode-json-from-string json-str))
                 (result (cl:cdr (cl:assoc :result parsed))))
         (cl:if (cl:null result)
-               (Ok (cl:make-instance 'coalton-library/classes::optional/none))  ; Transaction pending or not found
+               (Ok (coalton:coalton (the (Optional Receipt) None)))  ; Transaction pending or not found
                (cl:let ((receipt (%parse-receipt-from-alist result)))
-                 (Ok (cl:make-instance 'coalton-library/classes::optional/some
-                                       'coalton-library/classes::|_0| receipt)))))
+                 (Ok (coalton:coalton (Some (coalton:lisp Receipt () receipt)))))))
     (cl:error (e)
       (Err (web3/types:ProviderError
             (cl:format cl:nil "Failed to parse receipt response: ~A" e))))))

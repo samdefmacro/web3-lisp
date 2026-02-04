@@ -189,6 +189,23 @@
                "{\"jsonrpc\":\"2.0\",\"id\":~A,\"method\":\"eth_subscribe\",\"params\":~A}"
                request-id method-params)))
 
+;; Helper to check if an Optional is Some (by checking type name string)
+(cl:defun %is-some-p (opt)
+  "Check if Coalton Optional is Some"
+  (cl:let ((type-name (cl:symbol-name (cl:type-of opt))))
+    (cl:search "SOME" type-name)))
+
+;; Helper to check if a Result is Ok (by checking type name string)
+(cl:defun %is-ok-p (result)
+  "Check if Coalton Result is Ok"
+  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
+    (cl:search "OK" type-name)))
+
+;; Helper to extract value from Some/Ok (slot _0)
+(cl:defun %unwrap-value (container)
+  "Extract the inner value from Some or Ok"
+  (cl:slot-value container 'coalton-library/classes::|_0|))
+
 (cl:defun %encode-logs-params (log-fltr)
   "Encode logs subscription parameters"
   ;; Access struct fields using Coalton accessors
@@ -200,8 +217,8 @@
                       (coalton:lisp LogFilter () log-fltr))))
             (filter-obj (cl:make-hash-table :test 'cl:equal)))
     ;; Add address if present
-    (cl:when (cl:typep addr-opt 'coalton-library/classes::optional/some)
-      (cl:let* ((addr (cl:slot-value addr-opt 'coalton-library/classes::|_0|))
+    (cl:when (%is-some-p addr-opt)
+      (cl:let* ((addr (%unwrap-value addr-opt))
                 (addr-bytes (coalton:coalton
                              (addr:address-bytes
                               (coalton:lisp addr:Address () addr))))
@@ -224,8 +241,8 @@
          (cl:let ((rest-topics (%convert-topics (cl:cdr topics)))
                   (topic-opt (cl:car topics)))
            (cl:cons
-            (cl:if (cl:typep topic-opt 'coalton-library/classes::optional/some)
-                   (cl:let* ((topic-bytes (cl:slot-value topic-opt 'coalton-library/classes::|_0|))
+            (cl:if (%is-some-p topic-opt)
+                   (cl:let* ((topic-bytes (%unwrap-value topic-opt))
                              (topic-hex (coalton:coalton
                                          (types:hex-encode-prefixed
                                           (coalton:lisp types:Bytes () topic-bytes)))))
@@ -283,9 +300,9 @@
                     (log-idx-hex (cl:cdr (cl:assoc :log-index parsed))))
             (cl:let ((addr-result (%parse-address addr-hex)))
               ;; Check if result is Ok by checking its type
-              (cl:if (cl:typep addr-result 'coalton-library/classes::result/ok)
+              (cl:if (%is-ok-p addr-result)
                      (Ok (LogEntry
-                          (%unwrap-addr-result addr-result)
+                          (%unwrap-value addr-result)
                           (%parse-topics-list topics-list)
                           (%parse-hex-to-bytes data-hex)
                           (%parse-hex-to-ufix block-num-hex)
@@ -358,10 +375,6 @@
   "Parse hex string to Address"
   (coalton:coalton
    (addr:address-from-hex (coalton:lisp coalton:String () hex-str))))
-
-(cl:defun %unwrap-addr-result (result)
-  "Unwrap address result (use only when known to be Ok)"
-  (cl:slot-value result 'coalton-library/classes::|_0|))
 
 (cl:defun %parse-topics-list (topics)
   "Parse list of topic hex strings to Coalton list of Bytes"

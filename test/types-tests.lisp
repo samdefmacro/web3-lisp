@@ -25,16 +25,31 @@
   (and (= (length a) (length b))
        (every #'= (coerce a 'list) (coerce b 'list))))
 
+;; Helper to check type by string to avoid package lock issues
+(defun %type-contains (obj type-substr)
+  "Check if obj's type name contains type-substr"
+  (search type-substr (symbol-name (type-of obj))))
+
 (defun result-ok-p (r)
   "Check if a Coalton Result is Ok"
-  (typep r 'coalton-library/classes::result/ok))
+  (%type-contains r "OK"))
 
 (defun result-err-p (r)
   "Check if a Coalton Result is Err"
-  (typep r 'coalton-library/classes::result/err))
+  (%type-contains r "ERR"))
+
+(defun optional-some-p (opt)
+  "Check if a Coalton Optional is Some"
+  ;; Some values are not eq to coalton:None
+  (not (eq opt coalton:None)))
+
+(defun optional-none-p (opt)
+  "Check if a Coalton Optional is None"
+  ;; None is a singleton - use eq comparison
+  (eq opt coalton:None))
 
 (defun result-value (r)
-  "Extract value from a Coalton Result/Ok"
+  "Extract value from a Coalton Result/Ok or Optional/Some"
   (slot-value r 'coalton-library/classes::_0))
 
 (defun is-ok (r)

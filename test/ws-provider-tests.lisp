@@ -493,21 +493,21 @@
                     (web3/ws-provider:sync-starting-block
                      (coalton:lisp web3/ws-provider:SyncStatus () status)))))
       ;; Should be None
-      (assert (typep result 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p result))))
 
   (test-case "sync-current-block returns None for NotSyncing"
     (let* ((status (coalton:coalton web3/ws-provider:NotSyncing))
            (result (coalton:coalton
                     (web3/ws-provider:sync-current-block
                      (coalton:lisp web3/ws-provider:SyncStatus () status)))))
-      (assert (typep result 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p result))))
 
   (test-case "sync-highest-block returns None for NotSyncing"
     (let* ((status (coalton:coalton web3/ws-provider:NotSyncing))
            (result (coalton:coalton
                     (web3/ws-provider:sync-highest-block
                      (coalton:lisp web3/ws-provider:SyncStatus () status)))))
-      (assert (typep result 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p result))))
 
   (test-case "sync accessors return values for Syncing"
     (let* ((status (coalton:coalton (web3/ws-provider:Syncing 100 200 300)))
@@ -521,6 +521,6 @@
                      (web3/ws-provider:sync-highest-block
                       (coalton:lisp web3/ws-provider:SyncStatus () status)))))
       ;; All should be Some
-      (assert (typep starting 'coalton-library/classes::optional/some))
-      (assert (typep current 'coalton-library/classes::optional/some))
-      (assert (typep highest 'coalton-library/classes::optional/some)))))
+      (assert (optional-some-p starting))
+      (assert (optional-some-p current))
+      (assert (optional-some-p highest)))))

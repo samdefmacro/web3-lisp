@@ -121,8 +121,8 @@
                (base-fee-opt (coalton:coalton
                               (web3/block:header-base-fee
                                (coalton:lisp web3/block:BlockHeader () header)))))
-          (assert (typep base-fee-opt 'coalton-library/classes::optional/some))
-          (let ((base-fee (slot-value base-fee-opt 'coalton-library/classes::|_0|)))
+          (assert (optional-some-p block-tests))
+          (let ((base-fee (result-value base-fee-opt)))
             (assert (= base-fee 1000000000)))))))  ; 0x3b9aca00 = 1 gwei
 
   ;;; =========================================================================
@@ -257,7 +257,7 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (typep block-opt 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p block-opt)))))
 
   (test-case "parse-get-block-response handles error"
     (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"Invalid params\"}}")
@@ -275,8 +275,8 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (typep block-opt 'coalton-library/classes::optional/some))
-        (let* ((block (slot-value block-opt 'coalton-library/classes::|_0|))
+        (assert (optional-some-p block-tests))
+        (let* ((block (result-value block-opt))
                (header (coalton:coalton
                         (web3/block:block-header
                          (coalton:lisp web3/block:Block () block))))
@@ -517,8 +517,8 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (typep block-opt 'coalton-library/classes::optional/some))
-        (let* ((block (slot-value block-opt 'coalton-library/classes::|_0|))
+        (assert (optional-some-p block-tests))
+        (let* ((block (result-value block-opt))
                (txs (coalton:coalton
                      (web3/block:block-transactions
                       (coalton:lisp web3/block:Block () block))))
@@ -535,8 +535,8 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (typep block-opt 'coalton-library/classes::optional/some))
-        (let* ((block (slot-value block-opt 'coalton-library/classes::|_0|))
+        (assert (optional-some-p block-tests))
+        (let* ((block (result-value block-opt))
                (uncles (coalton:coalton
                         (web3/block:block-uncles
                          (coalton:lisp web3/block:Block () block))))
@@ -553,8 +553,8 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (typep block-opt 'coalton-library/classes::optional/some))
-        (let* ((block (slot-value block-opt 'coalton-library/classes::|_0|))
+        (assert (optional-some-p block-tests))
+        (let* ((block (result-value block-opt))
                (withdrawals (coalton:coalton
                              (web3/block:block-withdrawals
                               (coalton:lisp web3/block:Block () block))))
@@ -593,8 +593,8 @@
                (blob-gas-opt (coalton:coalton
                               (web3/block:header-blob-gas-used
                                (coalton:lisp web3/block:BlockHeader () header)))))
-          (assert (typep blob-gas-opt 'coalton-library/classes::optional/some))
-          (let ((blob-gas (slot-value blob-gas-opt 'coalton-library/classes::|_0|)))
+          (assert (optional-some-p block-tests))
+          (let ((blob-gas (result-value blob-gas-opt)))
             (assert (= blob-gas #x60000)))))))
 
   (test-case "header-excess-blob-gas accessor"
@@ -611,7 +611,7 @@
                (excess-blob-opt (coalton:coalton
                                  (web3/block:header-excess-blob-gas
                                   (coalton:lisp web3/block:BlockHeader () header)))))
-          (assert (typep excess-blob-opt 'coalton-library/classes::optional/some))
-          (let ((excess-blob (slot-value excess-blob-opt 'coalton-library/classes::|_0|)))
+          (assert (optional-some-p block-tests))
+          (let ((excess-blob (result-value excess-blob-opt)))
             (assert (= excess-blob #x40000))))))))
 

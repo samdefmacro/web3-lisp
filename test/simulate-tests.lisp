@@ -72,7 +72,7 @@
                      (web3/simulate:.call-options-gas-limit
                       (coalton:lisp web3/simulate:CallOptions () opts)))))
       ;; gas-opt should be Some 50000
-      (assert (typep gas-opt 'coalton-library/classes::optional/some))))
+      (assert (optional-some-p simulate-tests))))
 
   ;;; =========================================================================
   ;;; SimulationResult Tests

@@ -128,7 +128,7 @@
         (let ((to-addr (coalton:coalton
                         (web3/receipt:.receipt-to
                          (coalton:lisp web3/receipt:Receipt () receipt)))))
-          (assert (typep to-addr 'coalton-library/classes::optional/none))))))
+          (assert (optional-none-p to-addr))))))
 
   (test-case "parse-receipt with logs"
     (let* ((receipt-json "{\"transactionHash\":\"0x0000000000000000000000000000000000000000000000000000000000000005\",\"transactionIndex\":\"0x1\",\"blockHash\":\"0x0000000000000000000000000000000000000000000000000000000000000006\",\"blockNumber\":\"0x200\",\"from\":\"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d\",\"to\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"cumulativeGasUsed\":\"0x10000\",\"gasUsed\":\"0x8000\",\"effectiveGasPrice\":\"0x2540be400\",\"contractAddress\":null,\"logs\":[{\"address\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"topics\":[\"0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef\"],\"data\":\"0x0000000000000000000000000000000000000000000000000000000000000064\",\"blockNumber\":\"0x200\",\"transactionHash\":\"0x0000000000000000000000000000000000000000000000000000000000000005\",\"transactionIndex\":\"0x1\",\"blockHash\":\"0x0000000000000000000000000000000000000000000000000000000000000006\",\"logIndex\":\"0x0\",\"removed\":false},{\"address\":\"0xdac17f958d2ee523a2206206994597c13d831ec7\",\"topics\":[\"0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef\"],\"data\":\"0x00000000000000000000000000000000000000000000000000000000000000c8\",\"blockNumber\":\"0x200\",\"transactionHash\":\"0x0000000000000000000000000000000000000000000000000000000000000005\",\"transactionIndex\":\"0x1\",\"blockHash\":\"0x0000000000000000000000000000000000000000000000000000000000000006\",\"logIndex\":\"0x1\",\"removed\":false}],\"logsBloom\":\"0x\",\"status\":\"0x1\",\"type\":\"0x2\"}")
@@ -212,7 +212,7 @@
       (assert (result-ok-p result))
       ;; Should return None since transaction is pending/not found
       (let ((maybe-receipt (result-value result)))
-        (assert (typep maybe-receipt 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p maybe-receipt)))))
 
   (test-case "parse-get-receipt-response with receipt"
     (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"transactionHash\":\"0x1\",\"transactionIndex\":\"0x0\",\"blockHash\":\"0x2\",\"blockNumber\":\"0x1\",\"from\":\"0xa7d9ddbe1f17865597fbd27ec712455208b6b76d\",\"to\":\"0xf02c1c8e6114b1dbe8937a39260b5b0a374432bb\",\"cumulativeGasUsed\":\"0x5208\",\"gasUsed\":\"0x5208\",\"effectiveGasPrice\":\"0x1\",\"contractAddress\":null,\"logs\":[],\"logsBloom\":\"0x\",\"status\":\"0x1\",\"type\":\"0x2\"}}")

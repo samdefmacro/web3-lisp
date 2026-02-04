@@ -52,7 +52,7 @@
                      1
                      (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
       ;; Should be None since nothing is cached
-      (assert (typep result 'coalton-library/classes::optional/none))))
+      (assert (optional-none-p result))))
 
   ;;; =========================================================================
   ;;; nonce-reset Tests (no network calls)
@@ -79,7 +79,7 @@
                       (coalton:lisp web3/address:Address () addr)
                       1
                       (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result)))))
 
   ;;; =========================================================================
   ;;; Multi-Address Tests
@@ -109,8 +109,8 @@
                        (coalton:lisp web3/address:Address () addr2)
                        1
                        (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result1 'coalton-library/classes::optional/none))
-        (assert (typep result2 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result1))
+        (assert (optional-none-p result2)))))
 
   ;;; =========================================================================
   ;;; Multi-Chain Tests
@@ -136,8 +136,8 @@
                               (coalton:lisp web3/address:Address () addr)
                               137  ;; Polygon
                               (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result-mainnet 'coalton-library/classes::optional/none))
-        (assert (typep result-polygon 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result-mainnet))
+        (assert (optional-none-p result-polygon)))))
 
   ;;; =========================================================================
   ;;; Multiple Manager Tests
@@ -166,8 +166,8 @@
                        (coalton:lisp web3/address:Address () addr)
                        1
                        (coalton:lisp web3/nonce-manager:NonceManager () nm2)))))
-        (assert (typep result1 'coalton-library/classes::optional/none))
-        (assert (typep result2 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result1))
+        (assert (optional-none-p result2)))))
 
   (test-case "reset on one manager doesn't affect another"
     (let* ((provider (coalton:coalton (web3/provider:make-http-provider "http://localhost:8545")))
@@ -193,7 +193,7 @@
                        (coalton:lisp web3/address:Address () addr)
                        1
                        (coalton:lisp web3/nonce-manager:NonceManager () nm2)))))
-        (assert (typep result2 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result2)))))
 
   ;;; =========================================================================
   ;;; Reset Edge Cases
@@ -220,7 +220,7 @@
                       (coalton:lisp web3/address:Address () addr)
                       1
                       (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result)))))
 
   (test-case "nonce-reset can be called multiple times"
     (let* ((provider (coalton:coalton (web3/provider:make-http-provider "http://localhost:8545")))
@@ -274,7 +274,7 @@
                        (coalton:lisp web3/address:Address () addr2)
                        1
                        (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result2 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result2)))))
 
   (test-case "nonce-reset one chain doesn't affect others"
     (let* ((provider (coalton:coalton (web3/provider:make-http-provider "http://localhost:8545")))
@@ -297,7 +297,7 @@
                               (coalton:lisp web3/address:Address () addr)
                               137  ;; Polygon
                               (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result-polygon 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result-polygon)))))
 
   ;;; =========================================================================
   ;;; Chain ID Edge Cases
@@ -318,7 +318,7 @@
                       (coalton:lisp web3/address:Address () addr)
                       0
                       (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result)))))
 
   (test-case "nonce-peek with high chain-id (Arbitrum)"
     (let* ((provider (coalton:coalton (web3/provider:make-http-provider "http://localhost:8545")))
@@ -335,7 +335,7 @@
                       (coalton:lisp web3/address:Address () addr)
                       42161
                       (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result)))))
 
   (test-case "nonce-peek with very high chain-id"
     (let* ((provider (coalton:coalton (web3/provider:make-http-provider "http://localhost:8545")))
@@ -352,7 +352,7 @@
                       (coalton:lisp web3/address:Address () addr)
                       999999999
                       (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result)))))
 
   ;;; =========================================================================
   ;;; Address Edge Cases
@@ -372,7 +372,7 @@
                       (coalton:lisp web3/address:Address () zero-addr)
                       1
                       (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-        (assert (typep result 'coalton-library/classes::optional/none)))))
+        (assert (optional-none-p result)))))
 
   (test-case "nonce-reset with zero address"
     (let* ((provider (coalton:coalton (web3/provider:make-http-provider "http://localhost:8545")))
@@ -462,7 +462,7 @@
                         (coalton:lisp web3/address:Address () addr)
                         (coalton:lisp coalton:UFix () chain-id)
                         (coalton:lisp web3/nonce-manager:NonceManager () nm)))))
-          (assert (typep result 'coalton-library/classes::optional/none))))))
+          (assert (optional-none-p result))))))
 
   ;;; =========================================================================
   ;;; Network-Dependent Tests (commented out - require running node)

@@ -414,8 +414,8 @@
              (statement-opt (coalton:coalton
                              (web3/siwe:siwe-statement
                               (coalton:lisp web3/siwe:SiweMessage () parsed)))))
-        (assert (typep statement-opt 'coalton-library/classes::optional/some))
-        (assert (string= (slot-value statement-opt 'coalton-library/classes::_0)
+        (assert (optional-some-p siwe-tests))
+        (assert (string= (result-value statement-opt)
                          "Sign to prove ownership")))))
 
   ;;; =========================================================================
