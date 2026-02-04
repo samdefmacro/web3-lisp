@@ -56,6 +56,20 @@
       (assert (search "logs" request))
       (assert (search "address" request))))
 
+  (test-case "encode-subscribe-request with large request ID"
+    (let ((request (coalton:coalton
+                    (web3/ws-provider:encode-subscribe-request
+                     999999
+                     web3/ws-provider:SubNewHeads))))
+      (assert (search "\"id\":999999" request))))
+
+  (test-case "encode-subscribe-request includes jsonrpc version"
+    (let ((request (coalton:coalton
+                    (web3/ws-provider:encode-subscribe-request
+                     1
+                     web3/ws-provider:SubNewHeads))))
+      (assert (search "\"jsonrpc\":\"2.0\"" request))))
+
   (test-case "encode-unsubscribe-request"
     (let ((request (coalton:coalton
                     (web3/ws-provider:encode-unsubscribe-request
@@ -64,6 +78,18 @@
       (assert (search "eth_unsubscribe" request))
       (assert (search "0x1234567890abcdef" request))
       (assert (search "\"id\":5" request))))
+
+  (test-case "encode-unsubscribe-request with different subscription IDs"
+    (let ((request1 (coalton:coalton
+                     (web3/ws-provider:encode-unsubscribe-request
+                      1
+                      "0xabc")))
+          (request2 (coalton:coalton
+                     (web3/ws-provider:encode-unsubscribe-request
+                      2
+                      "0xdef123456"))))
+      (assert (search "0xabc" request1))
+      (assert (search "0xdef123456" request2))))
 
   ;;; =========================================================================
   ;;; Response Parsing Tests
@@ -77,8 +103,38 @@
       (assert (result-ok-p result))
       (assert (string= (result-value result) "0x1a2b3c4d"))))
 
+  (test-case "parse-subscription-response with long subscription ID"
+    (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x9ce59a13059e417087c02d3236a0b1cc1234567890abcdef\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-subscription-response
+                     (coalton:lisp coalton:String () response)))))
+      (assert (result-ok-p result))
+      (assert (string= (result-value result) "0x9ce59a13059e417087c02d3236a0b1cc1234567890abcdef"))))
+
   (test-case "parse-subscription-response error"
     (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32000,\"message\":\"subscription not found\"}}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-subscription-response
+                     (coalton:lisp coalton:String () response)))))
+      (assert (result-err-p result))))
+
+  (test-case "parse-subscription-response error with different codes"
+    ;; Invalid params error
+    (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1,\"error\":{\"code\":-32602,\"message\":\"invalid params\"}}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-subscription-response
+                     (coalton:lisp coalton:String () response)))))
+      (assert (result-err-p result))))
+
+  (test-case "parse-subscription-response with no result"
+    (let* ((response "{\"jsonrpc\":\"2.0\",\"id\":1}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-subscription-response
+                     (coalton:lisp coalton:String () response)))))
+      (assert (result-err-p result))))
+
+  (test-case "parse-subscription-response invalid JSON"
+    (let* ((response "not valid json {{{")
            (result (coalton:coalton
                     (web3/ws-provider:parse-subscription-response
                      (coalton:lisp coalton:String () response)))))
@@ -90,6 +146,27 @@
                     (web3/ws-provider:parse-subscription-notification
                      (coalton:lisp coalton:String () notification)))))
       (assert (result-ok-p result))))
+
+  (test-case "parse-subscription-notification with block header result"
+    (let* ((notification "{\"jsonrpc\":\"2.0\",\"method\":\"eth_subscription\",\"params\":{\"subscription\":\"0xabc\",\"result\":{\"number\":\"0x10d4f\",\"hash\":\"0x1234\",\"parentHash\":\"0xabcd\"}}}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-subscription-notification
+                     (coalton:lisp coalton:String () notification)))))
+      (assert (result-ok-p result))))
+
+  (test-case "parse-subscription-notification wrong method"
+    (let* ((notification "{\"jsonrpc\":\"2.0\",\"method\":\"eth_other\",\"params\":{}}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-subscription-notification
+                     (coalton:lisp coalton:String () notification)))))
+      (assert (result-err-p result))))
+
+  (test-case "parse-subscription-notification invalid JSON"
+    (let* ((notification "invalid json here")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-subscription-notification
+                     (coalton:lisp coalton:String () notification)))))
+      (assert (result-err-p result))))
 
   ;;; =========================================================================
   ;;; Block Header Parsing Tests
@@ -108,12 +185,57 @@
                      (coalton:lisp web3/ws-provider:BlockHeader () header)))
                    68943)))))
 
+  (test-case "parse-block-header all fields"
+    (let* ((header-json "{\"number\":\"0x100\",\"hash\":\"0xaabbccdd\",\"parentHash\":\"0x11223344\",\"timestamp\":\"0x60000000\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x500000\",\"baseFeePerGas\":\"0x77359400\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-block-header
+                     (coalton:lisp coalton:String () header-json)))))
+      (assert (result-ok-p result))
+      (let ((header (result-value result)))
+        ;; Check block number (0x100 = 256)
+        (assert (= (coalton:coalton
+                    (web3/ws-provider:.header-number
+                     (coalton:lisp web3/ws-provider:BlockHeader () header)))
+                   256))
+        ;; Check timestamp (0x60000000 = 1610612736)
+        (assert (= (coalton:coalton
+                    (web3/ws-provider:.header-timestamp
+                     (coalton:lisp web3/ws-provider:BlockHeader () header)))
+                   1610612736)))))
+
   (test-case "parse-block-header without baseFee (pre-London)"
     (let* ((header-json "{\"number\":\"0x100\",\"hash\":\"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\",\"parentHash\":\"0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890\",\"timestamp\":\"0x1000\",\"gasLimit\":\"0x1000000\",\"gasUsed\":\"0x500000\"}")
            (result (coalton:coalton
                     (web3/ws-provider:parse-block-header
                      (coalton:lisp coalton:String () header-json)))))
       (assert (result-ok-p result))))
+
+  (test-case "parse-block-header with high block number"
+    (let* ((header-json "{\"number\":\"0xffffff\",\"hash\":\"0xaa\",\"parentHash\":\"0xbb\",\"timestamp\":\"0x1\",\"gasLimit\":\"0x1\",\"gasUsed\":\"0x0\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-block-header
+                     (coalton:lisp coalton:String () header-json)))))
+      (assert (result-ok-p result))
+      (let ((header (result-value result)))
+        ;; 0xffffff = 16777215
+        (assert (= (coalton:coalton
+                    (web3/ws-provider:.header-number
+                     (coalton:lisp web3/ws-provider:BlockHeader () header)))
+                   16777215)))))
+
+  (test-case "parse-block-header with zero gas used"
+    (let* ((header-json "{\"number\":\"0x1\",\"hash\":\"0xaa\",\"parentHash\":\"0xbb\",\"timestamp\":\"0x1\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-block-header
+                     (coalton:lisp coalton:String () header-json)))))
+      (assert (result-ok-p result))))
+
+  (test-case "parse-block-header invalid JSON"
+    (let* ((header-json "not json")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-block-header
+                     (coalton:lisp coalton:String () header-json)))))
+      (assert (result-err-p result))))
 
   ;;; =========================================================================
   ;;; Log Entry Parsing Tests
@@ -132,6 +254,59 @@
                      (coalton:lisp web3/ws-provider:LogEntry () log)))
                    256)))))
 
+  (test-case "parse-log-entry with single topic (Transfer event)"
+    (let* ((log-json "{\"address\":\"0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2\",\"topics\":[\"0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef\"],\"data\":\"0x0000000000000000000000000000000000000000000000000de0b6b3a7640000\",\"blockNumber\":\"0x10d4f1e\",\"transactionHash\":\"0xaabb\",\"transactionIndex\":\"0x5\",\"blockHash\":\"0xccdd\",\"logIndex\":\"0x10\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-log-entry
+                     (coalton:lisp coalton:String () log-json)))))
+      (assert (result-ok-p result))
+      (let ((log (result-value result)))
+        ;; Check tx index (0x5 = 5)
+        (assert (= (coalton:coalton
+                    (web3/ws-provider:.log-tx-index
+                     (coalton:lisp web3/ws-provider:LogEntry () log)))
+                   5))
+        ;; Check log index (0x10 = 16)
+        (assert (= (coalton:coalton
+                    (web3/ws-provider:.log-log-index
+                     (coalton:lisp web3/ws-provider:LogEntry () log)))
+                   16)))))
+
+  (test-case "parse-log-entry with empty topics"
+    (let* ((log-json "{\"address\":\"0xdAC17F958D2ee523a2206206994597C13D831ec7\",\"topics\":[],\"data\":\"0x1234\",\"blockNumber\":\"0x1\",\"transactionHash\":\"0xaa\",\"transactionIndex\":\"0x0\",\"blockHash\":\"0xbb\",\"logIndex\":\"0x0\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-log-entry
+                     (coalton:lisp coalton:String () log-json)))))
+      (assert (result-ok-p result))))
+
+  (test-case "parse-log-entry with four topics (max)"
+    (let* ((log-json "{\"address\":\"0xdAC17F958D2ee523a2206206994597C13D831ec7\",\"topics\":[\"0xaa\",\"0xbb\",\"0xcc\",\"0xdd\"],\"data\":\"0x\",\"blockNumber\":\"0x1\",\"transactionHash\":\"0xaa\",\"transactionIndex\":\"0x0\",\"blockHash\":\"0xbb\",\"logIndex\":\"0x0\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-log-entry
+                     (coalton:lisp coalton:String () log-json)))))
+      (assert (result-ok-p result))))
+
+  (test-case "parse-log-entry with empty data"
+    (let* ((log-json "{\"address\":\"0xdAC17F958D2ee523a2206206994597C13D831ec7\",\"topics\":[\"0xaa\"],\"data\":\"0x\",\"blockNumber\":\"0x1\",\"transactionHash\":\"0xaa\",\"transactionIndex\":\"0x0\",\"blockHash\":\"0xbb\",\"logIndex\":\"0x0\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-log-entry
+                     (coalton:lisp coalton:String () log-json)))))
+      (assert (result-ok-p result))))
+
+  (test-case "parse-log-entry invalid address"
+    (let* ((log-json "{\"address\":\"invalid\",\"topics\":[],\"data\":\"0x\",\"blockNumber\":\"0x1\",\"transactionHash\":\"0xaa\",\"transactionIndex\":\"0x0\",\"blockHash\":\"0xbb\",\"logIndex\":\"0x0\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-log-entry
+                     (coalton:lisp coalton:String () log-json)))))
+      (assert (result-err-p result))))
+
+  (test-case "parse-log-entry invalid JSON"
+    (let* ((log-json "not valid json")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-log-entry
+                     (coalton:lisp coalton:String () log-json)))))
+      (assert (result-err-p result))))
+
   ;;; =========================================================================
   ;;; Sync Status Parsing Tests
   ;;; =========================================================================
@@ -141,6 +316,11 @@
                     (web3/ws-provider:parse-sync-status "null"))))
       (assert (result-ok-p result))))
 
+  (test-case "parse-sync-status returns false (not syncing)"
+    (let* ((result (coalton:coalton
+                    (web3/ws-provider:parse-sync-status "false"))))
+      (assert (result-ok-p result))))
+
   (test-case "parse-sync-status syncing"
     (let* ((sync-json "{\"startingBlock\":\"0x100\",\"currentBlock\":\"0x200\",\"highestBlock\":\"0x300\"}")
            (result (coalton:coalton
@@ -148,9 +328,34 @@
                      (coalton:lisp coalton:String () sync-json)))))
       (assert (result-ok-p result))))
 
+  (test-case "parse-sync-status syncing with high blocks"
+    (let* ((sync-json "{\"startingBlock\":\"0x10d4f1e\",\"currentBlock\":\"0x10d5000\",\"highestBlock\":\"0x10d6000\"}")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-sync-status
+                     (coalton:lisp coalton:String () sync-json)))))
+      (assert (result-ok-p result))))
+
+  (test-case "parse-sync-status invalid JSON"
+    (let* ((sync-json "not valid json")
+           (result (coalton:coalton
+                    (web3/ws-provider:parse-sync-status
+                     (coalton:lisp coalton:String () sync-json)))))
+      (assert (result-err-p result))))
+
   ;;; =========================================================================
   ;;; Connection State Tests
   ;;; =========================================================================
+
+  (test-case "ws-connection-state creation"
+    (let ((state (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8546")))
+      (assert (string= (web3/ws-provider:ws-connection-state-url state) "ws://localhost:8546"))
+      (assert (= (web3/ws-provider:ws-connection-state-next-id state) 1))))
+
+  (test-case "ws-connection-state with different URLs"
+    (let ((state1 (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8545"))
+          (state2 (web3/ws-provider:make-ws-connection-state :url "wss://mainnet.infura.io/ws/v3/key")))
+      (assert (string= (web3/ws-provider:ws-connection-state-url state1) "ws://localhost:8545"))
+      (assert (string= (web3/ws-provider:ws-connection-state-url state2) "wss://mainnet.infura.io/ws/v3/key"))))
 
   (test-case "ws-connection-state management"
     (let ((state (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8546")))
@@ -164,11 +369,40 @@
       (web3/ws-provider:ws-state-remove-subscription state "0x123")
       (assert (null (web3/ws-provider:ws-state-get-subscription state "0x123")))))
 
+  (test-case "ws-connection-state multiple subscriptions"
+    (let ((state (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8546")))
+      ;; Add multiple subscriptions
+      (web3/ws-provider:ws-state-add-subscription state "0x111" 'new-heads)
+      (web3/ws-provider:ws-state-add-subscription state "0x222" 'logs)
+      (web3/ws-provider:ws-state-add-subscription state "0x333" 'syncing)
+      ;; Check all exist
+      (assert (eq (web3/ws-provider:ws-state-get-subscription state "0x111") 'new-heads))
+      (assert (eq (web3/ws-provider:ws-state-get-subscription state "0x222") 'logs))
+      (assert (eq (web3/ws-provider:ws-state-get-subscription state "0x333") 'syncing))
+      ;; Remove one
+      (web3/ws-provider:ws-state-remove-subscription state "0x222")
+      (assert (null (web3/ws-provider:ws-state-get-subscription state "0x222")))
+      ;; Others still exist
+      (assert (eq (web3/ws-provider:ws-state-get-subscription state "0x111") 'new-heads))
+      (assert (eq (web3/ws-provider:ws-state-get-subscription state "0x333") 'syncing))))
+
   (test-case "ws-state-next-request-id increments"
     (let ((state (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8546")))
       (assert (= (web3/ws-provider:ws-state-next-request-id state) 1))
       (assert (= (web3/ws-provider:ws-state-next-request-id state) 2))
       (assert (= (web3/ws-provider:ws-state-next-request-id state) 3))))
+
+  (test-case "ws-state-next-request-id many increments"
+    (let ((state (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8546")))
+      ;; Increment many times
+      (dotimes (i 100)
+        (web3/ws-provider:ws-state-next-request-id state))
+      ;; Should be at 101 now
+      (assert (= (web3/ws-provider:ws-state-next-request-id state) 101))))
+
+  (test-case "ws-state-get-subscription returns nil for unknown"
+    (let ((state (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8546")))
+      (assert (null (web3/ws-provider:ws-state-get-subscription state "nonexistent")))))
 
   ;;; =========================================================================
   ;;; LogFilter Tests
@@ -183,7 +417,13 @@
                     (web3/ws-provider:make-log-filter
                      (coalton-prelude:Some (coalton:lisp web3/address:Address () addr))
                      coalton:Nil))))
-      ;; Just check it was created successfully
+      (assert filter)))
+
+  (test-case "make-log-filter with no address (wildcard)"
+    (let ((filter (coalton:coalton
+                   (web3/ws-provider:make-log-filter
+                    coalton-prelude:None
+                    coalton:Nil))))
       (assert filter)))
 
   (test-case "make-log-filter with topics"
@@ -197,4 +437,90 @@
                       (coalton:Cons
                        (coalton-prelude:Some (coalton:lisp web3/types:Bytes () topic-bytes))
                        coalton:Nil)))))
-        (assert filter)))))
+        (assert filter))))
+
+  (test-case "make-log-filter with address and topics"
+    (let* ((addr-result (coalton:coalton
+                         (web3/address:address-from-hex
+                          "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")))
+           (addr (result-value addr-result))
+           (topic-bytes (make-array 32 :fill-pointer 32 :adjustable t :initial-element 0)))
+      ;; Transfer event signature
+      (setf (aref topic-bytes 0) #xdd)
+      (setf (aref topic-bytes 1) #xf2)
+      (setf (aref topic-bytes 2) #x52)
+      (setf (aref topic-bytes 3) #xad)
+      (let ((filter (coalton:coalton
+                     (web3/ws-provider:make-log-filter
+                      (coalton-prelude:Some (coalton:lisp web3/address:Address () addr))
+                      (coalton:Cons
+                       (coalton-prelude:Some (coalton:lisp web3/types:Bytes () topic-bytes))
+                       coalton:Nil)))))
+        (assert filter))))
+
+  (test-case "make-log-filter with multiple topics"
+    (let* ((topic1 (make-array 32 :fill-pointer 32 :adjustable t :initial-element #xaa))
+           (topic2 (make-array 32 :fill-pointer 32 :adjustable t :initial-element #xbb))
+           (filter (coalton:coalton
+                    (web3/ws-provider:make-log-filter
+                     coalton-prelude:None
+                     (coalton:Cons
+                      (coalton-prelude:Some (coalton:lisp web3/types:Bytes () topic1))
+                      (coalton:Cons
+                       (coalton-prelude:Some (coalton:lisp web3/types:Bytes () topic2))
+                       coalton:Nil))))))
+      (assert filter)))
+
+  (test-case "make-log-filter with None topic (wildcard position)"
+    (let* ((topic1 (make-array 32 :fill-pointer 32 :adjustable t :initial-element #xaa))
+           (filter (coalton:coalton
+                    (web3/ws-provider:make-log-filter
+                     coalton-prelude:None
+                     (coalton:Cons
+                      (coalton-prelude:Some (coalton:lisp web3/types:Bytes () topic1))
+                      (coalton:Cons
+                       coalton-prelude:None  ; Wildcard for second topic position
+                       coalton:Nil))))))
+      (assert filter)))
+
+  ;;; =========================================================================
+  ;;; Sync Status Accessor Tests
+  ;;; =========================================================================
+
+  (test-case "sync-starting-block returns None for NotSyncing"
+    (let* ((status (coalton:coalton web3/ws-provider:NotSyncing))
+           (result (coalton:coalton
+                    (web3/ws-provider:sync-starting-block
+                     (coalton:lisp web3/ws-provider:SyncStatus () status)))))
+      ;; Should be None
+      (assert (typep result 'coalton-library/classes::optional/none))))
+
+  (test-case "sync-current-block returns None for NotSyncing"
+    (let* ((status (coalton:coalton web3/ws-provider:NotSyncing))
+           (result (coalton:coalton
+                    (web3/ws-provider:sync-current-block
+                     (coalton:lisp web3/ws-provider:SyncStatus () status)))))
+      (assert (typep result 'coalton-library/classes::optional/none))))
+
+  (test-case "sync-highest-block returns None for NotSyncing"
+    (let* ((status (coalton:coalton web3/ws-provider:NotSyncing))
+           (result (coalton:coalton
+                    (web3/ws-provider:sync-highest-block
+                     (coalton:lisp web3/ws-provider:SyncStatus () status)))))
+      (assert (typep result 'coalton-library/classes::optional/none))))
+
+  (test-case "sync accessors return values for Syncing"
+    (let* ((status (coalton:coalton (web3/ws-provider:Syncing 100 200 300)))
+           (starting (coalton:coalton
+                      (web3/ws-provider:sync-starting-block
+                       (coalton:lisp web3/ws-provider:SyncStatus () status))))
+           (current (coalton:coalton
+                     (web3/ws-provider:sync-current-block
+                      (coalton:lisp web3/ws-provider:SyncStatus () status))))
+           (highest (coalton:coalton
+                     (web3/ws-provider:sync-highest-block
+                      (coalton:lisp web3/ws-provider:SyncStatus () status)))))
+      ;; All should be Some
+      (assert (typep starting 'coalton-library/classes::optional/some))
+      (assert (typep current 'coalton-library/classes::optional/some))
+      (assert (typep highest 'coalton-library/classes::optional/some)))))
