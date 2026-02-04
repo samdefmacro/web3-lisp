@@ -135,6 +135,211 @@
       (assert (result-ok-p result))))
 
   ;;; =========================================================================
+  ;;; Additional Size Validation Tests
+  ;;; =========================================================================
+
+  (test-case "blob-to-commitment rejects empty blob"
+    (let* ((empty-blob (make-array 0 :element-type 't :fill-pointer 0 :adjustable t))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:blob-to-commitment
+                     (coalton:lisp web3/types:Bytes () empty-blob)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  (test-case "blob-to-commitment rejects blob one byte too small"
+    (let* ((bad-blob (make-array 131071 :element-type 't :fill-pointer 131071 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:blob-to-commitment
+                     (coalton:lisp web3/types:Bytes () bad-blob)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  (test-case "blob-to-commitment rejects blob one byte too large"
+    (let* ((bad-blob (make-array 131073 :element-type 't :fill-pointer 131073 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:blob-to-commitment
+                     (coalton:lisp web3/types:Bytes () bad-blob)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  (test-case "compute-blob-proof rejects empty blob"
+    (let* ((empty-blob (make-array 0 :element-type 't :fill-pointer 0 :adjustable t))
+           (commitment (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:compute-blob-proof
+                     (coalton:lisp web3/types:Bytes () empty-blob)
+                     (coalton:lisp web3/kzg:KZGCommitment () commitment)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  (test-case "compute-blob-proof rejects commitment too small (47 bytes)"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (bad-commitment (make-array 47 :element-type 't :fill-pointer 47 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:compute-blob-proof
+                     (coalton:lisp web3/types:Bytes () blob)
+                     (coalton:lisp web3/kzg:KZGCommitment () bad-commitment)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  (test-case "compute-blob-proof rejects commitment too large (49 bytes)"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (bad-commitment (make-array 49 :element-type 't :fill-pointer 49 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:compute-blob-proof
+                     (coalton:lisp web3/types:Bytes () blob)
+                     (coalton:lisp web3/kzg:KZGCommitment () bad-commitment)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  ;;; =========================================================================
+  ;;; compute-kzg-proof Additional Tests
+  ;;; =========================================================================
+
+  (test-case "compute-kzg-proof rejects empty blob"
+    (let* ((empty-blob (make-array 0 :element-type 't :fill-pointer 0 :adjustable t))
+           (z (make-array 32 :element-type 't :fill-pointer 32 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:compute-kzg-proof
+                     (coalton:lisp web3/types:Bytes () empty-blob)
+                     (coalton:lisp web3/types:Bytes () z)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  (test-case "compute-kzg-proof rejects z too small (31 bytes)"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (bad-z (make-array 31 :element-type 't :fill-pointer 31 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:compute-kzg-proof
+                     (coalton:lisp web3/types:Bytes () blob)
+                     (coalton:lisp web3/types:Bytes () bad-z)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  (test-case "compute-kzg-proof rejects z too large (33 bytes)"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (bad-z (make-array 33 :element-type 't :fill-pointer 33 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer))
+           (result (coalton:coalton
+                    (web3/kzg:compute-kzg-proof
+                     (coalton:lisp web3/types:Bytes () blob)
+                     (coalton:lisp web3/types:Bytes () bad-z)
+                     (coalton:lisp web3/kzg:KZGContext () null-ctx)))))
+      (assert (result-err-p result))))
+
+  ;;; =========================================================================
+  ;;; verify-blob-proof Additional Size Tests
+  ;;; =========================================================================
+
+  (test-case "verify-blob-proof returns false for empty blob"
+    (let* ((empty-blob (make-array 0 :element-type 't :fill-pointer 0 :adjustable t))
+           (commitment (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (proof (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer)))
+      (assert (eq (coalton:coalton
+                   (web3/kzg:verify-blob-proof
+                    (coalton:lisp web3/types:Bytes () empty-blob)
+                    (coalton:lisp web3/kzg:KZGCommitment () commitment)
+                    (coalton:lisp web3/kzg:KZGProof () proof)
+                    (coalton:lisp web3/kzg:KZGContext () null-ctx)))
+                  coalton:False))))
+
+  (test-case "verify-blob-proof returns false for wrong commitment size"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (bad-commitment (make-array 32 :element-type 't :fill-pointer 32 :adjustable t :initial-element 0))
+           (proof (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer)))
+      (assert (eq (coalton:coalton
+                   (web3/kzg:verify-blob-proof
+                    (coalton:lisp web3/types:Bytes () blob)
+                    (coalton:lisp web3/kzg:KZGCommitment () bad-commitment)
+                    (coalton:lisp web3/kzg:KZGProof () proof)
+                    (coalton:lisp web3/kzg:KZGContext () null-ctx)))
+                  coalton:False))))
+
+  (test-case "verify-blob-proof returns false for wrong proof size"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (commitment (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (bad-proof (make-array 32 :element-type 't :fill-pointer 32 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer)))
+      (assert (eq (coalton:coalton
+                   (web3/kzg:verify-blob-proof
+                    (coalton:lisp web3/types:Bytes () blob)
+                    (coalton:lisp web3/kzg:KZGCommitment () commitment)
+                    (coalton:lisp web3/kzg:KZGProof () bad-proof)
+                    (coalton:lisp web3/kzg:KZGContext () null-ctx)))
+                  coalton:False))))
+
+  ;;; =========================================================================
+  ;;; verify-blob-proofs Additional Mismatch Tests
+  ;;; =========================================================================
+
+  (test-case "verify-blob-proofs returns false for two blobs one commitment"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (commitment (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (proof (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer)))
+      (assert (eq (coalton:coalton
+                   (web3/kzg:verify-blob-proofs
+                    ;; Two blobs
+                    (coalton:Cons (coalton:lisp web3/types:Bytes () blob)
+                                  (coalton:Cons (coalton:lisp web3/types:Bytes () blob) coalton:Nil))
+                    ;; One commitment
+                    (coalton:Cons (coalton:lisp web3/kzg:KZGCommitment () commitment) coalton:Nil)
+                    ;; Two proofs
+                    (coalton:Cons (coalton:lisp web3/kzg:KZGProof () proof)
+                                  (coalton:Cons (coalton:lisp web3/kzg:KZGProof () proof) coalton:Nil))
+                    (coalton:lisp web3/kzg:KZGContext () null-ctx)))
+                  coalton:False))))
+
+  (test-case "verify-blob-proofs returns false for one blob two proofs"
+    (let* ((blob (coalton:coalton (web3/blob:empty-blob coalton:Unit)))
+           (commitment (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (proof (make-array 48 :element-type 't :fill-pointer 48 :adjustable t :initial-element 0))
+           (null-ctx (cffi:null-pointer)))
+      (assert (eq (coalton:coalton
+                   (web3/kzg:verify-blob-proofs
+                    ;; One blob
+                    (coalton:Cons (coalton:lisp web3/types:Bytes () blob) coalton:Nil)
+                    ;; One commitment
+                    (coalton:Cons (coalton:lisp web3/kzg:KZGCommitment () commitment) coalton:Nil)
+                    ;; Two proofs
+                    (coalton:Cons (coalton:lisp web3/kzg:KZGProof () proof)
+                                  (coalton:Cons (coalton:lisp web3/kzg:KZGProof () proof) coalton:Nil))
+                    (coalton:lisp web3/kzg:KZGContext () null-ctx)))
+                  coalton:False))))
+
+  ;;; =========================================================================
+  ;;; Context Tests
+  ;;; =========================================================================
+
+  (test-case "make-kzg-context fails with empty path"
+    (let ((result (coalton:coalton
+                   (web3/kzg:make-kzg-context ""))))
+      (assert (result-err-p result))))
+
+  (test-case "kzg-context-loaded? consistency"
+    ;; Null pointer should always be false
+    (let ((null-ctx (cffi:null-pointer)))
+      (assert (eq (coalton:coalton
+                   (web3/kzg:kzg-context-loaded?
+                    (coalton:lisp web3/kzg:KZGContext () null-ctx)))
+                  coalton:False))
+      ;; Should be consistent on repeated calls
+      (assert (eq (coalton:coalton
+                   (web3/kzg:kzg-context-loaded?
+                    (coalton:lisp web3/kzg:KZGContext () null-ctx)))
+                  coalton:False))))
+
+  ;;; =========================================================================
   ;;; Integration Tests (Require c-kzg and trusted setup)
   ;;; These tests are skipped if library/setup not available
   ;;; =========================================================================
