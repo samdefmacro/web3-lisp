@@ -14,7 +14,6 @@
    #:generate-mnemonic
    #:mnemonic-to-seed
    #:validate-mnemonic
-   #:mnemonic-to-entropy
    #:entropy-to-mnemonic
 
    ;; BIP-32 HD Keys

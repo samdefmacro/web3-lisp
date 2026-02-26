@@ -109,21 +109,21 @@
   (define (u256-div a b)
     "Divide two U256 values"
     (if (u256-zero? b)
-        (Err (HexError "Division by zero"))
-        (Ok (%bignum-to-u256
-             (lisp Integer (a b)
-               (cl:floor (%u256-to-bignum (coalton (lisp U256 () a)))
-                         (%u256-to-bignum (coalton (lisp U256 () b)))))))))
+        (Err (AbiError "Division by zero"))
+        (let ((an (%u256-to-bignum a))
+              (bn (%u256-to-bignum b)))
+          (Ok (%bignum-to-u256
+               (lisp Integer (an bn) (cl:floor an bn)))))))
 
   (declare u256-mod (U256 -> U256 -> (Web3Result U256)))
   (define (u256-mod a b)
     "Modulo of two U256 values"
     (if (u256-zero? b)
-        (Err (HexError "Modulo by zero"))
-        (Ok (%bignum-to-u256
-             (lisp Integer (a b)
-               (cl:mod (%u256-to-bignum (coalton (lisp U256 () a)))
-                       (%u256-to-bignum (coalton (lisp U256 () b)))))))))
+        (Err (AbiError "Modulo by zero"))
+        (let ((an (%u256-to-bignum a))
+              (bn (%u256-to-bignum b)))
+          (Ok (%bignum-to-u256
+               (lisp Integer (an bn) (cl:mod an bn)))))))
 
   ;;; Comparison
 
@@ -146,9 +146,9 @@
   (declare u256-less-than? (U256 -> U256 -> Boolean))
   (define (u256-less-than? a b)
     "Check if a < b"
-    (lisp Boolean (a b)
-      (cl:< (%u256-to-bignum (coalton (lisp U256 () a)))
-            (%u256-to-bignum (coalton (lisp U256 () b))))))
+    (let ((an (%u256-to-bignum a))
+          (bn (%u256-to-bignum b)))
+      (lisp Boolean (an bn) (cl:< an bn))))
 
   (declare u256-greater-than? (U256 -> U256 -> Boolean))
   (define (u256-greater-than? a b)
@@ -160,14 +160,14 @@
   (declare u256-to-bytes (U256 -> Bytes))
   (define (u256-to-bytes u)
     "Convert U256 to 32 bytes (big-endian)"
-    (lisp Bytes (u)
-      (cl:let* ((n (%u256-to-bignum (coalton (lisp U256 () u))))
-                (result (cl:make-array 32 :fill-pointer 32 :adjustable cl:t
-                                          :initial-element 0)))
-        (cl:loop :for i :from 0 :below 32
-                 :do (cl:setf (cl:aref result (cl:- 31 i))
-                              (cl:ldb (cl:byte 8 (cl:* i 8)) n)))
-        result)))
+    (let ((n (%u256-to-bignum u)))
+      (lisp Bytes (n)
+        (cl:let* ((result (cl:make-array 32 :fill-pointer 32 :adjustable cl:t
+                                            :initial-element 0)))
+          (cl:loop :for i :from 0 :below 32
+                   :do (cl:setf (cl:aref result (cl:- 31 i))
+                                (cl:ldb (cl:byte 8 (cl:* i 8)) n)))
+          result))))
 
   (declare u256-from-bytes (Bytes -> (Web3Result U256)))
   (define (u256-from-bytes bytes)
@@ -198,17 +198,18 @@
   (declare wei-to-ether-string (U256 -> String))
   (define (wei-to-ether-string wei)
     "Convert wei to ether as a decimal string"
-    (lisp String (wei)
-      (cl:let* ((n (%u256-to-bignum (coalton (lisp U256 () wei))))
-                (ether-unit (cl:expt 10 18))
-                (whole (cl:floor n ether-unit))
-                (frac (cl:mod n ether-unit)))
-        (cl:if (cl:zerop frac)
+    (let ((wei-int (%u256-to-bignum wei)))
+      (lisp String (wei-int)
+        (cl:let* ((n wei-int)
+                  (ether-unit (cl:expt 10 18))
+                  (whole (cl:floor n ether-unit))
+                  (frac (cl:mod n ether-unit)))
+          (cl:if (cl:zerop frac)
                (cl:format cl:nil "~D.0" whole)
                (cl:let ((frac-str (cl:format cl:nil "~18,'0D" frac)))
                  ;; Trim trailing zeros
                  (cl:format cl:nil "~D.~A" whole
-                            (cl:string-right-trim "0" frac-str)))))))
+                            (cl:string-right-trim "0" frac-str))))))))
 
   (declare ether-to-wei (String -> (Web3Result U256)))
   (define (ether-to-wei ether-str)

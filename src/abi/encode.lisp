@@ -177,9 +177,9 @@
 
   (declare %ceil-to-32 (UFix -> UFix))
   (define (%ceil-to-32 n)
-    "Round up to next multiple of 32"
+    "Round up to next multiple of 32 (returns 0 for 0)"
     (if (== n 0)
-        32
+        0
         (let ((rem (lisp UFix (n) (cl:mod n 32))))
           (if (== rem 0)
               n

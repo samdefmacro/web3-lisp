@@ -121,7 +121,7 @@
                (base-fee-opt (coalton:coalton
                               (web3/block:header-base-fee
                                (coalton:lisp web3/block:BlockHeader () header)))))
-          (assert (optional-some-p block-tests))
+          (assert (optional-some-p base-fee-opt))
           (let ((base-fee (result-value base-fee-opt)))
             (assert (= base-fee 1000000000)))))))  ; 0x3b9aca00 = 1 gwei
 
@@ -275,7 +275,7 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (optional-some-p block-tests))
+        (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (header (coalton:coalton
                         (web3/block:block-header
@@ -517,7 +517,7 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (optional-some-p block-tests))
+        (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (txs (coalton:coalton
                      (web3/block:block-transactions
@@ -535,7 +535,7 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (optional-some-p block-tests))
+        (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (uncles (coalton:coalton
                         (web3/block:block-uncles
@@ -553,7 +553,7 @@
                      coalton:False))))
       (assert (result-ok-p result))
       (let ((block-opt (result-value result)))
-        (assert (optional-some-p block-tests))
+        (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (withdrawals (coalton:coalton
                              (web3/block:block-withdrawals
@@ -593,7 +593,7 @@
                (blob-gas-opt (coalton:coalton
                               (web3/block:header-blob-gas-used
                                (coalton:lisp web3/block:BlockHeader () header)))))
-          (assert (optional-some-p block-tests))
+          (assert (optional-some-p blob-gas-opt))
           (let ((blob-gas (result-value blob-gas-opt)))
             (assert (= blob-gas #x60000)))))))
 
@@ -611,7 +611,7 @@
                (excess-blob-opt (coalton:coalton
                                  (web3/block:header-excess-blob-gas
                                   (coalton:lisp web3/block:BlockHeader () header)))))
-          (assert (optional-some-p block-tests))
+          (assert (optional-some-p excess-blob-opt))
           (let ((excess-blob (result-value excess-blob-opt)))
             (assert (= excess-blob #x40000))))))))
 

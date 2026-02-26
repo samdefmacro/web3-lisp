@@ -13,7 +13,9 @@
                                    (cl:string= hex-str "0x" :end1 2))
                            (cl:subseq hex-str 2)
                            hex-str)))
-        (cl:parse-integer str :radix 16))))
+        (cl:if (cl:zerop (cl:length str))
+               0
+               (cl:parse-integer str :radix 16)))))
 
   (declare %hex-result-to-u256 (String -> types:U256))
   (define (%hex-result-to-u256 hex-str)

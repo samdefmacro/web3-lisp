@@ -82,10 +82,23 @@
                                                     :initial-contents octets)))
                      result)))))
 
+  (declare %integer-to-bytes-be-big (Integer -> types:Bytes))
+  (define (%integer-to-bytes-be-big n)
+    "Encode an arbitrary-precision positive integer as big-endian bytes"
+    (lisp types:Bytes (n)
+      (cl:if (cl:zerop n)
+             (cl:make-array 0 :fill-pointer 0 :adjustable cl:t)
+             (cl:let* ((byte-count (cl:ceiling (cl:integer-length n) 8))
+                       (result (cl:make-array byte-count :fill-pointer byte-count
+                                                         :adjustable cl:t)))
+               (cl:loop :for i :from 0 :below byte-count
+                        :do (cl:setf (cl:aref result (cl:- byte-count 1 i))
+                                     (cl:ldb (cl:byte 8 (cl:* i 8)) n)))
+               result))))
+
   (declare rlp-encode-integer (Integer -> types:Bytes))
   (define (rlp-encode-integer n)
     "RLP-encode a non-negative integer"
     (if (== n 0)
         (rlp-encode (RlpBytes (types:bytes-from-list Nil)))
-        (rlp-encode (RlpBytes (%integer-to-bytes-be
-                               (lisp UFix (n) n)))))))
+        (rlp-encode (RlpBytes (%integer-to-bytes-be-big n))))))

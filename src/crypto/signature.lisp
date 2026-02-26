@@ -166,20 +166,34 @@
                     (cl:loop :for i :from 0 :below 32
                              :do (cl:setf (cl:aref r-bytes i) (cl:aref sig-bytes i))
                                  (cl:setf (cl:aref s-bytes i) (cl:aref sig-bytes (cl:+ 32 i))))
-                    ;; Determine recovery id by trying both v=0 and v=1
-                    (cl:let* ((pub-uncompressed (ironclad:secp256k1-key-y sk))
-                              (recovery-id
-                                (cl:block find-v
-                                  (cl:loop :for v :from 0 :to 1
-                                           :do (cl:handler-case
-                                                   (cl:let* ((recovered (%ec-recover-public-key
-                                                                         hash-vec r-bytes s-bytes v)))
-                                                     (cl:when (cl:equalp recovered pub-uncompressed)
-                                                       (cl:return-from find-v v)))
-                                                 (cl:error () cl:nil)))
-                                  0)))
-                      (coalton-prelude:Ok
-                       (%Signature r-bytes s-bytes recovery-id))))
+                    ;; EIP-2 low-S normalization: if s > secp256k1n/2, replace with n-s
+                    (cl:let* ((secp256k1-n #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141)
+                              (half-n (cl:ash secp256k1-n -1))
+                              (s-int (cl:let ((val 0))
+                                       (cl:loop :for i :from 0 :below 32
+                                                :do (cl:setf val (cl:+ (cl:ash val 8) (cl:aref s-bytes i))))
+                                       val)))
+                      (cl:when (cl:> s-int half-n)
+                        (cl:let ((new-s (cl:- secp256k1-n s-int)))
+                          (cl:loop :for i :from 31 :downto 0
+                                   :do (cl:setf (cl:aref s-bytes i) (cl:ldb (cl:byte 8 (cl:* (cl:- 31 i) 8)) new-s)))))
+                      ;; Determine recovery id by trying both v=0 and v=1
+                      (cl:let* ((pub-uncompressed (ironclad:secp256k1-key-y sk))
+                                (recovery-id
+                                  (cl:block find-v
+                                    (cl:loop :for v :from 0 :to 1
+                                             :do (cl:handler-case
+                                                     (cl:let* ((recovered (%ec-recover-public-key
+                                                                           hash-vec r-bytes s-bytes v)))
+                                                       (cl:when (cl:equalp recovered pub-uncompressed)
+                                                         (cl:return-from find-v v)))
+                                                   (cl:error () cl:nil)))
+                                    -1)))
+                        (cl:if (cl:= recovery-id -1)
+                               (coalton-prelude:Err
+                                (types:CryptoError "Failed to determine recovery id"))
+                               (coalton-prelude:Ok
+                                (%Signature r-bytes s-bytes recovery-id))))))
                 (cl:error (e)
                   (coalton-prelude:Err
                    (types:CryptoError (cl:format cl:nil "Signing error: ~A" e)))))))))

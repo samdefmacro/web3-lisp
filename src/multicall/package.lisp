@@ -38,11 +38,6 @@
    #:try-aggregate-calldata
    #:aggregate3-calldata
 
-   ;; Result decoders
-   #:decode-aggregate-result
-   #:decode-try-aggregate-result
-   #:decode-aggregate3-result
-
    ;; High-level helpers
    #:batch-calls
    #:batch-calls-allow-failure))

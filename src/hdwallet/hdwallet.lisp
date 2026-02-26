@@ -145,9 +145,10 @@
                (cl:let* ((entropy (cl:make-array entropy-bytes
                                                  :fill-pointer entropy-bytes
                                                  :adjustable cl:t)))
-                 ;; Generate random entropy
-                 (cl:loop :for i :below entropy-bytes :do
-                   (cl:setf (cl:aref entropy i) (cl:random 256)))
+                 ;; Generate cryptographically secure random entropy
+                 (cl:let ((secure-bytes (ironclad:random-data entropy-bytes)))
+                   (cl:loop :for i :below entropy-bytes :do
+                     (cl:setf (cl:aref entropy i) (cl:aref secure-bytes i))))
                  (web3/hdwallet::entropy-to-mnemonic entropy))))))
 
   (declare validate-mnemonic (String -> Boolean))

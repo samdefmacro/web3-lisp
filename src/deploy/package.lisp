@@ -24,5 +24,4 @@
    #:compute-create2-address-from-hex
 
    ;; Constructor encoding helpers
-   #:encode-constructor
-   #:encode-constructor-with-selector))
+   #:encode-constructor))

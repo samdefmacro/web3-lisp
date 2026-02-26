@@ -104,7 +104,7 @@
 
   (test-case "get-chain-by-id finds mainnet"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-id 1))))
-      (assert (optional-some-p chain-tests))
+      (assert (optional-some-p result))
       (let* ((chain (result-value result))
              (name (coalton:coalton (web3/chain:chain-name
                                      (coalton:lisp web3/chain:Chain () chain)))))
@@ -112,7 +112,7 @@
 
   (test-case "get-chain-by-id finds polygon"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-id 137))))
-      (assert (optional-some-p chain-tests))
+      (assert (optional-some-p result))
       (let* ((chain (result-value result))
              (name (coalton:coalton (web3/chain:chain-name
                                      (coalton:lisp web3/chain:Chain () chain)))))
@@ -124,15 +124,15 @@
 
   (test-case "get-chain-by-name finds by full name"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "Ethereum"))))
-      (assert (optional-some-p chain-tests))))
+      (assert (optional-some-p result))))
 
   (test-case "get-chain-by-name finds by short name"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "eth"))))
-      (assert (optional-some-p chain-tests))))
+      (assert (optional-some-p result))))
 
   (test-case "get-chain-by-name is case-insensitive"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "POLYGON"))))
-      (assert (optional-some-p chain-tests))))
+      (assert (optional-some-p result))))
 
   (test-case "get-chain-by-name returns None for unknown"
     (let ((result (coalton:coalton (web3/chain:get-chain-by-name "NotAChain"))))

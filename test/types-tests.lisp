@@ -40,13 +40,13 @@
 
 (defun optional-some-p (opt)
   "Check if a Coalton Optional is Some"
-  ;; Some values are not eq to coalton:None
-  (not (eq opt coalton:None)))
+  ;; Some values are not eq to None
+  (not (eq opt coalton-library/classes:None)))
 
 (defun optional-none-p (opt)
   "Check if a Coalton Optional is None"
   ;; None is a singleton - use eq comparison
-  (eq opt coalton:None))
+  (eq opt coalton-library/classes:None))
 
 (defun result-value (r)
   "Extract value from a Coalton Result/Ok or Optional/Some"

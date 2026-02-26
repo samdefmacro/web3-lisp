@@ -38,13 +38,15 @@
                       (coalton-prelude:Err
                        (types:ProviderError
                         (cl:format cl:nil "RPC error: ~A"
-                                   (cl:or (cl:cdr (cl:assoc :message error-val))
+                                   (cl:if (cl:listp error-val)
+                                          (cl:or (cl:cdr (cl:assoc :message error-val))
+                                                 (cl:format cl:nil "~A" error-val))
                                           (cl:format cl:nil "~A" error-val)))))
                       (cl:if result-val
                              (coalton-prelude:Ok
                               (cl:if (cl:stringp result-val)
                                      result-val
-                                     (cl:format cl:nil "~A" result-val)))
+                                     (cl-json:encode-json-to-string result-val)))
                              (coalton-prelude:Err
                               (types:ProviderError "No result in RPC response")))))
            (cl:error (e)

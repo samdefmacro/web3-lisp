@@ -23,9 +23,9 @@
   (declare %u256-to-rlp-item (types:U256 -> rlp:RlpItem))
   (define (%u256-to-rlp-item u)
     "Convert U256 to RLP bytes item (big-endian, no leading zeros)"
-    (rlp:RlpBytes
-     (lisp types:Bytes (u)
-       (cl:let* ((n (web3/types::%u256-to-bignum (coalton (lisp types:U256 () u)))))
+    (let ((n (types:u256-to-integer u)))
+      (rlp:RlpBytes
+       (lisp types:Bytes (n)
          (cl:if (cl:zerop n)
                 (cl:make-array 0 :fill-pointer 0 :adjustable cl:t)
                 (cl:let* ((byte-count (cl:ceiling (cl:integer-length n) 8))
@@ -35,6 +35,21 @@
                            :do (cl:setf (cl:aref result (cl:- byte-count 1 i))
                                         (cl:ldb (cl:byte 8 (cl:* i 8)) n)))
                   result))))))
+
+  (declare %bytes-strip-leading-zeros-to-rlp (types:Bytes -> rlp:RlpItem))
+  (define (%bytes-strip-leading-zeros-to-rlp bytes)
+    "Strip leading zeros from byte array and wrap as RLP item (for r/s encoding)"
+    (rlp:RlpBytes
+     (lisp types:Bytes (bytes)
+       (cl:let* ((len (cl:length bytes))
+                 (start (cl:loop :for i :from 0 :below len
+                                 :while (cl:zerop (cl:aref bytes i))
+                                 :finally (cl:return i)))
+                 (new-len (cl:- len start))
+                 (result (cl:make-array new-len :fill-pointer new-len :adjustable cl:t)))
+         (cl:loop :for i :from 0 :below new-len
+                  :do (cl:setf (cl:aref result i) (cl:aref bytes (cl:+ start i))))
+         result))))
 
   (declare %address-to-rlp-item ((Optional addr:Address) -> rlp:RlpItem))
   (define (%address-to-rlp-item maybe-addr)
@@ -139,8 +154,8 @@
   (declare signed-tx-encode (Transaction -> crypto:Signature -> types:Bytes))
   (define (signed-tx-encode tx sig)
     "Encode a signed transaction (ready for broadcast)"
-    (let ((r-item (rlp:RlpBytes (crypto:signature-r sig)))
-          (s-item (rlp:RlpBytes (crypto:signature-s sig)))
+    (let ((r-item (%bytes-strip-leading-zeros-to-rlp (crypto:signature-r sig)))
+          (s-item (%bytes-strip-leading-zeros-to-rlp (crypto:signature-s sig)))
           (v-raw (crypto:signature-v sig)))
       (match (tx-type tx)
         ;; Legacy: RLP([nonce, gasPrice, gasLimit, to, value, data, v, r, s])

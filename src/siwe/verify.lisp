@@ -12,10 +12,10 @@
 
   (declare %current-iso8601 (Unit -> String))
   (define (%current-iso8601 _)
-    "Get current time in ISO 8601 format"
+    "Get current time in ISO 8601 format (UTC)"
     (lisp String ()
       (cl:multiple-value-bind (sec minute hour day month year)
-          (cl:get-decoded-time)
+          (cl:decode-universal-time (cl:get-universal-time) 0)
         (cl:format cl:nil "~4,'0D-~2,'0D-~2,'0DT~2,'0D:~2,'0D:~2,'0DZ"
                    year month day hour minute sec))))
 

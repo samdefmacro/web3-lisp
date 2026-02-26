@@ -502,7 +502,9 @@
                                                                                                                             (Cons scroll
                                                                                                                                   (Cons mantle
                                                                                                                                         (Cons blast
-                                                                                                                                              (Cons localhost Nil)))))))))))))))))))))))))
+                                                                                                                                              (Cons localhost
+                                                                                                                                                    (Cons hardhat
+                                                                                                                                                          (Cons anvil Nil)))))))))))))))))))))))))))
 
   (declare mainnet-chains (Unit -> (List Chain)))
   (define (mainnet-chains _)

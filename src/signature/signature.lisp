@@ -63,24 +63,24 @@
   ;;; V value normalization
   ;;; =========================================================================
 
-  (declare normalize-v (U8 -> U8))
+  (declare normalize-v (UFix -> U8))
   (define (normalize-v v)
     "Normalize v to 0 or 1 (from 27/28 or EIP-155 format)"
     (cond
       ;; Already normalized
-      ((< v 2) v)
+      ((< v 2) (lisp U8 (v) v))
       ;; Legacy format (27/28)
-      ((< v 35) (- v 27))
+      ((< v 35) (lisp U8 (v) (cl:- v 27)))
       ;; EIP-155 format (chain-id * 2 + 35 + recovery-id)
       (True (if (== (mod v 2) 0) 0 1))))
 
-  (declare to-eip155-v (U8 -> UFix -> U8))
+  (declare to-eip155-v (U8 -> UFix -> UFix))
   (define (to-eip155-v recovery-id chain-id)
     "Convert recovery-id (0/1) to EIP-155 v value"
-    (lisp U8 (recovery-id chain-id)
-      (cl:mod (cl:+ (cl:* chain-id 2) 35 recovery-id) 256)))
+    (lisp UFix (recovery-id chain-id)
+      (cl:+ (cl:* chain-id 2) 35 recovery-id)))
 
-  (declare from-eip155-v (U8 -> UFix -> U8))
+  (declare from-eip155-v (UFix -> UFix -> U8))
   (define (from-eip155-v v chain-id)
     "Extract recovery-id (0/1) from EIP-155 v value"
     (lisp U8 (v chain-id)
