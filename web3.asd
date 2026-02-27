@@ -542,6 +542,7 @@
                (:file "kzg-tests")
                (:file "siwe-tests")
                (:file "nonce-manager-tests")
-               (:file "simulate-tests"))
+               (:file "simulate-tests")
+               (:file "integration-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))

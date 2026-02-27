@@ -453,6 +453,9 @@
   ;; Phase 25: Transaction Simulation & Estimation
   (run-simulate-tests)
 
+  ;; Phase 26: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
+  (run-integration-tests)
+
   (format t "~%========================================~%")
   (format t "Results: ~A passed, ~A failed~%" *tests-passed* *tests-failed*)
   (format t "========================================~%")
