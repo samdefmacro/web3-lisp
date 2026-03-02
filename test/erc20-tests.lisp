@@ -403,6 +403,7 @@
   (run-events-tests)
   (run-deploy-tests)
   (run-ens-tests)
+  (run-ens-resolver-tests)
   (run-multicall-tests)
 
   ;; Phase 10: EIP-712
@@ -453,7 +454,10 @@
   ;; Phase 25: Transaction Simulation & Estimation
   (run-simulate-tests)
 
-  ;; Phase 26: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
+  ;; Phase 26: Event Log Querying
+  (run-logs-tests)
+
+  ;; Phase 27: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
   (run-integration-tests)
 
   (format t "~%========================================~%")

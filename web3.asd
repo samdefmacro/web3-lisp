@@ -216,6 +216,21 @@
   :components ((:file "package")
                (:file "ens")))
 
+;;; ENS Resolver (live resolution via provider)
+(asdf:defsystem "web3/ens-resolver"
+  :description "ENS name resolution via JSON-RPC provider"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/ens"
+               "web3/provider")
+  :pathname "src/ens-resolver/"
+  :serial t
+  :components ((:file "package")
+               (:file "resolve")))
+
 ;;; Multicall batching
 (asdf:defsystem "web3/multicall"
   :description "Multicall3 batching support for efficient RPC calls"
@@ -450,6 +465,24 @@
                (:file "types")
                (:file "manager")))
 
+;;; Event Log Querying
+(asdf:defsystem "web3/logs"
+  :description "Event log querying via eth_getLogs"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/receipt"
+               "web3/block"
+               "web3/provider"
+               "dexador"
+               "cl-json")
+  :pathname "src/logs/"
+  :serial t
+  :components ((:file "package")
+               (:file "logs")))
+
 ;;; Transaction Simulation and Gas Estimation
 (asdf:defsystem "web3/simulate"
   :description "Transaction simulation and gas estimation helpers"
@@ -486,6 +519,7 @@
                "web3/events"
                "web3/deploy"
                "web3/ens"
+               "web3/ens-resolver"
                "web3/multicall"
                "web3/eip712"
                "web3/hdwallet"
@@ -502,7 +536,8 @@
                "web3/kzg"
                "web3/siwe"
                "web3/nonce-manager"
-               "web3/simulate"))
+               "web3/simulate"
+               "web3/logs"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -526,6 +561,7 @@
                (:file "events-tests")
                (:file "deploy-tests")
                (:file "ens-tests")
+               (:file "ens-resolver-tests")
                (:file "multicall-tests")
                (:file "eip712-tests")
                (:file "hdwallet-tests")
@@ -543,6 +579,7 @@
                (:file "siwe-tests")
                (:file "nonce-manager-tests")
                (:file "simulate-tests")
+               (:file "logs-tests")
                (:file "integration-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))
