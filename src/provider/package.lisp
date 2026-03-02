@@ -3,11 +3,8 @@
   (:use #:coalton
         #:coalton-prelude)
   (:local-nicknames
-   (#:vec #:coalton-library/vector)
-   (#:iter #:coalton-library/iterator)
    (#:types #:web3/types)
-   (#:addr #:web3/address)
-   (#:tx #:web3/transaction))
+   (#:addr #:web3/address))
   (:export
    ;; Provider type
    #:HttpProvider

@@ -97,60 +97,14 @@
 ;;; CL-Level Helper Functions
 ;;; =========================================================================
 
-;; Result helpers (same pattern as receipt/block modules)
-(cl:defun result-ok-p (result)
-  "Check if Coalton Result is Ok"
-  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
-    (cl:search "OK" type-name)))
-
-(cl:defun result-value (result)
-  "Extract the inner value from Ok or Err"
-  (cl:slot-value result 'coalton-library/classes::|_0|))
-
-;;; =========================================================================
-;;; JSON Parsing Helpers (duplicated from receipt module)
-;;; =========================================================================
-
-(cl:defun %parse-hex-ufix (hex-str)
-  "Parse hex string to UFix"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:parse-integer (cl:subseq hex-str 2) :radix 16)
-         0))
-
-(cl:defun %parse-hex-bytes (hex-str)
-  "Parse hex string to Bytes (adjustable vector for Coalton)"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:let* ((hex-part (cl:subseq hex-str 2))
-                   (len (cl:floor (cl:length hex-part) 2))
-                   (bytes (cl:make-array len :element-type 'cl:t
-                                         :fill-pointer len
-                                         :adjustable cl:t)))
-           (cl:dotimes (i len bytes)
-             (cl:setf (cl:aref bytes i)
-                      (cl:parse-integer hex-part :start (cl:* i 2) :end (cl:+ (cl:* i 2) 2) :radix 16))))
-         (cl:make-array 0 :element-type 'cl:t :fill-pointer 0 :adjustable cl:t)))
-
-(cl:defun %parse-hex-bytes32 (hex-str)
-  "Parse hex string to Bytes (32 bytes, adjustable vector for Coalton)"
-  (cl:let ((bytes (%parse-hex-bytes hex-str)))
-    ;; Ensure exactly 32 bytes
-    (cl:if (cl:= (cl:length bytes) 32)
-           bytes
-           (cl:let ((result (cl:make-array 32 :element-type 'cl:t
-                                           :fill-pointer 32
-                                           :adjustable cl:t
-                                           :initial-element 0)))
-             (cl:dotimes (i (cl:min 32 (cl:length bytes)) result)
-               (cl:setf (cl:aref result i) (cl:aref bytes i)))))))
-
 (cl:defun %parse-address (hex-str)
   "Parse hex string to Address"
   (cl:if hex-str
          (cl:let ((result (coalton:coalton
                            (web3/address:address-from-hex
                             (coalton:lisp coalton:String () hex-str)))))
-           (cl:if (result-ok-p result)
-                  (result-value result)
+           (cl:if (web3/types:%result-ok-p result)
+                  (web3/types:%unwrap-ok result)
                   cl:nil))
          cl:nil))
 
@@ -158,7 +112,7 @@
   "Parse list of topic hex strings to Coalton list of Bytes"
   (cl:if (cl:null topics-list)
          coalton:Nil
-         (coalton:Cons (%parse-hex-bytes32 (cl:first topics-list))
+         (coalton:Cons (web3/types:%parse-hex-bytes32 (cl:first topics-list))
                        (%parse-topics (cl:rest topics-list)))))
 
 (cl:defun %parse-single-log (log-obj)
@@ -175,23 +129,20 @@
               (block-hash-hex (cl:cdr (cl:assoc :block-hash log-obj)))
               (log-idx-hex (cl:cdr (cl:assoc :log-index log-obj)))
               (removed (cl:cdr (cl:assoc :removed log-obj))))
-      (web3/receipt::make-log-entry
+      (web3/receipt:make-log-entry
        addr
        (%parse-topics topics-list)
-       (%parse-hex-bytes data-hex)
-       (%parse-hex-ufix block-num-hex)
-       (%parse-hex-bytes32 tx-hash-hex)
-       (%parse-hex-ufix tx-idx-hex)
-       (%parse-hex-bytes32 block-hash-hex)
-       (%parse-hex-ufix log-idx-hex)
+       (web3/types:%parse-hex-bytes data-hex)
+       (web3/types:%parse-hex-ufix block-num-hex)
+       (web3/types:%parse-hex-bytes32 tx-hash-hex)
+       (web3/types:%parse-hex-ufix tx-idx-hex)
+       (web3/types:%parse-hex-bytes32 block-hash-hex)
+       (web3/types:%parse-hex-ufix log-idx-hex)
        (cl:if removed coalton:True coalton:False)))))
 
 (cl:defun %parse-logs (logs-list)
-  "Parse list of log objects to Coalton list"
-  (cl:if (cl:null logs-list)
-         coalton:Nil
-         (coalton:Cons (%parse-single-log (cl:first logs-list))
-                       (%parse-logs (cl:rest logs-list)))))
+  "Parse list of log objects to Coalton list (iterative to avoid stack overflow on large result sets)"
+  (cl:mapcar #'%parse-single-log logs-list))
 
 ;;; =========================================================================
 ;;; Filter Serialization
@@ -210,7 +161,7 @@
          cl:nil  ;; Will become JSON null
          ;; It's Some - extract the inner bytes
          (cl:let ((bytes (cl:slot-value opt-bytes 'coalton-library/classes::|_0|)))
-           (web3/types::hex-encode-prefixed bytes))))
+           (web3/types:hex-encode-prefixed bytes))))
 
 ;; Note: Coalton Lists are CL cons cells, so no conversion needed.
 ;; coalton:Cons creates CL cons, coalton:Nil is CL nil.
@@ -260,18 +211,4 @@
 
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(LogFilter
-               make-log-filter
-               .filter-from-block
-               .filter-to-block
-               .filter-address
-               .filter-topics
-               eth-get-logs
-               get-logs-by-event
-               get-logs-by-address)
-             (cl:find-package '#:web3/logs)))
+;; Exports are declared in package.lisp defpackage :export clause

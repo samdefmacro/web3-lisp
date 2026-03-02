@@ -277,55 +277,15 @@
 
 (cl:defun parse-hex-to-ufix (hex-str)
   "Parse hex string to UFix"
-  (cl:if (cl:or (cl:null hex-str) (cl:string= hex-str ""))
-         0
-         (cl:let ((clean (cl:if (cl:and (cl:>= (cl:length hex-str) 2)
-                                        (cl:string= (cl:subseq hex-str 0 2) "0x"))
-                                (cl:subseq hex-str 2)
-                                hex-str)))
-           (cl:if (cl:string= clean "")
-                  0
-                  (cl:parse-integer clean :radix 16 :junk-allowed cl:t)))))
+  (web3/types:%parse-hex-ufix hex-str))
 
 (cl:defun parse-hex-to-bytes (hex-str)
   "Parse hex string to Bytes"
-  (cl:if (cl:or (cl:null hex-str) (cl:string= hex-str ""))
-         (cl:make-array 0 :element-type 'cl:t :fill-pointer 0 :adjustable cl:t)
-         (cl:let* ((clean (cl:if (cl:and (cl:>= (cl:length hex-str) 2)
-                                         (cl:string= (cl:subseq hex-str 0 2) "0x"))
-                                 (cl:subseq hex-str 2)
-                                 hex-str))
-                   (len (cl:floor (cl:length clean) 2))
-                   (result (cl:make-array len :element-type 'cl:t
-                                          :fill-pointer len :adjustable cl:t)))
-           (cl:dotimes (i len result)
-             (cl:setf (cl:aref result i)
-                      (cl:parse-integer clean :start (cl:* i 2) :end (cl:+ (cl:* i 2) 2)
-                                        :radix 16))))))
+  (web3/types:%parse-hex-bytes hex-str))
 
 (cl:defun parse-hex-to-u256 (hex-str)
   "Parse hex string to U256"
-  (cl:if (cl:or (cl:null hex-str) (cl:string= hex-str ""))
-         (web3/types::u256-from-integer 0)
-         (cl:let ((clean (cl:if (cl:and (cl:>= (cl:length hex-str) 2)
-                                        (cl:string= (cl:subseq hex-str 0 2) "0x"))
-                                (cl:subseq hex-str 2)
-                                hex-str)))
-           (cl:if (cl:string= clean "")
-                  (web3/types::u256-from-integer 0)
-                  (web3/types::u256-from-integer
-                   (cl:parse-integer clean :radix 16 :junk-allowed cl:t))))))
-
-;; Helper to check if Result is Ok (by checking type name string)
-(cl:defun %is-ok-p (result)
-  "Check if Coalton Result is Ok"
-  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
-    (cl:search "OK" type-name)))
-
-;; Helper to extract value from Ok (slot _0)
-(cl:defun %unwrap-ok (result)
-  "Extract the inner value from Ok"
-  (cl:slot-value result 'coalton-library/classes::|_0|))
+  (web3/types:%parse-hex-u256 hex-str))
 
 ;; Store generic typed None values for reuse
 (cl:defvar *none-ufix* nil)
@@ -433,10 +393,35 @@
   (cl:let ((result (coalton:coalton
                     (web3/address:address-from-hex
                      (coalton:lisp coalton:String () hex-str)))))
-    (cl:if (%is-ok-p result)
-           (%unwrap-ok result)
+    (cl:if (web3/types:%result-ok-p result)
+           (web3/types:%unwrap-ok result)
            ;; Return zero address on error
-           (coalton:coalton (web3/address:address-zero coalton:Unit)))))
+           (coalton:coalton web3/address:address-zero))))
+
+(cl:defun %parse-header-from-alist (alist)
+  "Parse a BlockHeader from a JSON alist. Shared helper used by all block/header parsers."
+  (%BlockHeader
+   (parse-hex-to-ufix (json-get alist "number"))
+   (parse-hex-to-bytes (json-get alist "hash"))
+   (parse-hex-to-bytes (json-get alist "parentHash"))
+   (parse-hex-to-bytes (json-get alist "nonce"))
+   (parse-hex-to-bytes (json-get alist "sha3Uncles"))
+   (parse-hex-to-bytes (json-get alist "logsBloom"))
+   (parse-hex-to-bytes (json-get alist "transactionsRoot"))
+   (parse-hex-to-bytes (json-get alist "stateRoot"))
+   (parse-hex-to-bytes (json-get alist "receiptsRoot"))
+   (parse-address-from-hex (json-get alist "miner"))
+   (parse-hex-to-u256 (json-get alist "difficulty"))
+   (parse-optional-u256 (json-get alist "totalDifficulty"))
+   (parse-hex-to-bytes (json-get alist "extraData"))
+   (parse-hex-to-ufix (json-get alist "size"))
+   (parse-hex-to-ufix (json-get alist "gasLimit"))
+   (parse-hex-to-ufix (json-get alist "gasUsed"))
+   (parse-hex-to-ufix (json-get alist "timestamp"))
+   (parse-optional-ufix (json-get alist "baseFeePerGas"))
+   (parse-optional-bytes (json-get alist "withdrawalsRoot"))
+   (parse-optional-ufix (json-get alist "blobGasUsed"))
+   (parse-optional-ufix (json-get alist "excessBlobGas"))))
 
 
 (coalton-toplevel
@@ -477,30 +462,7 @@
                     (obj (cl:ignore-errors (json:decode-json-from-string json-str))))
             (cl:if (cl:null obj)
                    (make-err-provider "Invalid JSON")
-                   (cl:let ((header
-                             (%BlockHeader
-                              (parse-hex-to-ufix (json-get obj "number"))
-                              (parse-hex-to-bytes (json-get obj "hash"))
-                              (parse-hex-to-bytes (json-get obj "parentHash"))
-                              (parse-hex-to-bytes (json-get obj "nonce"))
-                              (parse-hex-to-bytes (json-get obj "sha3Uncles"))
-                              (parse-hex-to-bytes (json-get obj "logsBloom"))
-                              (parse-hex-to-bytes (json-get obj "transactionsRoot"))
-                              (parse-hex-to-bytes (json-get obj "stateRoot"))
-                              (parse-hex-to-bytes (json-get obj "receiptsRoot"))
-                              (parse-address-from-hex (json-get obj "miner"))
-                              (parse-hex-to-u256 (json-get obj "difficulty"))
-                              (parse-optional-u256 (json-get obj "totalDifficulty"))
-                              (parse-hex-to-bytes (json-get obj "extraData"))
-                              (parse-hex-to-ufix (json-get obj "size"))
-                              (parse-hex-to-ufix (json-get obj "gasLimit"))
-                              (parse-hex-to-ufix (json-get obj "gasUsed"))
-                              (parse-hex-to-ufix (json-get obj "timestamp"))
-                              (parse-optional-ufix (json-get obj "baseFeePerGas"))
-                              (parse-optional-bytes (json-get obj "withdrawalsRoot"))
-                              (parse-optional-ufix (json-get obj "blobGasUsed"))
-                              (parse-optional-ufix (json-get obj "excessBlobGas")))))
-                     (make-ok-block-header header))))
+                   (make-ok-block-header (%parse-header-from-alist obj))))
         (cl:error (e)
           (cl:declare (cl:ignore e))
           (make-err-provider "Parse error")))))
@@ -518,29 +480,7 @@
                     (obj (cl:ignore-errors (json:decode-json-from-string json-str))))
             (cl:if (cl:null obj)
                    (make-err-provider "Invalid JSON")
-                   (cl:let* ((header
-                              (%BlockHeader
-                               (parse-hex-to-ufix (json-get obj "number"))
-                               (parse-hex-to-bytes (json-get obj "hash"))
-                               (parse-hex-to-bytes (json-get obj "parentHash"))
-                               (parse-hex-to-bytes (json-get obj "nonce"))
-                               (parse-hex-to-bytes (json-get obj "sha3Uncles"))
-                               (parse-hex-to-bytes (json-get obj "logsBloom"))
-                               (parse-hex-to-bytes (json-get obj "transactionsRoot"))
-                               (parse-hex-to-bytes (json-get obj "stateRoot"))
-                               (parse-hex-to-bytes (json-get obj "receiptsRoot"))
-                               (parse-address-from-hex (json-get obj "miner"))
-                               (parse-hex-to-u256 (json-get obj "difficulty"))
-                               (parse-optional-u256 (json-get obj "totalDifficulty"))
-                               (parse-hex-to-bytes (json-get obj "extraData"))
-                               (parse-hex-to-ufix (json-get obj "size"))
-                               (parse-hex-to-ufix (json-get obj "gasLimit"))
-                               (parse-hex-to-ufix (json-get obj "gasUsed"))
-                               (parse-hex-to-ufix (json-get obj "timestamp"))
-                               (parse-optional-ufix (json-get obj "baseFeePerGas"))
-                               (parse-optional-bytes (json-get obj "withdrawalsRoot"))
-                               (parse-optional-ufix (json-get obj "blobGasUsed"))
-                               (parse-optional-ufix (json-get obj "excessBlobGas"))))
+                   (cl:let* ((header (%parse-header-from-alist obj))
                             ;; Parse transactions
                             (raw-txs (json-get obj "transactions"))
                             (txs (cl:if (cl:null raw-txs)
@@ -631,29 +571,7 @@
                (make-ok-optional-block (make-coalton-none-block)))
               (cl:t
                ;; Parse the block
-               (cl:let* ((header
-                          (%BlockHeader
-                           (parse-hex-to-ufix (json-get result "number"))
-                           (parse-hex-to-bytes (json-get result "hash"))
-                           (parse-hex-to-bytes (json-get result "parentHash"))
-                           (parse-hex-to-bytes (json-get result "nonce"))
-                           (parse-hex-to-bytes (json-get result "sha3Uncles"))
-                           (parse-hex-to-bytes (json-get result "logsBloom"))
-                           (parse-hex-to-bytes (json-get result "transactionsRoot"))
-                           (parse-hex-to-bytes (json-get result "stateRoot"))
-                           (parse-hex-to-bytes (json-get result "receiptsRoot"))
-                           (parse-address-from-hex (json-get result "miner"))
-                           (parse-hex-to-u256 (json-get result "difficulty"))
-                           (parse-optional-u256 (json-get result "totalDifficulty"))
-                           (parse-hex-to-bytes (json-get result "extraData"))
-                           (parse-hex-to-ufix (json-get result "size"))
-                           (parse-hex-to-ufix (json-get result "gasLimit"))
-                           (parse-hex-to-ufix (json-get result "gasUsed"))
-                           (parse-hex-to-ufix (json-get result "timestamp"))
-                           (parse-optional-ufix (json-get result "baseFeePerGas"))
-                           (parse-optional-bytes (json-get result "withdrawalsRoot"))
-                           (parse-optional-ufix (json-get result "blobGasUsed"))
-                           (parse-optional-ufix (json-get result "excessBlobGas"))))
+               (cl:let* ((header (%parse-header-from-alist result))
                          (raw-txs (json-get result "transactions"))
                          (txs (cl:if (cl:null raw-txs)
                                      Nil
@@ -698,66 +616,3 @@
           (make-err-provider "Parse error"))))))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(BlockHeader
-               make-block-header
-               header-number
-               header-hash
-               header-parent-hash
-               header-nonce
-               header-sha3-uncles
-               header-logs-bloom
-               header-transactions-root
-               header-state-root
-               header-receipts-root
-               header-miner
-               header-difficulty
-               header-total-difficulty
-               header-extra-data
-               header-size
-               header-gas-limit
-               header-gas-used
-               header-timestamp
-               header-base-fee
-               header-withdrawals-root
-               header-blob-gas-used
-               header-excess-blob-gas
-               Block
-               make-block
-               block-header
-               block-transactions
-               block-uncles
-               block-withdrawals
-               BlockTx
-               TxHash
-               TxFull
-               Withdrawal
-               make-withdrawal
-               withdrawal-index
-               withdrawal-validator-index
-               withdrawal-address
-               withdrawal-amount
-               parse-block-header
-               parse-block
-               parse-withdrawal
-               encode-get-block-by-number-request
-               encode-get-block-by-hash-request
-               parse-get-block-response
-               BlockTag
-               TagLatest
-               TagPending
-               TagFinalized
-               TagSafe
-               TagEarliest
-               TagNumber
-               block-tag-to-string
-               is-post-merge
-               is-post-shanghai
-               is-post-cancun
-               block-age
-               gas-utilization)
-             (cl:find-package '#:web3/block)))

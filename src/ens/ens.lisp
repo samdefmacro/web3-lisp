@@ -13,25 +13,6 @@
 (coalton-toplevel
 
   ;;; =========================================================================
-  ;;; Internal Helpers
-  ;;; =========================================================================
-
-  (declare bytes-concat (types:Bytes -> types:Bytes -> types:Bytes))
-  (define (bytes-concat a b)
-    "Concatenate two byte arrays."
-    (types:bytes-concat-many (Cons a (Cons b Nil))))
-
-  (declare string-to-bytes (String -> types:Bytes))
-  (define (string-to-bytes s)
-    "Convert a string to UTF-8 bytes."
-    (lisp types:Bytes (s)
-      (cl:let* ((str (cl:the cl:string s))
-                (len (cl:length str))
-                (arr (cl:make-array len :fill-pointer len :adjustable cl:t)))
-        (cl:dotimes (i len arr)
-          (cl:setf (cl:aref arr i) (cl:char-code (cl:char str i)))))))
-
-  ;;; =========================================================================
   ;;; Namehash (EIP-137)
   ;;; =========================================================================
   ;;;
@@ -48,7 +29,7 @@
   (define (labelhash label)
     "Compute the keccak256 hash of a single label.
      Example: (labelhash \"eth\") => hash of 'eth'"
-    (crypto:keccak256 (string-to-bytes label)))
+    (crypto:keccak256 (types:string-to-bytes label)))
 
   (declare namehash (String -> types:Bytes))
   (define (namehash name)
@@ -62,8 +43,7 @@
      The name should be normalized (lowercase, no trailing dot)."
     (if (== name "")
         ;; Empty name returns 32 zero bytes
-        (types:bytes-from-list
-         (replicate 32 0))
+        (types:make-bytes 32)
         ;; Split into labels and compute recursively
         (let ((labels (split-name name)))
           (namehash-labels labels))))
@@ -81,12 +61,12 @@
     (match labels
       ((Nil)
        ;; Base case: empty produces 32 zero bytes
-       (types:bytes-from-list (replicate 32 0)))
+       (types:make-bytes 32))
       ((Cons label rest)
        ;; Recursive case: hash(namehash(rest) ++ labelhash(label))
        (let ((parent-hash (namehash-labels rest))
              (label-hash (labelhash label)))
-         (crypto:keccak256 (bytes-concat parent-hash label-hash))))))
+         (crypto:keccak256 (types:bytes-append parent-hash label-hash))))))
 
   (declare split-name (String -> (List String)))
   (define (split-name name)
@@ -101,24 +81,17 @@
         (cl:let ((parts (uiop:split-string name :separator ".")))
           (build-list (cl:remove-if (cl:lambda (s) (cl:zerop (cl:length s))) parts))))))
 
-  (declare replicate (UFix -> :a -> (List :a)))
-  (define (replicate n val)
-    "Create a list of n copies of val."
-    (if (== n 0)
-        Nil
-        (Cons val (replicate (- n 1) val))))
-
   ;;; =========================================================================
   ;;; ENS Contract Addresses (Ethereum Mainnet)
   ;;; =========================================================================
 
-  (declare ens-registry-address (Unit -> String))
-  (define (ens-registry-address _)
+  (declare ens-registry-address String)
+  (define ens-registry-address
     "ENS Registry contract address on Ethereum mainnet."
     "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e")
 
-  (declare ens-public-resolver-address (Unit -> String))
-  (define (ens-public-resolver-address _)
+  (declare ens-public-resolver-address String)
+  (define ens-public-resolver-address
     "ENS Public Resolver contract address on Ethereum mainnet."
     "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63")
 
@@ -131,13 +104,13 @@
   ;;;   resolver(bytes32 node) -> address
   ;;;   owner(bytes32 node) -> address
 
-  (declare ens-resolver-selector (Unit -> types:Bytes))
-  (define (ens-resolver-selector _)
+  (declare ens-resolver-selector types:Bytes)
+  (define ens-resolver-selector
     "Function selector for resolver(bytes32) = 0x0178b8bf"
     (abi:function-selector "resolver(bytes32)"))
 
-  (declare ens-owner-selector (Unit -> types:Bytes))
-  (define (ens-owner-selector _)
+  (declare ens-owner-selector types:Bytes)
+  (define ens-owner-selector
     "Function selector for owner(bytes32) = 0x02571be3"
     (abi:function-selector "owner(bytes32)"))
 
@@ -145,16 +118,16 @@
   (define (ens-resolver-calldata node)
     "Build calldata for resolver(bytes32 node).
      Use this to find which resolver handles a name."
-    (bytes-concat
-     (ens-resolver-selector Unit)
+    (types:bytes-append
+     ens-resolver-selector
      (abi:abi-encode (Cons (abi:AbiBytesFixedVal node) Nil))))
 
   (declare ens-owner-calldata (types:Bytes -> types:Bytes))
   (define (ens-owner-calldata node)
     "Build calldata for owner(bytes32 node).
      Use this to find who owns a name."
-    (bytes-concat
-     (ens-owner-selector Unit)
+    (types:bytes-append
+     ens-owner-selector
      (abi:abi-encode (Cons (abi:AbiBytesFixedVal node) Nil))))
 
   ;;; =========================================================================
@@ -167,23 +140,23 @@
   ;;;   text(bytes32 node, string key) -> string         (text records)
   ;;;   contenthash(bytes32 node) -> bytes               (IPFS/Swarm hashes)
 
-  (declare resolver-addr-selector (Unit -> types:Bytes))
-  (define (resolver-addr-selector _)
+  (declare resolver-addr-selector types:Bytes)
+  (define resolver-addr-selector
     "Function selector for addr(bytes32) = 0x3b3b57de"
     (abi:function-selector "addr(bytes32)"))
 
-  (declare resolver-name-selector (Unit -> types:Bytes))
-  (define (resolver-name-selector _)
+  (declare resolver-name-selector types:Bytes)
+  (define resolver-name-selector
     "Function selector for name(bytes32) = 0x691f3431"
     (abi:function-selector "name(bytes32)"))
 
-  (declare resolver-text-selector (Unit -> types:Bytes))
-  (define (resolver-text-selector _)
+  (declare resolver-text-selector types:Bytes)
+  (define resolver-text-selector
     "Function selector for text(bytes32,string) = 0x59d1d43c"
     (abi:function-selector "text(bytes32,string)"))
 
-  (declare resolver-contenthash-selector (Unit -> types:Bytes))
-  (define (resolver-contenthash-selector _)
+  (declare resolver-contenthash-selector types:Bytes)
+  (define resolver-contenthash-selector
     "Function selector for contenthash(bytes32) = 0xbc1c58d1"
     (abi:function-selector "contenthash(bytes32)"))
 
@@ -191,24 +164,24 @@
   (define (resolver-addr-calldata node)
     "Build calldata for addr(bytes32 node).
      Use this to resolve a name to an Ethereum address."
-    (bytes-concat
-     (resolver-addr-selector Unit)
+    (types:bytes-append
+     resolver-addr-selector
      (abi:abi-encode (Cons (abi:AbiBytesFixedVal node) Nil))))
 
   (declare resolver-name-calldata (types:Bytes -> types:Bytes))
   (define (resolver-name-calldata node)
     "Build calldata for name(bytes32 node).
      Use this for reverse resolution (address -> name)."
-    (bytes-concat
-     (resolver-name-selector Unit)
+    (types:bytes-append
+     resolver-name-selector
      (abi:abi-encode (Cons (abi:AbiBytesFixedVal node) Nil))))
 
   (declare resolver-text-calldata (types:Bytes -> String -> types:Bytes))
   (define (resolver-text-calldata node key)
     "Build calldata for text(bytes32 node, string key).
      Common keys: 'email', 'url', 'avatar', 'description', 'com.twitter', etc."
-    (bytes-concat
-     (resolver-text-selector Unit)
+    (types:bytes-append
+     resolver-text-selector
      (abi:abi-encode (Cons (abi:AbiBytesFixedVal node)
                            (Cons (abi:AbiStringVal key) Nil)))))
 
@@ -225,7 +198,7 @@
     "Convert an address to its reverse resolution name.
      E.g., '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045'
            => 'd8da6bf26964af9d7eed9e03e53415d37aa96045.addr.reverse'"
-    (let ((addr-lower (string-downcase (strip-0x addr-hex))))
+    (let ((addr-lower (types:string-downcase (strip-0x addr-hex))))
       (<> addr-lower ".addr.reverse")))
 
   (declare reverse-node (String -> types:Bytes))
@@ -242,12 +215,6 @@
                      (cl:string= (cl:subseq s 0 2) "0x"))
              (cl:subseq s 2)
              s)))
-
-  (declare string-downcase (String -> String))
-  (define (string-downcase s)
-    "Convert string to lowercase."
-    (lisp String (s)
-      (cl:string-downcase s)))
 
   ;;; =========================================================================
   ;;; Result Decoding

@@ -15,11 +15,6 @@
   ;;; Internal Helpers
   ;;; =========================================================================
 
-  (declare bytes-concat (types:Bytes -> types:Bytes -> types:Bytes))
-  (define (bytes-concat a b)
-    "Concatenate two byte arrays."
-    (types:bytes-concat-many (Cons a (Cons b Nil))))
-
   (declare address-from-bytes-unchecked (types:Bytes -> addr:Address))
   (define (address-from-bytes-unchecked bytes)
     "Create an address from exactly 20 bytes without validation.
@@ -53,7 +48,7 @@
     (match constructor-args
       ((Nil) bytecode)
       (_ (let ((encoded-args (abi:abi-encode constructor-args)))
-           (bytes-concat bytecode encoded-args)))))
+           (types:bytes-append bytecode encoded-args)))))
 
   ;;; =========================================================================
   ;;; Constructor Encoding Helpers
@@ -85,7 +80,7 @@
 
      Returns the address where the contract will be deployed.
 
-     Formula: address = keccak256(rlp([deployer, nonce]))[12:32]"
+     Formula: address = keccak256(rlp([deployer, nonce]))[12:]"
     (let ((deployer-bytes (addr:address-bytes deployer)))
       ;; RLP encode [deployer_address, nonce]
       (let ((rlp-encoded (rlp:rlp-encode
@@ -96,7 +91,7 @@
         ;; Hash and take last 20 bytes
         (let ((hash (crypto:keccak256 rlp-encoded)))
           (address-from-bytes-unchecked
-           (types:bytes-slice 12 32 hash))))))
+           (types:bytes-slice 12 20 hash))))))
 
   (declare compute-create-address-from-hex
            (String -> Integer -> (types:Web3Result addr:Address)))
@@ -135,7 +130,7 @@
 
      Returns the address where the contract will be deployed.
 
-     Formula: address = keccak256(0xff ++ deployer ++ salt ++ keccak256(init_code))[12:32]
+     Formula: address = keccak256(0xff ++ deployer ++ salt ++ keccak256(init_code))[12:]
 
      Note: CREATE2 allows deterministic deployment - the same inputs always
      produce the same address, regardless of nonce."
@@ -146,15 +141,15 @@
       ;; Construct: 0xff ++ deployer (20 bytes) ++ salt (32 bytes) ++ init_code_hash (32 bytes)
       ;; Total: 1 + 20 + 32 + 32 = 85 bytes
       (let ((prefix (types:bytes-from-list (Cons #xff Nil))))
-        (let ((data (bytes-concat
+        (let ((data (types:bytes-append
                      prefix
-                     (bytes-concat
+                     (types:bytes-append
                       deployer-bytes
-                      (bytes-concat salt-32 init-code-hash)))))
+                      (types:bytes-append salt-32 init-code-hash)))))
           ;; Hash and take last 20 bytes
           (let ((hash (crypto:keccak256 data)))
             (address-from-bytes-unchecked
-             (types:bytes-slice 12 32 hash)))))))
+             (types:bytes-slice 12 20 hash)))))))
 
   (declare compute-create2-address-from-hex
            (String -> types:Bytes -> types:Bytes -> (types:Web3Result addr:Address)))
@@ -178,14 +173,14 @@
   (define (rlp-encode-integer-item n)
     "Convert an integer to an RlpItem for RLP encoding."
     (if (== n 0)
-        (rlp:RlpBytes (types:bytes-empty))
+        (rlp:RlpBytes types:bytes-empty)
         (rlp:RlpBytes (integer-to-bytes-minimal n))))
 
   (declare integer-to-bytes-minimal (Integer -> types:Bytes))
   (define (integer-to-bytes-minimal n)
     "Convert integer to minimal byte representation (no leading zeros)."
     (if (== n 0)
-        (types:bytes-empty)
+        types:bytes-empty
         (lisp types:Bytes (n)
           (cl:let* ((byte-count (cl:ceiling (cl:integer-length n) 8))
                     (result (cl:make-array byte-count :fill-pointer byte-count :adjustable cl:t)))

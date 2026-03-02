@@ -11,7 +11,7 @@
 
   ;; Function selector tests - verify they match known values
   (test-case "selector name() = 0x06fdde03"
-    (let ((selector (coalton:coalton (web3/erc20:selector-name coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-name)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x06))
       (assert (= (aref selector 1) #xfd))
@@ -19,56 +19,56 @@
       (assert (= (aref selector 3) #x03))))
 
   (test-case "selector symbol() = 0x95d89b41"
-    (let ((selector (coalton:coalton (web3/erc20:selector-symbol coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-symbol)))
       (assert (= (aref selector 0) #x95))
       (assert (= (aref selector 1) #xd8))
       (assert (= (aref selector 2) #x9b))
       (assert (= (aref selector 3) #x41))))
 
   (test-case "selector decimals() = 0x313ce567"
-    (let ((selector (coalton:coalton (web3/erc20:selector-decimals coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-decimals)))
       (assert (= (aref selector 0) #x31))
       (assert (= (aref selector 1) #x3c))
       (assert (= (aref selector 2) #xe5))
       (assert (= (aref selector 3) #x67))))
 
   (test-case "selector totalSupply() = 0x18160ddd"
-    (let ((selector (coalton:coalton (web3/erc20:selector-total-supply coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-total-supply)))
       (assert (= (aref selector 0) #x18))
       (assert (= (aref selector 1) #x16))
       (assert (= (aref selector 2) #x0d))
       (assert (= (aref selector 3) #xdd))))
 
   (test-case "selector balanceOf(address) = 0x70a08231"
-    (let ((selector (coalton:coalton (web3/erc20:selector-balance-of coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-balance-of)))
       (assert (= (aref selector 0) #x70))
       (assert (= (aref selector 1) #xa0))
       (assert (= (aref selector 2) #x82))
       (assert (= (aref selector 3) #x31))))
 
   (test-case "selector allowance(address,address) = 0xdd62ed3e"
-    (let ((selector (coalton:coalton (web3/erc20:selector-allowance coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-allowance)))
       (assert (= (aref selector 0) #xdd))
       (assert (= (aref selector 1) #x62))
       (assert (= (aref selector 2) #xed))
       (assert (= (aref selector 3) #x3e))))
 
   (test-case "selector transfer(address,uint256) = 0xa9059cbb"
-    (let ((selector (coalton:coalton (web3/erc20:selector-transfer coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-transfer)))
       (assert (= (aref selector 0) #xa9))
       (assert (= (aref selector 1) #x05))
       (assert (= (aref selector 2) #x9c))
       (assert (= (aref selector 3) #xbb))))
 
   (test-case "selector approve(address,uint256) = 0x095ea7b3"
-    (let ((selector (coalton:coalton (web3/erc20:selector-approve coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-approve)))
       (assert (= (aref selector 0) #x09))
       (assert (= (aref selector 1) #x5e))
       (assert (= (aref selector 2) #xa7))
       (assert (= (aref selector 3) #xb3))))
 
   (test-case "selector transferFrom(address,address,uint256) = 0x23b872dd"
-    (let ((selector (coalton:coalton (web3/erc20:selector-transfer-from coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc20:selector-transfer-from)))
       (assert (= (aref selector 0) #x23))
       (assert (= (aref selector 1) #xb8))
       (assert (= (aref selector 2) #x72))
@@ -137,7 +137,7 @@
     (let* ((to-addr (result-value (coalton:coalton
                                    (web3/address:address-from-hex
                                     "0x0000000000000000000000000000000000000001"))))
-           (amount (coalton:coalton (web3/types:u256-zero coalton:Unit)))
+           (amount (coalton:coalton web3/types:u256-zero))
            (calldata (coalton:coalton
                       (web3/erc20:erc20-transfer-data
                        (coalton:lisp web3/address:Address () to-addr)
@@ -152,7 +152,7 @@
     (let* ((spender (result-value (coalton:coalton
                                    (web3/address:address-from-hex
                                     "0x1234567890123456789012345678901234567890"))))
-           (max-amount (coalton:coalton (web3/types:u256-max coalton:Unit)))
+           (max-amount (coalton:coalton web3/types:u256-max))
            (calldata (coalton:coalton
                       (web3/erc20:erc20-approve-data
                        (coalton:lisp web3/address:Address () spender)
@@ -167,18 +167,18 @@
   ;;; =========================================================================
 
   (test-case "selector-name is consistent across calls"
-    (let ((sel1 (coalton:coalton (web3/erc20:selector-name coalton:Unit)))
-          (sel2 (coalton:coalton (web3/erc20:selector-name coalton:Unit))))
+    (let ((sel1 (coalton:coalton web3/erc20:selector-name))
+          (sel2 (coalton:coalton web3/erc20:selector-name)))
       (assert (equalp sel1 sel2))))
 
   (test-case "selector-transfer is consistent across calls"
-    (let ((sel1 (coalton:coalton (web3/erc20:selector-transfer coalton:Unit)))
-          (sel2 (coalton:coalton (web3/erc20:selector-transfer coalton:Unit))))
+    (let ((sel1 (coalton:coalton web3/erc20:selector-transfer))
+          (sel2 (coalton:coalton web3/erc20:selector-transfer)))
       (assert (equalp sel1 sel2))))
 
   (test-case "selector-approve is consistent across calls"
-    (let ((sel1 (coalton:coalton (web3/erc20:selector-approve coalton:Unit)))
-          (sel2 (coalton:coalton (web3/erc20:selector-approve coalton:Unit))))
+    (let ((sel1 (coalton:coalton web3/erc20:selector-approve))
+          (sel2 (coalton:coalton web3/erc20:selector-approve)))
       (assert (equalp sel1 sel2))))
 
   ;;; =========================================================================
@@ -309,7 +309,7 @@
     (let* ((spender (result-value (coalton:coalton
                                    (web3/address:address-from-hex
                                     "0x1234567890123456789012345678901234567890"))))
-           (zero-amount (coalton:coalton (web3/types:u256-zero coalton:Unit)))
+           (zero-amount (coalton:coalton web3/types:u256-zero))
            (calldata (coalton:coalton
                       (web3/erc20:erc20-approve-data
                        (coalton:lisp web3/address:Address () spender)
@@ -338,15 +338,15 @@
   ;;; =========================================================================
 
   (test-case "all selectors are exactly 4 bytes"
-    (assert (= (length (coalton:coalton (web3/erc20:selector-name coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-symbol coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-decimals coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-total-supply coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-balance-of coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-allowance coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-transfer coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-approve coalton:Unit))) 4))
-    (assert (= (length (coalton:coalton (web3/erc20:selector-transfer-from coalton:Unit))) 4)))
+    (assert (= (length (coalton:coalton web3/erc20:selector-name)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-symbol)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-decimals)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-total-supply)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-balance-of)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-allowance)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-transfer)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-approve)) 4))
+    (assert (= (length (coalton:coalton web3/erc20:selector-transfer-from)) 4)))
 
   ;;; =========================================================================
   ;;; Network-Dependent Tests Note

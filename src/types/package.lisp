@@ -4,12 +4,7 @@
         #:coalton-prelude)
   (:local-nicknames
    (#:vec #:coalton-library/vector)
-   (#:iter #:coalton-library/iterator)
-   (#:cell #:coalton-library/cell)
-   (#:bits #:coalton-library/bits)
-   (#:list #:coalton-library/list)
-   (#:math #:coalton-library/math)
-   (#:str #:coalton-library/string))
+   (#:iter #:coalton-library/iterator))
   (:export
    ;; Error types
    #:Web3Error
@@ -48,6 +43,10 @@
    #:hex-decode
    #:hex-encode-prefixed
    #:hex-decode-prefixed
+
+   ;; String utilities
+   #:string-to-bytes
+   #:string-downcase
 
    ;; U256 type
    #:U256

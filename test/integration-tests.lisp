@@ -372,7 +372,7 @@
     (let* ((empty-data (make-array 0 :fill-pointer 0 :adjustable t))
            (value-u256 (coalton:coalton (web3/types:u256-from-integer 1000000000000000)))
            (opts (coalton:coalton
-                  (web3/simulate:default-call-options coalton:Unit)))
+                  web3/simulate:default-call-options))
            (result (coalton:coalton
                     (web3/simulate:estimate-gas
                      (coalton:lisp web3/provider:HttpProvider () *integ-provider*)
@@ -539,7 +539,7 @@
   (test-case "integ: simulate-call on EOA returns empty bytes"
     (let* ((empty-data (make-array 0 :fill-pointer 0 :adjustable t))
            (opts (coalton:coalton
-                  (web3/simulate:default-call-options coalton:Unit)))
+                  web3/simulate:default-call-options))
            (result (coalton:coalton
                     (web3/simulate:simulate-call
                      (coalton:lisp web3/provider:HttpProvider () *integ-provider*)

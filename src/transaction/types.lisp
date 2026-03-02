@@ -43,7 +43,7 @@
   (define (make-transaction typ chain-id nonce gas-price max-fee gas-limit to value data access-list)
     "Create a transaction (for legacy, EIP-2930, EIP-1559). For blob transactions use make-blob-transaction."
     (%Transaction typ chain-id nonce gas-price max-fee gas-limit to value data access-list
-                  (types:u256-zero) Nil))
+                  types:u256-zero Nil))
 
   (declare make-blob-transaction (U64 -> U64 -> types:U256 -> types:U256 -> U64 ->
                                   (Optional addr:Address) -> types:U256 -> types:Bytes ->

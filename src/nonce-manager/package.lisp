@@ -9,8 +9,7 @@
    (#:types #:web3/types)
    (#:addr #:web3/address)
    (#:provider #:web3/provider)
-   (#:cell #:coalton-library/cell)
-   (#:list #:coalton-library/list))
+   (#:cell #:coalton-library/cell))
   (:export
    ;; Types
    #:NonceManager

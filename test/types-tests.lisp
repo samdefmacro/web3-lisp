@@ -182,7 +182,7 @@
 
   (test-case "wei-to-ether-string 0"
     (let ((result (coalton:coalton
-                   (web3/types:wei-to-ether-string (web3/types:u256-zero coalton:Unit)))))
+                   (web3/types:wei-to-ether-string web3/types:u256-zero))))
       (assert (string= result "0.0"))))
 
   (test-case "gwei-to-wei conversion"

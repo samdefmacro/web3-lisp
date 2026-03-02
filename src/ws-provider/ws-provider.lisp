@@ -189,23 +189,6 @@
                "{\"jsonrpc\":\"2.0\",\"id\":~A,\"method\":\"eth_subscribe\",\"params\":~A}"
                request-id method-params)))
 
-;; Helper to check if an Optional is Some (by checking type name string)
-(cl:defun %is-some-p (opt)
-  "Check if Coalton Optional is Some"
-  (cl:let ((type-name (cl:symbol-name (cl:type-of opt))))
-    (cl:search "SOME" type-name)))
-
-;; Helper to check if a Result is Ok (by checking type name string)
-(cl:defun %is-ok-p (result)
-  "Check if Coalton Result is Ok"
-  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
-    (cl:search "OK" type-name)))
-
-;; Helper to extract value from Some/Ok (slot _0)
-(cl:defun %unwrap-value (container)
-  "Extract the inner value from Some or Ok"
-  (cl:slot-value container 'coalton-library/classes::|_0|))
-
 (cl:defun %encode-logs-params (log-fltr)
   "Encode logs subscription parameters"
   ;; Access struct fields using Coalton accessors
@@ -217,8 +200,8 @@
                       (coalton:lisp LogFilter () log-fltr))))
             (filter-obj (cl:make-hash-table :test 'cl:equal)))
     ;; Add address if present
-    (cl:when (%is-some-p addr-opt)
-      (cl:let* ((addr (%unwrap-value addr-opt))
+    (cl:when (web3/types:%is-some-p addr-opt)
+      (cl:let* ((addr (web3/types:%unwrap-some addr-opt))
                 (addr-bytes (coalton:coalton
                              (addr:address-bytes
                               (coalton:lisp addr:Address () addr))))
@@ -241,8 +224,8 @@
          (cl:let ((rest-topics (%convert-topics (cl:cdr topics)))
                   (topic-opt (cl:car topics)))
            (cl:cons
-            (cl:if (%is-some-p topic-opt)
-                   (cl:let* ((topic-bytes (%unwrap-value topic-opt))
+            (cl:if (web3/types:%is-some-p topic-opt)
+                   (cl:let* ((topic-bytes (web3/types:%unwrap-some topic-opt))
                              (topic-hex (coalton:coalton
                                          (types:hex-encode-prefixed
                                           (coalton:lisp types:Bytes () topic-bytes)))))
@@ -271,14 +254,14 @@
                     (gas-used-hex (cl:cdr (cl:assoc :gas-used parsed)))
                     (base-fee-hex (cl:cdr (cl:assoc :base-fee-per-gas parsed))))
             (Ok (BlockHeader
-                 (%parse-hex-to-ufix number-hex)
-                 (%parse-hex-to-bytes hash-hex)
-                 (%parse-hex-to-bytes parent-hex)
-                 (%parse-hex-to-ufix timestamp-hex)
-                 (%parse-hex-to-u256 gas-limit-hex)
-                 (%parse-hex-to-u256 gas-used-hex)
+                 (web3/types:%parse-hex-ufix number-hex)
+                 (web3/types:%parse-hex-bytes hash-hex)
+                 (web3/types:%parse-hex-bytes parent-hex)
+                 (web3/types:%parse-hex-ufix timestamp-hex)
+                 (web3/types:%parse-hex-u256 gas-limit-hex)
+                 (web3/types:%parse-hex-u256 gas-used-hex)
                  (cl:if base-fee-hex
-                        (Some (%parse-hex-to-u256 base-fee-hex))
+                        (Some (web3/types:%parse-hex-u256 base-fee-hex))
                         None))))
         (cl:error (e)
           (Err (web3/types:ProviderError
@@ -300,16 +283,16 @@
                     (log-idx-hex (cl:cdr (cl:assoc :log-index parsed))))
             (cl:let ((addr-result (%parse-address addr-hex)))
               ;; Check if result is Ok by checking its type
-              (cl:if (%is-ok-p addr-result)
+              (cl:if (web3/types:%result-ok-p addr-result)
                      (Ok (LogEntry
-                          (%unwrap-value addr-result)
+                          (web3/types:%unwrap-ok addr-result)
                           (%parse-topics-list topics-list)
-                          (%parse-hex-to-bytes data-hex)
-                          (%parse-hex-to-ufix block-num-hex)
-                          (%parse-hex-to-bytes tx-hash-hex)
-                          (%parse-hex-to-ufix tx-idx-hex)
-                          (%parse-hex-to-bytes block-hash-hex)
-                          (%parse-hex-to-ufix log-idx-hex)))
+                          (web3/types:%parse-hex-bytes data-hex)
+                          (web3/types:%parse-hex-ufix block-num-hex)
+                          (web3/types:%parse-hex-bytes tx-hash-hex)
+                          (web3/types:%parse-hex-ufix tx-idx-hex)
+                          (web3/types:%parse-hex-bytes block-hash-hex)
+                          (web3/types:%parse-hex-ufix log-idx-hex)))
                      (Err (web3/types:ProviderError "Invalid address in log")))))
         (cl:error (e)
           (Err (web3/types:ProviderError
@@ -328,9 +311,9 @@
                                    (current (cl:cdr (cl:assoc :current-block parsed)))
                                    (highest (cl:cdr (cl:assoc :highest-block parsed))))
                             (Ok (Syncing
-                                 (%parse-hex-to-ufix starting)
-                                 (%parse-hex-to-ufix current)
-                                 (%parse-hex-to-ufix highest))))
+                                 (web3/types:%parse-hex-ufix starting)
+                                 (web3/types:%parse-hex-ufix current)
+                                 (web3/types:%parse-hex-ufix highest))))
                           (Ok NotSyncing))))
         (cl:error (e)
           (Err (web3/types:ProviderError
@@ -341,36 +324,6 @@
 ;;; CL Helper Functions
 ;;; =========================================================================
 
-(cl:defun %parse-hex-to-ufix (hex-str)
-  "Parse hex string to UFix"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:parse-integer (cl:subseq hex-str 2) :radix 16)
-         0))
-
-(cl:defun %parse-hex-to-bytes (hex-str)
-  "Parse hex string to Bytes (pure CL implementation)"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:let* ((hex-part (cl:if (cl:and (cl:char= (cl:char hex-str 0) #\0)
-                                            (cl:or (cl:char= (cl:char hex-str 1) #\x)
-                                                   (cl:char= (cl:char hex-str 1) #\X)))
-                                    (cl:subseq hex-str 2)
-                                    hex-str))
-                   (len (cl:floor (cl:length hex-part) 2))
-                   (result (cl:make-array len :fill-pointer len :adjustable cl:t)))
-           (cl:loop :for i :below len :do
-             (cl:setf (cl:aref result i)
-                      (cl:parse-integer hex-part :start (cl:* i 2) :end (cl:+ (cl:* i 2) 2) :radix 16)))
-           result)
-         (cl:make-array 0 :fill-pointer 0 :adjustable cl:t)))
-
-(cl:defun %parse-hex-to-u256 (hex-str)
-  "Parse hex string to U256"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:let ((int-val (cl:parse-integer (cl:subseq hex-str 2) :radix 16)))
-           (coalton:coalton
-            (types:u256-from-integer (coalton:lisp coalton:Integer () int-val))))
-         (coalton:coalton (types:u256-zero coalton:Unit))))
-
 (cl:defun %parse-address (hex-str)
   "Parse hex string to Address"
   (coalton:coalton
@@ -380,7 +333,7 @@
   "Parse list of topic hex strings to Coalton list of Bytes"
   (cl:if (cl:null topics)
          coalton:Nil
-         (coalton:Cons (%parse-hex-to-bytes (cl:first topics))
+         (coalton:Cons (web3/types:%parse-hex-bytes (cl:first topics))
                        (%parse-topics-list (cl:rest topics)))))
 
 
@@ -413,65 +366,3 @@
     (cl:incf (ws-connection-state-next-id state))))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(SubscriptionType
-               SubNewHeads
-               SubNewPendingTransactions
-               SubLogs
-               SubSyncing
-               LogFilter
-               make-log-filter
-               .filter-address
-               .filter-topics
-               BlockHeader
-               .header-number
-               .header-hash
-               .header-parent-hash
-               .header-timestamp
-               .header-gas-limit
-               .header-gas-used
-               .header-base-fee
-               LogEntry
-               .log-address
-               .log-topics
-               .log-data
-               .log-block-number
-               .log-tx-hash
-               .log-tx-index
-               .log-block-hash
-               .log-log-index
-               SyncStatus
-               Syncing
-               NotSyncing
-               sync-starting-block
-               sync-current-block
-               sync-highest-block
-               Subscription
-               .subscription-id
-               .subscription-type
-               WsMessage
-               WsSubscriptionData
-               WsUnsubscribed
-               WsError
-               encode-subscribe-request
-               encode-unsubscribe-request
-               parse-subscription-response
-               parse-subscription-notification
-               parse-block-header
-               parse-log-entry
-               parse-sync-status
-               ;; CL-level state management
-               ws-connection-state
-               make-ws-connection-state
-               ws-connection-state-url
-               ws-connection-state-subscriptions
-               ws-connection-state-next-id
-               ws-state-add-subscription
-               ws-state-remove-subscription
-               ws-state-get-subscription
-               ws-state-next-request-id)
-             (cl:find-package '#:web3/ws-provider)))

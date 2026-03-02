@@ -70,7 +70,7 @@
                           ;; Compute final value
                           (multiplier (cl:expt 10 decimals))
                           (result (cl:+ (cl:* whole multiplier) frac)))
-                  (coalton-prelude:Ok (web3/types::%bignum-to-u256 result)))))
+                  (coalton-prelude:Ok (web3/types:u256-from-integer result)))))
           (cl:error (e)
             (coalton-prelude:Err
              (web3/types:HexError (cl:format cl:nil "Invalid value string: ~A" e))))))))
@@ -80,7 +80,7 @@
     "Format a U256 value with specified decimals into a decimal string.
      Example: (format-units 1500000000000000000 18) -> \"1.5\""
     (lisp String (value decimals)
-      (cl:let* ((n (web3/types::%u256-to-bignum
+      (cl:let* ((n (web3/types:u256-to-integer
                     (coalton (lisp types:U256 () value))))
                 (divisor (cl:expt 10 decimals))
                 (whole (cl:floor n divisor))
@@ -125,15 +125,3 @@
     (format-units wei 9)))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(parse-units
-               format-units
-               parse-ether
-               format-ether
-               parse-gwei
-               format-gwei)
-             (cl:find-package '#:web3/units)))

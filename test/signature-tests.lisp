@@ -193,7 +193,7 @@
   ;;; =========================================================================
 
   (test-case "personal-sign-prefix returns correct string"
-    (let ((prefix (coalton:coalton (web3/signature:personal-sign-prefix coalton:Unit))))
+    (let ((prefix (coalton:coalton web3/signature:personal-sign-prefix)))
       (assert (search "Ethereum Signed Message" prefix))))
 
   (test-case "hash-personal-message produces 32 bytes"

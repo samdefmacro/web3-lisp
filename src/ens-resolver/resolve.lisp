@@ -16,33 +16,21 @@
   (declare %is-zero-address (addr:Address -> Boolean))
   (define (%is-zero-address address)
     "Check if an address is the zero address (all 20 bytes are zero)."
-    (let ((bytes (addr:address-bytes address)))
-      (%all-zero bytes 0)))
+    (types:bytes-equal? (addr:address-bytes address)
+                        (addr:address-bytes addr:address-zero)))
 
-  (declare %all-zero (types:Bytes -> UFix -> Boolean))
-  (define (%all-zero bytes idx)
-    "Check if all bytes from idx onward are zero."
-    (if (>= idx (types:bytes-length bytes))
-        True
-        (if (/= (types:bytes-ref-unsafe idx bytes) 0)
-            False
-            (%all-zero bytes (+ idx 1)))))
-
-  (declare %parse-registry-address (Unit -> (types:Web3Result addr:Address)))
-  (define (%parse-registry-address _)
+  (declare %parse-registry-address (types:Web3Result addr:Address))
+  (define %parse-registry-address
     "Parse the ENS registry address constant."
-    (addr:address-from-hex (ens:ens-registry-address Unit)))
+    (addr:address-from-hex ens:ens-registry-address))
 
-  (declare %bytes-concat (types:Bytes -> types:Bytes -> types:Bytes))
-  (define (%bytes-concat a b)
-    "Concatenate two byte arrays."
-    (types:bytes-concat-many (Cons a (Cons b Nil))))
+  ;; Use types:bytes-append (exported 2-arg concat) instead of local wrapper
 
   (declare %contenthash-calldata (types:Bytes -> types:Bytes))
   (define (%contenthash-calldata node)
     "Build calldata for contenthash(bytes32 node)."
-    (%bytes-concat
-     (ens:resolver-contenthash-selector Unit)
+    (types:bytes-append
+     ens:resolver-contenthash-selector
      (types:bytes-pad-left (types:bytes-length node) node)))
 
   (declare %is-empty-string (String -> Boolean))
@@ -64,7 +52,7 @@
   (define (get-resolver provider name)
     "Get the resolver address for an ENS name.
      Returns Ok None if no resolver is set."
-    (match (%parse-registry-address Unit)
+    (match %parse-registry-address
       ((Err e) (Err e))
       ((Ok registry)
        (let ((calldata (ens:ens-resolver-calldata (ens:namehash name))))
@@ -102,11 +90,11 @@
     "Reverse-resolve an Ethereum address to an ENS name.
      Returns Ok None if no reverse record is set."
     (let ((addr-hex (addr:address-to-hex address)))
-      (match (%parse-registry-address Unit)
+      (match %parse-registry-address
         ((Err e) (Err e))
         ((Ok registry)
          (let ((rev-node (ens:reverse-node addr-hex))
-               (calldata (ens:ens-resolver-calldata (ens:reverse-node addr-hex))))
+               (calldata (ens:ens-resolver-calldata rev-node)))
            (match (provider:eth-call provider None registry calldata)
              ((Err e) (Err e))
              ((Ok result)

@@ -7,38 +7,38 @@
   ;;; ERC-1155 Function Selectors
   ;;; =========================================================================
 
-  (declare selector-uri (Unit -> types:Bytes))
-  (define (selector-uri)
+  (declare selector-uri types:Bytes)
+  (define selector-uri
     "Function selector for uri(uint256) -> 0x0e89341c"
     (abi:function-selector "uri(uint256)"))
 
-  (declare selector-balance-of (Unit -> types:Bytes))
-  (define (selector-balance-of)
+  (declare selector-balance-of types:Bytes)
+  (define selector-balance-of
     "Function selector for balanceOf(address,uint256) -> 0x00fdd58e"
     (abi:function-selector "balanceOf(address,uint256)"))
 
-  (declare selector-balance-of-batch (Unit -> types:Bytes))
-  (define (selector-balance-of-batch)
+  (declare selector-balance-of-batch types:Bytes)
+  (define selector-balance-of-batch
     "Function selector for balanceOfBatch(address[],uint256[]) -> 0x4e1273f4"
     (abi:function-selector "balanceOfBatch(address[],uint256[])"))
 
-  (declare selector-is-approved-for-all (Unit -> types:Bytes))
-  (define (selector-is-approved-for-all)
+  (declare selector-is-approved-for-all types:Bytes)
+  (define selector-is-approved-for-all
     "Function selector for isApprovedForAll(address,address) -> 0xe985e9c5"
     (abi:function-selector "isApprovedForAll(address,address)"))
 
-  (declare selector-safe-transfer-from (Unit -> types:Bytes))
-  (define (selector-safe-transfer-from)
+  (declare selector-safe-transfer-from types:Bytes)
+  (define selector-safe-transfer-from
     "Function selector for safeTransferFrom(address,address,uint256,uint256,bytes) -> 0xf242432a"
     (abi:function-selector "safeTransferFrom(address,address,uint256,uint256,bytes)"))
 
-  (declare selector-safe-batch-transfer-from (Unit -> types:Bytes))
-  (define (selector-safe-batch-transfer-from)
+  (declare selector-safe-batch-transfer-from types:Bytes)
+  (define selector-safe-batch-transfer-from
     "Function selector for safeBatchTransferFrom(address,address,uint256[],uint256[],bytes) -> 0x2eb2c2d6"
     (abi:function-selector "safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)"))
 
-  (declare selector-set-approval-for-all (Unit -> types:Bytes))
-  (define (selector-set-approval-for-all)
+  (declare selector-set-approval-for-all types:Bytes)
+  (define selector-set-approval-for-all
     "Function selector for setApprovalForAll(address,bool) -> 0xa22cb465"
     (abi:function-selector "setApprovalForAll(address,bool)"))
 
@@ -51,7 +51,7 @@
   (define (erc1155-safe-transfer-from-data from to token-id amount data)
     "Build calldata for safeTransferFrom(address,address,uint256,uint256,bytes)"
     (abi:abi-encode-with-selector
-     (selector-safe-transfer-from)
+     selector-safe-transfer-from
      (Cons (abi:AbiAddressVal (addr:address-bytes from))
            (Cons (abi:AbiAddressVal (addr:address-bytes to))
                  (Cons (abi:AbiUintVal token-id)
@@ -65,7 +65,7 @@
     (let ((ids-abi (map (fn (id) (abi:AbiUintVal id)) token-ids))
           (amounts-abi (map (fn (amt) (abi:AbiUintVal amt)) amounts)))
       (abi:abi-encode-with-selector
-       (selector-safe-batch-transfer-from)
+       selector-safe-batch-transfer-from
        (Cons (abi:AbiAddressVal (addr:address-bytes from))
              (Cons (abi:AbiAddressVal (addr:address-bytes to))
                    (Cons (abi:AbiArrayVal ids-abi)
@@ -76,7 +76,7 @@
   (define (erc1155-set-approval-for-all-data operator approved)
     "Build calldata for setApprovalForAll(address,bool)"
     (abi:abi-encode-with-selector
-     (selector-set-approval-for-all)
+     selector-set-approval-for-all
      (Cons (abi:AbiAddressVal (addr:address-bytes operator))
            (Cons (abi:AbiBoolVal approved) Nil))))
 
@@ -88,7 +88,7 @@
   (define (erc1155-uri provider contract-address token-id)
     "Get the URI for a token's metadata"
     (let ((calldata (abi:abi-encode-with-selector
-                     (selector-uri)
+                     selector-uri
                      (Cons (abi:AbiUintVal token-id) Nil))))
       (match (provider:eth-call provider None contract-address calldata)
         ((Err e) (Err e))
@@ -105,7 +105,7 @@
   (define (erc1155-balance-of provider contract-address account token-id)
     "Get the balance of a specific token for an account"
     (let ((calldata (abi:abi-encode-with-selector
-                     (selector-balance-of)
+                     selector-balance-of
                      (Cons (abi:AbiAddressVal (addr:address-bytes account))
                            (Cons (abi:AbiUintVal token-id) Nil)))))
       (match (provider:eth-call provider None contract-address calldata)
@@ -126,7 +126,7 @@
     (let ((accounts-abi (map (fn (acc) (abi:AbiAddressVal (addr:address-bytes acc))) accounts))
           (ids-abi (map (fn (id) (abi:AbiUintVal id)) token-ids)))
       (let ((calldata (abi:abi-encode-with-selector
-                       (selector-balance-of-batch)
+                       selector-balance-of-batch
                        (Cons (abi:AbiArrayVal accounts-abi)
                              (Cons (abi:AbiArrayVal ids-abi) Nil)))))
         (match (provider:eth-call provider None contract-address calldata)
@@ -140,7 +140,7 @@
                  (Ok (map (fn (v)
                             (match v
                               ((abi:AbiUintVal u) u)
-                              (_ (types:u256-zero))))
+                              (_ types:u256-zero)))
                           balances)))
                 (_ (Err (types:AbiError "Unexpected response format for balanceOfBatch()")))))))))))
 
@@ -150,7 +150,7 @@
   (define (erc1155-is-approved-for-all provider contract-address account operator)
     "Check if an operator is approved for all tokens of an account"
     (let ((calldata (abi:abi-encode-with-selector
-                     (selector-is-approved-for-all)
+                     selector-is-approved-for-all
                      (Cons (abi:AbiAddressVal (addr:address-bytes account))
                            (Cons (abi:AbiAddressVal (addr:address-bytes operator)) Nil)))))
       (match (provider:eth-call provider None contract-address calldata)

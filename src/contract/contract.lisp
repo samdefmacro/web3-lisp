@@ -231,15 +231,15 @@
 
   (declare with-arg (CallBuilder -> abi:AbiValue -> CallBuilder))
   (define (with-arg builder arg)
-    "Add an argument to the call builder"
+    "Add an argument to the call builder (prepends; reversed at build time)"
     (CallBuilder (.builder-contract builder)
                  (.builder-function builder)
-                 (list:append (.builder-args builder) (make-list arg))))
+                 (Cons arg (.builder-args builder))))
 
   (declare build-calldata (CallBuilder -> types:Bytes))
   (define (build-calldata builder)
     "Build the calldata from the builder"
-    (encode-function-call (.builder-function builder) (.builder-args builder)))
+    (encode-function-call (.builder-function builder) (reverse (.builder-args builder))))
 
   ;;; =========================================================================
   ;;; Call Request - For eth_call
@@ -256,34 +256,3 @@
     (CallRequest (.contract-address (.builder-contract builder))
                  (build-calldata builder))))
 
-;;; =========================================================================
-;;; Explicit Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(Contract
-               make-contract
-               contract-from-abi-json
-               .contract-address
-               .contract-abi
-               get-function
-               get-event
-               get-function-by-selector
-               get-event-by-topic
-               list-functions
-               list-events
-               encode-function-call
-               encode-function-call-by-name
-               decode-function-output
-               decode-function-output-by-name
-               decode-event
-               decode-event-by-topic
-               CallBuilder
-               call-builder
-               with-arg
-               build-calldata
-               build-call-request
-               CallRequest
-               .call-to
-               .call-data)
-             (cl:find-package '#:web3/contract)))

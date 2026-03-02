@@ -143,20 +143,20 @@
   ;;; =========================================================================
 
   (test-case "all-chains returns non-empty list"
-    (let* ((chains (coalton:coalton (web3/chain:all-chains coalton:Unit)))
+    (let* ((chains (coalton:coalton web3/chain:all-chains))
            (len (coalton:coalton (coalton-prelude:length
                                   (coalton:lisp (coalton:List web3/chain:Chain) () chains)))))
       (assert (> len 0))))
 
   (test-case "mainnet-chains excludes testnets"
-    (let* ((chains (coalton:coalton (web3/chain:mainnet-chains coalton:Unit)))
+    (let* ((chains (coalton:coalton web3/chain:mainnet-chains))
            (len (coalton:coalton (coalton-prelude:length
                                   (coalton:lisp (coalton:List web3/chain:Chain) () chains)))))
       ;; Check that there are mainnet chains
       (assert (> len 0))))
 
   (test-case "testnet-chains only includes testnets"
-    (let* ((chains (coalton:coalton (web3/chain:testnet-chains coalton:Unit)))
+    (let* ((chains (coalton:coalton web3/chain:testnet-chains))
            (len (coalton:coalton (coalton-prelude:length
                                   (coalton:lisp (coalton:List web3/chain:Chain) () chains)))))
       (assert (> len 0))))

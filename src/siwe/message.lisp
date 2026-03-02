@@ -4,23 +4,6 @@
 (in-package #:web3/siwe)
 (named-readtables:in-readtable coalton:coalton)
 
-;; Helper to check if an Optional is Some (by checking type name string)
-(cl:defun %is-some-p (opt)
-  "Check if Coalton Optional is Some"
-  (cl:let ((type-name (cl:symbol-name (cl:type-of opt))))
-    (cl:search "SOME" type-name)))
-
-;; Helper to check if a Result is Ok (by checking type name string)
-(cl:defun %is-ok-p (result)
-  "Check if Coalton Result is Ok"
-  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
-    (cl:search "OK" type-name)))
-
-;; Helper to extract value from Some/Ok (slot _0)
-(cl:defun %unwrap-value (container)
-  "Extract the inner value from Some or Ok"
-  (cl:slot-value container 'coalton-library/classes::|_0|))
-
 (coalton-toplevel
 
   ;;; =========================================================================
@@ -68,9 +51,9 @@
         ;; Line 2: address
         (cl:push address lines)
         ;; Line 3: empty line before statement (if statement exists)
-        (cl:when (%is-some-p statement)
+        (cl:when (web3/types:%is-some-p statement)
           (cl:push "" lines)
-          (cl:push (%unwrap-value statement) lines))
+          (cl:push (web3/types:%unwrap-some statement) lines))
         ;; Empty line before fields
         (cl:push "" lines)
         ;; Required fields
@@ -80,21 +63,21 @@
         (cl:push (cl:format cl:nil "Nonce: ~A" nonce) lines)
         (cl:push (cl:format cl:nil "Issued At: ~A" issued-at) lines)
         ;; Optional fields
-        (cl:when (%is-some-p expiration-time)
+        (cl:when (web3/types:%is-some-p expiration-time)
           (cl:push (cl:format cl:nil "Expiration Time: ~A"
-                              (%unwrap-value expiration-time))
+                              (web3/types:%unwrap-some expiration-time))
                    lines))
-        (cl:when (%is-some-p not-before)
+        (cl:when (web3/types:%is-some-p not-before)
           (cl:push (cl:format cl:nil "Not Before: ~A"
-                              (%unwrap-value not-before))
+                              (web3/types:%unwrap-some not-before))
                    lines))
-        (cl:when (%is-some-p request-id)
+        (cl:when (web3/types:%is-some-p request-id)
           (cl:push (cl:format cl:nil "Request ID: ~A"
-                              (%unwrap-value request-id))
+                              (web3/types:%unwrap-some request-id))
                    lines))
         ;; Resources
-        (cl:when (%is-some-p resources)
-          (cl:let ((res-list (%unwrap-value resources)))
+        (cl:when (web3/types:%is-some-p resources)
+          (cl:let ((res-list (web3/types:%unwrap-some resources)))
             (cl:when res-list
               (cl:push "Resources:" lines)
               (cl:dolist (res res-list)
@@ -186,10 +169,10 @@
               (cl:error "Missing required SIWE fields"))
             ;; Parse address
             (cl:let ((addr-result (coalton (addr:address-from-hex (lisp String () address)))))
-              (cl:if (%is-ok-p addr-result)
+              (cl:if (web3/types:%result-ok-p addr-result)
                      (coalton-prelude:Ok
                       (SiweMessage domain
-                                   (%unwrap-value addr-result)
+                                   (web3/types:%unwrap-ok addr-result)
                                    (cl:if statement
                                           (coalton-prelude:Some statement)
                                           coalton-prelude:None)

@@ -74,7 +74,7 @@
   ;;; =========================================================================
 
   (test-case "resolver(bytes32) selector = 0x0178b8bf"
-    (let ((selector (coalton:coalton (web3/ens:ens-resolver-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/ens:ens-resolver-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x01))
       (assert (= (aref selector 1) #x78))
@@ -82,7 +82,7 @@
       (assert (= (aref selector 3) #xbf))))
 
   (test-case "owner(bytes32) selector = 0x02571be3"
-    (let ((selector (coalton:coalton (web3/ens:ens-owner-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/ens:ens-owner-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x02))
       (assert (= (aref selector 1) #x57))
@@ -94,7 +94,7 @@
   ;;; =========================================================================
 
   (test-case "addr(bytes32) selector = 0x3b3b57de"
-    (let ((selector (coalton:coalton (web3/ens:resolver-addr-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/ens:resolver-addr-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x3b))
       (assert (= (aref selector 1) #x3b))
@@ -102,7 +102,7 @@
       (assert (= (aref selector 3) #xde))))
 
   (test-case "name(bytes32) selector = 0x691f3431"
-    (let ((selector (coalton:coalton (web3/ens:resolver-name-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/ens:resolver-name-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x69))
       (assert (= (aref selector 1) #x1f))
@@ -110,7 +110,7 @@
       (assert (= (aref selector 3) #x31))))
 
   (test-case "text(bytes32,string) selector = 0x59d1d43c"
-    (let ((selector (coalton:coalton (web3/ens:resolver-text-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/ens:resolver-text-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x59))
       (assert (= (aref selector 1) #xd1))
@@ -202,9 +202,9 @@
   ;;; =========================================================================
 
   (test-case "ENS registry address is correct"
-    (let ((addr (coalton:coalton (web3/ens:ens-registry-address coalton:Unit))))
+    (let ((addr (coalton:coalton web3/ens:ens-registry-address)))
       (assert (string= addr "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"))))
 
   (test-case "ENS public resolver address is correct"
-    (let ((addr (coalton:coalton (web3/ens:ens-public-resolver-address coalton:Unit))))
+    (let ((addr (coalton:coalton web3/ens:ens-public-resolver-address)))
       (assert (string= addr "0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63")))))

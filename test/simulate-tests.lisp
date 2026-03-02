@@ -43,7 +43,7 @@
 
   (test-case "default-call-options creates valid options"
     (let ((opts (coalton:coalton
-                 (web3/simulate:default-call-options coalton:Unit))))
+                 web3/simulate:default-call-options)))
       (assert opts)))
 
   (test-case "make-call-options creates custom options"
@@ -150,7 +150,7 @@
                        65000
                        (coalton:lisp web3/types:U256 () gas-price)
                        (coalton:lisp web3/types:U256 () gas-price)
-                       (web3/types:u256-zero coalton:Unit)
+                       web3/types:u256-zero
                        (coalton:lisp web3/types:U256 () gas-price))))
            (gas-limit (coalton:coalton
                        (web3/simulate:.gas-estimate-gas-limit
@@ -162,9 +162,9 @@
            (estimate (coalton:coalton
                       (web3/simulate:make-gas-estimate
                        21000
-                       (web3/types:u256-zero coalton:Unit)
-                       (web3/types:u256-zero coalton:Unit)
-                       (web3/types:u256-zero coalton:Unit)
+                       web3/types:u256-zero
+                       web3/types:u256-zero
+                       web3/types:u256-zero
                        (coalton:lisp web3/types:U256 () total))))
            (cost (coalton:coalton
                   (web3/simulate:.gas-estimate-total-cost

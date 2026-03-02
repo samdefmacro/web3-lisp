@@ -25,7 +25,7 @@
     "Encode a tuple of values using head/tail encoding"
     (let ((n (list:length values)))
       (if (== n 0)
-          (types:bytes-empty)
+          types:bytes-empty
           ;; Calculate head size: each value gets 32 bytes in the head
           ;; (either the value itself for static, or an offset for dynamic)
           (let ((head-size (* n 32)))

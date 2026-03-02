@@ -19,7 +19,7 @@
         (cl:ceiling total-bytes +usable-bytes-per-blob+))))
 
   (declare empty-blob (Unit -> types:Bytes))
-  (define (empty-blob _)
+  (define (empty-blob)
     "Create an empty 128KB blob (all zeros)"
     (lisp types:Bytes ()
       (cl:make-array +bytes-per-blob+ :fill-pointer +bytes-per-blob+
@@ -136,20 +136,3 @@
         result))))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(+bytes-per-field-element+
-               +field-elements-per-blob+
-               +bytes-per-blob+
-               +max-blobs-per-block+
-               +usable-bytes-per-field-element+
-               to-blobs
-               from-blobs
-               commitment-to-versioned-hash
-               empty-blob
-               blob-count-for-data
-               valid-blob?)
-             (cl:find-package '#:web3/blob)))

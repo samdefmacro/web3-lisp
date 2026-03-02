@@ -14,7 +14,8 @@
   :components ((:file "package")
                (:file "errors")
                (:file "bytes")
-               (:file "numeric")))
+               (:file "numeric")
+               (:file "cl-helpers")))
 
 ;;; RLP encoding/decoding
 (asdf:defsystem "web3/rlp"

@@ -50,47 +50,47 @@
   ;;; =========================================================================
 
   ;; ERC-20 Events
-  (declare erc20-transfer-topic (Unit -> types:Bytes))
-  (define (erc20-transfer-topic)
+  (declare erc20-transfer-topic types:Bytes)
+  (define erc20-transfer-topic
     "Topic0 for Transfer(address indexed from, address indexed to, uint256 value)"
     (event-signature "Transfer(address,address,uint256)"))
 
-  (declare erc20-approval-topic (Unit -> types:Bytes))
-  (define (erc20-approval-topic)
+  (declare erc20-approval-topic types:Bytes)
+  (define erc20-approval-topic
     "Topic0 for Approval(address indexed owner, address indexed spender, uint256 value)"
     (event-signature "Approval(address,address,uint256)"))
 
-  ;; ERC-721 Events (same signatures as ERC-20 for Transfer/Approval)
-  (declare erc721-transfer-topic (Unit -> types:Bytes))
-  (define (erc721-transfer-topic)
-    "Topic0 for Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
-    (event-signature "Transfer(address,address,uint256)"))
+  ;; ERC-721 Events (same Solidity signatures as ERC-20 for Transfer/Approval)
+  (declare erc721-transfer-topic types:Bytes)
+  (define erc721-transfer-topic
+    "Topic0 for Transfer(address,address,uint256) -- same hash as ERC-20"
+    erc20-transfer-topic)
 
-  (declare erc721-approval-topic (Unit -> types:Bytes))
-  (define (erc721-approval-topic)
-    "Topic0 for Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)"
-    (event-signature "Approval(address,address,uint256)"))
+  (declare erc721-approval-topic types:Bytes)
+  (define erc721-approval-topic
+    "Topic0 for Approval(address,address,uint256) -- same hash as ERC-20"
+    erc20-approval-topic)
 
-  (declare erc721-approval-for-all-topic (Unit -> types:Bytes))
-  (define (erc721-approval-for-all-topic)
-    "Topic0 for ApprovalForAll(address indexed owner, address indexed operator, bool approved)"
+  (declare erc721-approval-for-all-topic types:Bytes)
+  (define erc721-approval-for-all-topic
+    "Topic0 for ApprovalForAll(address,address,bool)"
     (event-signature "ApprovalForAll(address,address,bool)"))
 
   ;; ERC-1155 Events
-  (declare erc1155-transfer-single-topic (Unit -> types:Bytes))
-  (define (erc1155-transfer-single-topic)
+  (declare erc1155-transfer-single-topic types:Bytes)
+  (define erc1155-transfer-single-topic
     "Topic0 for TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)"
     (event-signature "TransferSingle(address,address,address,uint256,uint256)"))
 
-  (declare erc1155-transfer-batch-topic (Unit -> types:Bytes))
-  (define (erc1155-transfer-batch-topic)
+  (declare erc1155-transfer-batch-topic types:Bytes)
+  (define erc1155-transfer-batch-topic
     "Topic0 for TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values)"
     (event-signature "TransferBatch(address,address,address,uint256[],uint256[])"))
 
-  (declare erc1155-approval-for-all-topic (Unit -> types:Bytes))
-  (define (erc1155-approval-for-all-topic)
-    "Topic0 for ApprovalForAll(address indexed account, address indexed operator, bool approved)"
-    (event-signature "ApprovalForAll(address,address,bool)"))
+  (declare erc1155-approval-for-all-topic types:Bytes)
+  (define erc1155-approval-for-all-topic
+    "Topic0 for ApprovalForAll(address,address,bool) -- same hash as ERC-721"
+    erc721-approval-for-all-topic)
 
   ;;; =========================================================================
   ;;; Parameter Decoding
@@ -246,7 +246,7 @@
     (match (.topics log)
       ((Cons topic0 _)
        (cond
-         ((types:bytes-equal? topic0 (erc20-transfer-topic))
+         ((types:bytes-equal? topic0 erc20-transfer-topic)
           ;; Could be ERC-20 or ERC-721 Transfer - check topic count
           (match (.topics log)
             ((Cons _ (Cons _ (Cons _ (Cons _ (Nil)))))
@@ -259,13 +259,13 @@
              (match (decode-erc20-transfer log)
                ((Ok decoded) decoded)
                ((Err _) (UnknownEvent topic0))))))
-         ((types:bytes-equal? topic0 (erc20-approval-topic))
+         ((types:bytes-equal? topic0 erc20-approval-topic)
           (match (decode-erc20-approval log)
             ((Ok decoded) decoded)
             ((Err _) (UnknownEvent topic0))))
-         ((types:bytes-equal? topic0 (erc1155-transfer-single-topic))
+         ((types:bytes-equal? topic0 erc1155-transfer-single-topic)
           (match (decode-erc1155-transfer-single log)
             ((Ok decoded) decoded)
             ((Err _) (UnknownEvent topic0))))
          (True (UnknownEvent topic0))))
-      ((Nil) (UnknownEvent (types:bytes-empty))))))
+      ((Nil) (UnknownEvent types:bytes-empty)))))

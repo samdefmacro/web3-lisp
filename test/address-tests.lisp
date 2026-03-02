@@ -16,10 +16,10 @@
     (assert (eq (web3-tests:test-address-checksum coalton:Unit) coalton:True)))
 
   (test-case "zero address"
-    (let ((zero-addr (coalton:coalton (web3/address:address-zero coalton:Unit))))
+    (let ((zero-addr (coalton:coalton web3/address:address-zero)))
       (let ((bytes (coalton:coalton
                     (web3/address:address-bytes
-                     (web3/address:address-zero coalton:Unit)))))
+                     web3/address:address-zero))))
         (assert (= (length bytes) 20))
         (assert (every #'zerop (coerce bytes 'list))))))
 
@@ -203,7 +203,7 @@
            ;; keccak256 of empty init code
            (init-code-hash (coalton:coalton
                             (web3/crypto:keccak256
-                             (web3/types:bytes-empty coalton:Unit))))
+                             web3/types:bytes-empty)))
            (addr (coalton:coalton
                   (web3/address:compute-create2-address
                    (coalton:lisp web3/address:Address () deployer)

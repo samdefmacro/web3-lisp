@@ -42,8 +42,8 @@
   (define (make-call-options block from gas-limit gas-price value)
     (CallOptions block from gas-limit gas-price value))
 
-  (declare default-call-options (Unit -> CallOptions))
-  (define (default-call-options _)
+  (declare default-call-options CallOptions)
+  (define default-call-options
     "Create default call options (latest block, no overrides)"
     (CallOptions BlockLatest None None None None))
 
@@ -118,7 +118,7 @@
                 (n (cl:if (cl:zerop (cl:length str))
                           0
                           (cl:parse-integer str :radix 16))))
-        (web3/types::%bignum-to-u256 n))))
+        (web3/types:u256-from-integer n))))
 
   (declare %optional-address-to-json (String -> (Optional addr:Address) -> String))
   (define (%optional-address-to-json prefix opt-addr)
@@ -259,7 +259,7 @@
                  (let ((total-cost (types:u256-mul gas-price
                                                    (types:u256-from-integer (into buffered-gas)))))
                    (Ok (GasEstimate (lisp U64 (buffered-gas) buffered-gas) gas-price gas-price
-                                    (types:u256-zero) total-cost))))
+                                    types:u256-zero total-cost))))
                 ((Ok priority-hex)
                  (let ((priority-fee (%hex-result-to-u256 priority-hex))
                        (max-fee gas-price))
@@ -304,7 +304,7 @@
                                                         (coalton-library/classes::result/ok
                                                          (cl:slot-value addr-result
                                                                         'coalton-library/classes::_0))
-                                                        (cl:t (coalton (addr:address-zero)))))
+                                                        (cl:t (coalton addr:address-zero))))
                                                 (keys (cl:loop :for key-str :in keys-json
                                                                :collect
                                                                (cl:let ((key-result
@@ -314,7 +314,7 @@
                                                                    (coalton-library/classes::result/ok
                                                                     (cl:slot-value key-result
                                                                                    'coalton-library/classes::_0))
-                                                                   (cl:t (coalton (types:bytes-empty coalton:Unit))))))))
+                                                                   (cl:t (coalton types:bytes-empty)))))))
                                         (coalton-prelude:Tuple addr keys)))))
                    (coalton-prelude:Ok (AccessListResult access-list gas-used)))
                (cl:error (e)
@@ -368,13 +368,13 @@
                           ((Err e) (Err e))
                           ((Ok gas-price)
                            (Ok (tx:make-transaction tx:LegacyTx chain-id nonce gas-price
-                                                    (types:u256-zero) gas-limit to value data Nil)))))
+                                                    types:u256-zero gas-limit to value data Nil)))))
                        ((tx:EIP2930Tx)
                         (match (provider:eth-gas-price provider)
                           ((Err e) (Err e))
                           ((Ok gas-price)
                            (Ok (tx:make-transaction tx:EIP2930Tx chain-id nonce gas-price
-                                                    (types:u256-zero) gas-limit to value data Nil)))))
+                                                    types:u256-zero gas-limit to value data Nil)))))
                        ((tx:EIP1559Tx)
                         (match (provider:eth-gas-price provider)
                           ((Err e) (Err e))

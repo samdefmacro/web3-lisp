@@ -14,8 +14,8 @@
     "Get the raw 20 bytes of an address"
     (match addr ((%Address b) b)))
 
-  (declare address-zero (Unit -> Address))
-  (define (address-zero)
+  (declare address-zero Address)
+  (define address-zero
     "The zero address (0x0000...0000)"
     (%Address (types:make-bytes 20)))
 
@@ -176,7 +176,7 @@
         (let ((addr-hash (crypto:keccak256 rlp-encoded)))
           (match (address-from-bytes (types:bytes-drop 12 addr-hash))
             ((Ok addr) addr)
-            ((Err _) (address-zero)))))))
+            ((Err _) address-zero))))))
 
   (declare compute-create2-address (Address -> types:Bytes -> types:Bytes -> Address))
   (define (compute-create2-address deployer salt init-code-hash)
@@ -189,4 +189,4 @@
       (let ((addr-hash (crypto:keccak256 data)))
         (match (address-from-bytes (types:bytes-drop 12 addr-hash))
           ((Ok addr) addr)
-          ((Err _) (address-zero)))))))
+          ((Err _) address-zero))))))

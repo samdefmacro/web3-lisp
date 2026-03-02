@@ -3,8 +3,6 @@
   (:use #:coalton
         #:coalton-prelude)
   (:local-nicknames
-   (#:vec #:coalton-library/vector)
-   (#:iter #:coalton-library/iterator)
    (#:list #:coalton-library/list)
    (#:types #:web3/types)
    (#:crypto #:web3/crypto))

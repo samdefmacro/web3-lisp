@@ -71,23 +71,12 @@
   ;;; Signature Validation
   ;;; =========================================================================
 
-  (declare %string-to-bytes (String -> types:Bytes))
-  (define (%string-to-bytes s)
-    "Convert string to bytes (UTF-8)"
-    (lisp types:Bytes (s)
-      (cl:let* ((octets (cl:map 'cl:vector #'cl:char-code s))
-                (len (cl:length octets))
-                (result (cl:make-array len :element-type 'cl:t
-                                          :fill-pointer len
-                                          :adjustable cl:t)))
-        (cl:dotimes (i len result)
-          (cl:setf (cl:aref result i) (cl:aref octets i))))))
 
   (declare validate-siwe-signature (String -> sig:Signature -> addr:Address -> Boolean))
   (define (validate-siwe-signature message-str signature expected-address)
     "Validate that a SIWE message was signed by the expected address.
      Uses EIP-191 personal sign verification."
-    (let ((message-bytes (%string-to-bytes message-str)))
+    (let ((message-bytes (types:string-to-bytes message-str)))
       (sig:verify-personal-signature message-bytes signature expected-address)))
 
   ;;; =========================================================================
@@ -116,30 +105,3 @@
              (Err (types:HexError "Invalid signature"))))))))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(SiweMessage
-               make-siwe-message
-               siwe-domain
-               siwe-address
-               siwe-statement
-               siwe-uri
-               siwe-version
-               siwe-chain-id
-               siwe-nonce
-               siwe-issued-at
-               siwe-expiration-time
-               siwe-not-before
-               siwe-request-id
-               siwe-resources
-               create-siwe-message
-               parse-siwe-message
-               validate-siwe-signature
-               verify-siwe-message
-               siwe-message-expired?
-               siwe-message-not-yet-valid?
-               generate-siwe-nonce)
-             (cl:find-package '#:web3/siwe)))

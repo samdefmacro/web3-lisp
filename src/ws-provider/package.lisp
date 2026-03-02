@@ -48,6 +48,9 @@
    #:.sync-starting-block
    #:.sync-current-block
    #:.sync-highest-block
+   #:sync-starting-block
+   #:sync-current-block
+   #:sync-highest-block
 
    ;; Subscription
    #:Subscription
@@ -66,15 +69,21 @@
    #:parse-subscription-response
    #:parse-subscription-notification
 
+   ;; Parsing helpers
+   #:parse-block-header
+   #:parse-log-entry
+   #:parse-sync-status
+
    ;; Connection state (for CL-level use)
-   #:WsConnectionState
+   #:ws-connection-state
    #:make-ws-connection-state
-   #:ws-state-url
-   #:ws-state-subscriptions
-   #:ws-state-next-id
+   #:ws-connection-state-url
+   #:ws-connection-state-subscriptions
+   #:ws-connection-state-next-id
    #:ws-state-add-subscription
    #:ws-state-remove-subscription
-   #:ws-state-get-subscription))
+   #:ws-state-get-subscription
+   #:ws-state-next-request-id))
 
 (in-package #:web3/ws-provider)
 (named-readtables:in-readtable coalton:coalton)

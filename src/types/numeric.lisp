@@ -27,18 +27,18 @@
     (lisp U64 (idx u)
       (cl:aref u idx)))
 
-  (declare u256-zero (Unit -> U256))
-  (define (u256-zero)
+  (declare u256-zero U256)
+  (define u256-zero
     "Create a zero U256"
     (u256-make 0 0 0 0))
 
-  (declare u256-one (Unit -> U256))
-  (define (u256-one)
+  (declare u256-one U256)
+  (define u256-one
     "Create a U256 with value 1"
     (u256-make 1 0 0 0))
 
-  (declare u256-max (Unit -> U256))
-  (define (u256-max)
+  (declare u256-max U256)
+  (define u256-max
     "Maximum U256 value (2^256 - 1)"
     (u256-make 18446744073709551615
                18446744073709551615
@@ -188,7 +188,7 @@
     (let ((gwei-unit (u256-from-integer 1000000000)))
       (match (u256-div wei gwei-unit)
         ((Ok result) result)
-        ((Err _) (u256-zero)))))
+        ((Err _) u256-zero))))
 
   (declare gwei-to-wei (U256 -> U256))
   (define (gwei-to-wei gwei)

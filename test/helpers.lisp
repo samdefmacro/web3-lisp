@@ -12,7 +12,7 @@
   (declare test-hex-encode-empty (Unit -> Boolean))
   (define (test-hex-encode-empty _)
     "hex-encode of empty bytes should be empty string"
-    (== (types:hex-encode (types:bytes-empty)) ""))
+    (== (types:hex-encode types:bytes-empty) ""))
 
   (declare test-hex-encode-bytes (Unit -> Boolean))
   (define (test-hex-encode-bytes _)
@@ -42,7 +42,7 @@
   (declare test-u256-zero (Unit -> Boolean))
   (define (test-u256-zero _)
     "u256-zero should be all zeros"
-    (types:u256-zero? (types:u256-zero)))
+    (types:u256-zero? types:u256-zero))
 
   (declare test-u256-from-integer (Unit -> Boolean))
   (define (test-u256-from-integer _)
@@ -146,7 +146,7 @@
   (declare test-rlp-empty-string (Unit -> Boolean))
   (define (test-rlp-empty-string _)
     "RLP encode empty string should be [0x80]"
-    (let ((encoded (rlp:rlp-encode (rlp:RlpBytes (types:bytes-empty)))))
+    (let ((encoded (rlp:rlp-encode (rlp:RlpBytes types:bytes-empty))))
       (and (== (types:bytes-length encoded) 1)
            (== (types:bytes-ref-unsafe 0 encoded) #x80))))
 
@@ -211,7 +211,7 @@
   (define (test-keccak256-empty _)
     "keccak256 of empty bytes should match known hash"
     ;; keccak256("") = c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
-    (let ((hash (crypto:keccak256 (types:bytes-empty))))
+    (let ((hash (crypto:keccak256 types:bytes-empty)))
       (and (== (types:bytes-length hash) 32)
            (== (types:bytes-ref-unsafe 0 hash) #xc5)
            (== (types:bytes-ref-unsafe 1 hash) #xd2)

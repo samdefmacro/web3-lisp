@@ -3,8 +3,6 @@
   (:use #:coalton
         #:coalton-prelude)
   (:local-nicknames
-   (#:vec #:coalton-library/vector)
-   (#:iter #:coalton-library/iterator)
    (#:types #:web3/types))
   (:export
    ;; Keccak256

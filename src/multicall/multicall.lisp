@@ -13,20 +13,11 @@
 (coalton-toplevel
 
   ;;; =========================================================================
-  ;;; Internal Helpers
-  ;;; =========================================================================
-
-  (declare bytes-concat (types:Bytes -> types:Bytes -> types:Bytes))
-  (define (bytes-concat a b)
-    "Concatenate two byte arrays."
-    (types:bytes-concat-many (Cons a (Cons b Nil))))
-
-  ;;; =========================================================================
   ;;; Multicall3 Contract Address
   ;;; =========================================================================
 
-  (declare multicall3-address (Unit -> String))
-  (define (multicall3-address _)
+  (declare multicall3-address String)
+  (define multicall3-address
     "Multicall3 contract address (same on most EVM chains).
      Deployed via CREATE2 for deterministic address."
     "0xcA11bde05977b3631167028862bE2a173976CA11")
@@ -57,20 +48,20 @@
   ;;; Function Selectors
   ;;; =========================================================================
 
-  (declare aggregate-selector (Unit -> types:Bytes))
-  (define (aggregate-selector _)
+  (declare aggregate-selector types:Bytes)
+  (define aggregate-selector
     "Function selector for aggregate((address,bytes)[]).
      0x252dba42"
     (abi:function-selector "aggregate((address,bytes)[])"))
 
-  (declare try-aggregate-selector (Unit -> types:Bytes))
-  (define (try-aggregate-selector _)
+  (declare try-aggregate-selector types:Bytes)
+  (define try-aggregate-selector
     "Function selector for tryAggregate(bool,(address,bytes)[]).
      0xbce38bd7"
     (abi:function-selector "tryAggregate(bool,(address,bytes)[])"))
 
-  (declare aggregate3-selector (Unit -> types:Bytes))
-  (define (aggregate3-selector _)
+  (declare aggregate3-selector types:Bytes)
+  (define aggregate3-selector
     "Function selector for aggregate3((address,bool,bytes)[]).
      0x82ad56cb"
     (abi:function-selector "aggregate3((address,bool,bytes)[])"))
@@ -110,7 +101,7 @@
      Returns: (blockNumber, bytes[] returnData)"
     (let ((encoded-args (abi:abi-encode
                          (Cons (abi:AbiArrayVal (map call-to-abi-tuple calls)) Nil))))
-      (bytes-concat (aggregate-selector Unit) encoded-args)))
+      (types:bytes-append aggregate-selector encoded-args)))
 
   (declare try-aggregate-calldata (Boolean -> (List Call) -> types:Bytes))
   (define (try-aggregate-calldata require-success calls)
@@ -123,7 +114,7 @@
                          (Cons (abi:AbiBoolVal require-success)
                                (Cons (abi:AbiArrayVal (map call-to-abi-tuple calls))
                                      Nil)))))
-      (bytes-concat (try-aggregate-selector Unit) encoded-args)))
+      (types:bytes-append try-aggregate-selector encoded-args)))
 
   (declare aggregate3-calldata ((List Call3) -> types:Bytes))
   (define (aggregate3-calldata calls)
@@ -135,7 +126,7 @@
     (let ((encoded-args (abi:abi-encode
                          (Cons (abi:AbiArrayVal (map call3-to-abi-tuple calls))
                                Nil))))
-      (bytes-concat (aggregate3-selector Unit) encoded-args)))
+      (types:bytes-append aggregate3-selector encoded-args)))
 
   ;;; =========================================================================
   ;;; High-Level Helpers

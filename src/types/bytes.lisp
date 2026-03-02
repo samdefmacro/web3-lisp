@@ -31,8 +31,8 @@
     "Create a byte vector from a list of bytes"
     (iter:collect! (iter:into-iter lst)))
 
-  (declare bytes-empty (Unit -> Bytes))
-  (define (bytes-empty)
+  (declare bytes-empty Bytes)
+  (define bytes-empty
     "Create an empty byte vector"
     (make-bytes 0))
 
@@ -57,7 +57,7 @@
     "Drop the first n bytes"
     (let ((total (bytes-length bytes)))
       (if (>= n total)
-          (bytes-empty)
+          bytes-empty
           (bytes-slice n (- total n) bytes))))
 
   (declare bytes-append (Bytes -> Bytes -> Bytes))
@@ -177,4 +177,24 @@
              ;; Call hex-decode on the full string (it handles the prefix)
              (coalton (hex-decode (lisp String () hex-str)))
              (coalton-prelude:Err
-              (HexError "Missing 0x prefix"))))))
+              (HexError "Missing 0x prefix")))))
+
+  ;;; String utilities
+
+  (declare string-to-bytes (String -> Bytes))
+  (define (string-to-bytes s)
+    "Convert a string to UTF-8 bytes."
+    (lisp Bytes (s)
+      (cl:let* ((octets (sb-ext:string-to-octets (cl:the cl:string s) :external-format :utf-8))
+                (len (cl:length octets))
+                (result (cl:make-array len
+                                       :fill-pointer len
+                                       :adjustable cl:t)))
+        (cl:dotimes (i len result)
+          (cl:setf (cl:aref result i) (cl:aref octets i))))))
+
+  (declare string-downcase (String -> String))
+  (define (string-downcase s)
+    "Convert string to lowercase."
+    (lisp String (s)
+      (cl:string-downcase s))))

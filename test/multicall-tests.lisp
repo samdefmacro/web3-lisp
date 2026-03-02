@@ -11,7 +11,7 @@
 
   ;; Test function selectors
   (test-case "aggregate selector = 0x252dba42"
-    (let ((selector (coalton:coalton (web3/multicall:aggregate-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/multicall:aggregate-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x25))
       (assert (= (aref selector 1) #x2d))
@@ -19,7 +19,7 @@
       (assert (= (aref selector 3) #x42))))
 
   (test-case "tryAggregate selector = 0xbce38bd7"
-    (let ((selector (coalton:coalton (web3/multicall:try-aggregate-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/multicall:try-aggregate-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #xbc))
       (assert (= (aref selector 1) #xe3))
@@ -27,7 +27,7 @@
       (assert (= (aref selector 3) #xd7))))
 
   (test-case "aggregate3 selector = 0x82ad56cb"
-    (let ((selector (coalton:coalton (web3/multicall:aggregate3-selector coalton:Unit))))
+    (let ((selector (coalton:coalton web3/multicall:aggregate3-selector)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x82))
       (assert (= (aref selector 1) #xad))
@@ -39,7 +39,7 @@
   ;;; =========================================================================
 
   (test-case "multicall3 address is correct"
-    (let ((addr (coalton:coalton (web3/multicall:multicall3-address coalton:Unit))))
+    (let ((addr (coalton:coalton web3/multicall:multicall3-address)))
       (assert (string-equal addr "0xcA11bde05977b3631167028862bE2a173976CA11"))))
 
   ;;; =========================================================================
@@ -463,16 +463,16 @@
   ;;; =========================================================================
 
   (test-case "aggregate-selector is consistent across calls"
-    (let ((sel1 (coalton:coalton (web3/multicall:aggregate-selector coalton:Unit)))
-          (sel2 (coalton:coalton (web3/multicall:aggregate-selector coalton:Unit))))
+    (let ((sel1 (coalton:coalton web3/multicall:aggregate-selector))
+          (sel2 (coalton:coalton web3/multicall:aggregate-selector)))
       (assert (equalp sel1 sel2))))
 
   (test-case "try-aggregate-selector is consistent across calls"
-    (let ((sel1 (coalton:coalton (web3/multicall:try-aggregate-selector coalton:Unit)))
-          (sel2 (coalton:coalton (web3/multicall:try-aggregate-selector coalton:Unit))))
+    (let ((sel1 (coalton:coalton web3/multicall:try-aggregate-selector))
+          (sel2 (coalton:coalton web3/multicall:try-aggregate-selector)))
       (assert (equalp sel1 sel2))))
 
   (test-case "aggregate3-selector is consistent across calls"
-    (let ((sel1 (coalton:coalton (web3/multicall:aggregate3-selector coalton:Unit)))
-          (sel2 (coalton:coalton (web3/multicall:aggregate3-selector coalton:Unit))))
+    (let ((sel1 (coalton:coalton web3/multicall:aggregate3-selector))
+          (sel2 (coalton:coalton web3/multicall:aggregate3-selector)))
       (assert (equalp sel1 sel2)))))

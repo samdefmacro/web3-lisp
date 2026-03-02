@@ -13,7 +13,7 @@
   (test-case "is-zero-address: zero address returns true"
     (let ((result (coalton:coalton
                    (web3/ens-resolver::%is-zero-address
-                    (web3/address:address-zero)))))
+                    web3/address:address-zero))))
       (assert (eq result coalton:True))))
 
   (test-case "is-zero-address: non-zero address returns false"

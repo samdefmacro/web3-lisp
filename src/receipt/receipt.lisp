@@ -114,8 +114,8 @@
     (let ((gas-used (.receipt-gas-used receipt))
           (gas-price (.receipt-effective-gas-price receipt)))
       (lisp types:U256 (gas-used gas-price)
-        (cl:let ((price-int (web3/types::u256-to-integer gas-price)))
-          (web3/types::u256-from-integer (cl:* gas-used price-int))))))
+        (cl:let ((price-int (web3/types:u256-to-integer gas-price)))
+          (web3/types:u256-from-integer (cl:* gas-used price-int))))))
 
   (declare filter-logs-by-address ((List LogEntry) -> addr:Address -> (List LogEntry)))
   (define (filter-logs-by-address logs target-address)
@@ -183,64 +183,14 @@
 ;;; CL-Level Parsing Functions
 ;;; =========================================================================
 
-(cl:defun %parse-hex-ufix (hex-str)
-  "Parse hex string to UFix"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:parse-integer (cl:subseq hex-str 2) :radix 16)
-         0))
-
-(cl:defun %parse-hex-u256 (hex-str)
-  "Parse hex string to U256"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:let ((int-val (cl:parse-integer (cl:subseq hex-str 2) :radix 16)))
-           (web3/types::u256-from-integer int-val))
-         (web3/types::u256-from-integer 0)))
-
-(cl:defun %parse-hex-bytes (hex-str)
-  "Parse hex string to Bytes (adjustable vector for Coalton)"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:let* ((hex-part (cl:subseq hex-str 2))
-                   (len (cl:floor (cl:length hex-part) 2))
-                   (bytes (cl:make-array len :element-type 'cl:t
-                                         :fill-pointer len
-                                         :adjustable cl:t)))
-           (cl:dotimes (i len bytes)
-             (cl:setf (cl:aref bytes i)
-                      (cl:parse-integer hex-part :start (cl:* i 2) :end (cl:+ (cl:* i 2) 2) :radix 16))))
-         (cl:make-array 0 :element-type 'cl:t :fill-pointer 0 :adjustable cl:t)))
-
-(cl:defun %parse-hex-bytes32 (hex-str)
-  "Parse hex string to Bytes (32 bytes, adjustable vector for Coalton)"
-  (cl:let ((bytes (%parse-hex-bytes hex-str)))
-    ;; Ensure exactly 32 bytes
-    (cl:if (cl:= (cl:length bytes) 32)
-           bytes
-           (cl:let ((result (cl:make-array 32 :element-type 'cl:t
-                                           :fill-pointer 32
-                                           :adjustable cl:t
-                                           :initial-element 0)))
-             (cl:dotimes (i (cl:min 32 (cl:length bytes)) result)
-               (cl:setf (cl:aref result i) (cl:aref bytes i)))))))
-
-;; Helper to check if a Result is Ok (by checking type name string)
-(cl:defun %result-ok-p (result)
-  "Check if Coalton Result is Ok"
-  (cl:let ((type-name (cl:symbol-name (cl:type-of result))))
-    (cl:search "OK" type-name)))
-
-;; Helper to extract value from Ok (slot _0)
-(cl:defun %unwrap-ok (result)
-  "Extract the inner value from Ok"
-  (cl:slot-value result 'coalton-library/classes::|_0|))
-
 (cl:defun %parse-address (hex-str)
   "Parse hex string to Address"
   (cl:if hex-str
          (cl:let ((result (coalton:coalton
                            (web3/address:address-from-hex
                             (coalton:lisp coalton:String () hex-str)))))
-           (cl:if (%result-ok-p result)
-                  (%unwrap-ok result)
+           (cl:if (web3/types:%result-ok-p result)
+                  (web3/types:%unwrap-ok result)
                   cl:nil))
          cl:nil))
 
@@ -257,7 +207,7 @@
     ((cl:null status-hex) (coalton:coalton StatusUnknown))
     ((cl:equal status-hex "0x1") (coalton:coalton StatusSuccess))
     ((cl:equal status-hex "0x0") (coalton:coalton StatusFailed))
-    (cl:t (cl:let ((val (%parse-hex-ufix status-hex)))
+    (cl:t (cl:let ((val (web3/types:%parse-hex-ufix status-hex)))
             (cl:if (cl:> val 0)
                    (coalton:coalton StatusSuccess)
                    (coalton:coalton StatusFailed))))))
@@ -266,7 +216,7 @@
   "Parse transaction type"
   (cl:if (cl:null type-hex)
          (coalton:coalton TxTypeLegacy)
-         (cl:let ((type-val (%parse-hex-ufix type-hex)))
+         (cl:let ((type-val (web3/types:%parse-hex-ufix type-hex)))
            (cl:case type-val
              (0 (coalton:coalton TxTypeLegacy))
              (1 (coalton:coalton TxTypeAccessList))
@@ -278,7 +228,7 @@
   "Parse list of topic hex strings to Coalton list of Bytes"
   (cl:if (cl:null topics-list)
          coalton:Nil
-         (coalton:Cons (%parse-hex-bytes32 (cl:first topics-list))
+         (coalton:Cons (web3/types:%parse-hex-bytes32 (cl:first topics-list))
                        (%parse-topics (cl:rest topics-list)))))
 
 (cl:defun %parse-single-log (log-obj)
@@ -292,23 +242,20 @@
             (block-hash-hex (cl:cdr (cl:assoc :block-hash log-obj)))
             (log-idx-hex (cl:cdr (cl:assoc :log-index log-obj)))
             (removed (cl:cdr (cl:assoc :removed log-obj))))
-    (web3/receipt::make-log-entry
+    (web3/receipt:make-log-entry
      (%parse-address address-hex)
      (%parse-topics topics-list)
-     (%parse-hex-bytes data-hex)
-     (%parse-hex-ufix block-num-hex)
-     (%parse-hex-bytes32 tx-hash-hex)
-     (%parse-hex-ufix tx-idx-hex)
-     (%parse-hex-bytes32 block-hash-hex)
-     (%parse-hex-ufix log-idx-hex)
+     (web3/types:%parse-hex-bytes data-hex)
+     (web3/types:%parse-hex-ufix block-num-hex)
+     (web3/types:%parse-hex-bytes32 tx-hash-hex)
+     (web3/types:%parse-hex-ufix tx-idx-hex)
+     (web3/types:%parse-hex-bytes32 block-hash-hex)
+     (web3/types:%parse-hex-ufix log-idx-hex)
      (cl:if removed coalton:True coalton:False))))
 
 (cl:defun %parse-logs (logs-list)
   "Parse list of log objects to Coalton list"
-  (cl:if (cl:null logs-list)
-         coalton:Nil
-         (coalton:Cons (%parse-single-log (cl:first logs-list))
-                       (%parse-logs (cl:rest logs-list)))))
+  (cl:mapcar #'%parse-single-log logs-list))
 
 (cl:defun %parse-receipt-from-alist (receipt-obj)
   "Parse receipt from alist"
@@ -326,19 +273,19 @@
             (logs-bloom-hex (cl:cdr (cl:assoc :logs-bloom receipt-obj)))
             (status-hex (cl:cdr (cl:assoc :status receipt-obj)))
             (type-hex (cl:cdr (cl:assoc :type receipt-obj))))
-    (web3/receipt::make-receipt
-     (%parse-hex-bytes32 tx-hash-hex)
-     (%parse-hex-ufix tx-idx-hex)
-     (%parse-hex-bytes32 block-hash-hex)
-     (%parse-hex-ufix block-num-hex)
+    (web3/receipt:make-receipt
+     (web3/types:%parse-hex-bytes32 tx-hash-hex)
+     (web3/types:%parse-hex-ufix tx-idx-hex)
+     (web3/types:%parse-hex-bytes32 block-hash-hex)
+     (web3/types:%parse-hex-ufix block-num-hex)
      (%parse-address from-hex)
      (%parse-optional-address to-hex)
-     (%parse-hex-ufix cumulative-gas-hex)
-     (%parse-hex-ufix gas-used-hex)
-     (%parse-hex-u256 (cl:or effective-price-hex "0x0"))
+     (web3/types:%parse-hex-ufix cumulative-gas-hex)
+     (web3/types:%parse-hex-ufix gas-used-hex)
+     (web3/types:%parse-hex-u256 (cl:or effective-price-hex "0x0"))
      (%parse-optional-address contract-addr-hex)
      (%parse-logs logs-list)
-     (%parse-hex-bytes (cl:or logs-bloom-hex "0x"))
+     (web3/types:%parse-hex-bytes (cl:or logs-bloom-hex "0x"))
      (%parse-status status-hex)
      (%parse-tx-type type-hex))))
 
@@ -362,7 +309,7 @@
 
 (cl:defun %encode-get-receipt-request (tx-hash)
   "Encode eth_getTransactionReceipt params"
-  (cl:let ((hash-hex (web3/types::hex-encode-prefixed tx-hash)))
+  (cl:let ((hash-hex (web3/types:hex-encode-prefixed tx-hash)))
     (cl:format cl:nil "[\"~A\"]" hash-hex)))
 
 (cl:defun %parse-get-receipt-response (json-str)
@@ -379,57 +326,3 @@
             (cl:format cl:nil "Failed to parse receipt response: ~A" e))))))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(LogEntry
-               make-log-entry
-               .log-address
-               .log-topics
-               .log-data
-               .log-block-number
-               .log-transaction-hash
-               .log-transaction-index
-               .log-block-hash
-               .log-log-index
-               .log-removed
-               Receipt
-               make-receipt
-               .receipt-transaction-hash
-               .receipt-transaction-index
-               .receipt-block-hash
-               .receipt-block-number
-               .receipt-from
-               .receipt-to
-               .receipt-cumulative-gas-used
-               .receipt-gas-used
-               .receipt-effective-gas-price
-               .receipt-contract-address
-               .receipt-logs
-               .receipt-logs-bloom
-               .receipt-status
-               .receipt-type
-               ReceiptStatus
-               StatusSuccess
-               StatusFailed
-               StatusUnknown
-               TxType
-               TxTypeLegacy
-               TxTypeAccessList
-               TxTypeEip1559
-               TxTypeBlob
-               parse-receipt
-               parse-receipt-json
-               parse-log-entry
-               parse-log-entry-json
-               receipt-success?
-               receipt-failed?
-               receipt-contract-created?
-               receipt-total-cost
-               filter-logs-by-address
-               filter-logs-by-topic
-               encode-get-receipt-request
-               parse-get-receipt-response)
-             (cl:find-package '#:web3/receipt)))

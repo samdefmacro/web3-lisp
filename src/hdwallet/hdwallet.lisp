@@ -9,6 +9,16 @@
 
 (named-readtables:in-readtable coalton:coalton)
 
+;;; The secp256k1 elliptic curve order (N).
+;;; Used for modular arithmetic in BIP-32 child key derivation.
+(cl:defconstant +secp256k1-n+
+  (cl:if (cl:boundp '+secp256k1-n+)
+         (cl:symbol-value '+secp256k1-n+)
+         (cl:parse-integer
+          "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
+          :radix 16))
+  "The order of the secp256k1 elliptic curve generator point.")
+
 (coalton-toplevel
 
   ;;; =========================================================================
@@ -314,16 +324,13 @@
                 (il (cl:subseq i 0 32))
                 (ir (cl:subseq i 32 64))
                 ;; Add il to parent private key (mod n)
-                (secp256k1-n (cl:parse-integer
-                              "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
-                              :radix 16))
                 (il-int (cl:reduce (cl:lambda (acc b) (cl:+ (cl:ash acc 8) b))
                                    il :initial-value 0))
                 (priv-int (cl:reduce (cl:lambda (acc b) (cl:+ (cl:ash acc 8) b))
                                      priv-key :initial-value 0))
-                (child-int (cl:mod (cl:+ il-int priv-int) secp256k1-n)))
+                (child-int (cl:mod (cl:+ il-int priv-int) +secp256k1-n+)))
         ;; Convert back to bytes
-        (cl:if (cl:or (cl:zerop il-int) (cl:>= il-int secp256k1-n))
+        (cl:if (cl:or (cl:zerop il-int) (cl:>= il-int +secp256k1-n+))
                (Err (web3/types:WalletError "Invalid child key"))
                (cl:let* ((child-priv (cl:make-array 32 :fill-pointer 32 :adjustable cl:t))
                          (child-chain (cl:make-array 32 :fill-pointer 32 :adjustable cl:t)))

@@ -21,11 +21,11 @@
                  1            ; chain-id (mainnet)
                  0            ; nonce
                  (web3/types:u256-from-integer 20000000000) ; gas-price 20 gwei
-                 (web3/types:u256-zero coalton:Unit)         ; max-fee (unused for legacy)
+                 web3/types:u256-zero         ; max-fee (unused for legacy)
                  21000        ; gas-limit
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr)) ; to
                  (web3/types:u256-from-integer 1000000000000000000) ; 1 ether
-                 (web3/types:bytes-empty coalton:Unit) ; no data
+                 web3/types:bytes-empty ; no data
                  coalton:Nil))) ; no access list
            (encoded (coalton:coalton
                      (web3/transaction:tx-encode-for-signing
@@ -50,7 +50,7 @@
                  21000         ; gas-limit
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 100000000000000000) ; 0.1 ether
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (encoded (coalton:coalton
                      (web3/transaction:tx-encode-for-signing
@@ -65,11 +65,11 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  coalton-prelude:None
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (chain-id (coalton:coalton
                       (web3/transaction:tx-chain-id
@@ -90,10 +90,10 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  100000
                  coalton-prelude:None  ; No to = contract creation
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  (web3/types:bytes-from-list (coalton:Cons #x60 (coalton:Cons #x80 coalton:Nil)))
                  coalton:Nil)))
            (encoded (coalton:coalton
@@ -115,11 +115,11 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 1000000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed-result (coalton:coalton
                            (web3/transaction:tx-sign
@@ -145,7 +145,7 @@
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 100000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed-result (coalton:coalton
                            (web3/transaction:tx-sign
@@ -164,11 +164,11 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  coalton-prelude:None
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed-result (coalton:coalton
                            (web3/transaction:tx-sign
@@ -184,11 +184,11 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  coalton-prelude:None
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed1 (result-value (coalton:coalton
                                    (web3/transaction:tx-sign
@@ -222,11 +222,11 @@
                  web3/transaction:LegacyTx
                  1 42
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 1000000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed (result-value (coalton:coalton
                                   (web3/transaction:tx-sign
@@ -261,7 +261,7 @@
                  50000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 500000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed (result-value (coalton:coalton
                                   (web3/transaction:tx-sign
@@ -307,11 +307,11 @@
                  web3/transaction:EIP2930Tx
                  1 10
                  (web3/types:u256-from-integer 25000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  30000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 200000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))  ; Empty access list
            (encoded (coalton:coalton
                      (web3/transaction:tx-encode-for-signing
@@ -330,11 +330,11 @@
                  web3/transaction:EIP2930Tx
                  1 10
                  (web3/types:u256-from-integer 25000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  30000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 200000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed-result (coalton:coalton
                            (web3/transaction:tx-sign
@@ -356,11 +356,11 @@
                  web3/transaction:EIP2930Tx
                  1 77
                  (web3/types:u256-from-integer 25000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  35000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 300000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (signed (result-value (coalton:coalton
                                   (web3/transaction:tx-sign
@@ -400,7 +400,7 @@
                  100000        ; gas-limit
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 0)            ; value
-                 (web3/types:bytes-empty coalton:Unit)       ; data
+                 web3/types:bytes-empty       ; data
                  coalton:Nil   ; access list
                  (web3/types:u256-from-integer 3000000000)   ; max fee per blob gas
                  (coalton:Cons (coalton:lisp web3/types:Bytes () blob-hash) coalton:Nil))))  ; blob hashes
@@ -425,8 +425,8 @@
                  (web3/types:u256-from-integer 40000000000)
                  120000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil
                  (web3/types:u256-from-integer 5000000000)
                  (coalton:Cons (coalton:lisp web3/types:Bytes () blob-hash) coalton:Nil))))
@@ -454,8 +454,8 @@
                  (web3/types:u256-from-integer 45000000000)
                  150000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil
                  (web3/types:u256-from-integer 6000000000)
                  (coalton:Cons (coalton:lisp web3/types:Bytes () blob-hash) coalton:Nil))))
@@ -496,8 +496,8 @@
                  (web3/types:u256-from-integer 20000000000)
                  80000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil
                  (web3/types:u256-from-integer 4000000000)  ; max fee per blob gas
                  (coalton:Cons (coalton:lisp web3/types:Bytes () blob-hash1)
@@ -531,8 +531,8 @@
                  (web3/types:u256-from-integer 50000000000)
                  200000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil
                  (web3/types:u256-from-integer 7000000000)
                  (coalton:Cons (coalton:lisp web3/types:Bytes () blob-hash1)

@@ -476,8 +476,8 @@
   ;;; Chain Lists
   ;;; =========================================================================
 
-  (declare all-chains (Unit -> (List Chain)))
-  (define (all-chains _)
+  (declare all-chains (List Chain))
+  (define all-chains
     "Get all pre-configured chains"
     (Cons ethereum-mainnet
           (Cons sepolia
@@ -506,15 +506,15 @@
                                                                                                                                                     (Cons hardhat
                                                                                                                                                           (Cons anvil Nil)))))))))))))))))))))))))))
 
-  (declare mainnet-chains (Unit -> (List Chain)))
-  (define (mainnet-chains _)
+  (declare mainnet-chains (List Chain))
+  (define mainnet-chains
     "Get all mainnet chains"
-    (filter (fn (c) (not (chain-is-testnet c))) (all-chains Unit)))
+    (filter (fn (c) (not (chain-is-testnet c))) all-chains))
 
-  (declare testnet-chains (Unit -> (List Chain)))
-  (define (testnet-chains _)
+  (declare testnet-chains (List Chain))
+  (define testnet-chains
     "Get all testnet chains"
-    (filter chain-is-testnet (all-chains Unit)))
+    (filter chain-is-testnet all-chains))
 
   ;;; =========================================================================
   ;;; Lookup Functions
@@ -523,16 +523,16 @@
   (declare get-chain-by-id (UFix -> (Optional Chain)))
   (define (get-chain-by-id id)
     "Look up a chain by its chain ID"
-    (find-first (fn (c) (== (chain-id c) id)) (all-chains Unit)))
+    (find (fn (c) (== (chain-id c) id)) all-chains))
 
   (declare get-chain-by-name (String -> (Optional Chain)))
   (define (get-chain-by-name name)
     "Look up a chain by name (case-insensitive)"
-    (let ((lower-name (string-downcase name)))
-      (find-first (fn (c)
-              (or (== (string-downcase (chain-name c)) lower-name)
-                  (== (string-downcase (chain-short-name c)) lower-name)))
-            (all-chains Unit))))
+    (let ((lower-name (types:string-downcase name)))
+      (find (fn (c)
+              (or (== (types:string-downcase (chain-name c)) lower-name)
+                  (== (types:string-downcase (chain-short-name c)) lower-name)))
+            all-chains)))
 
   ;;; =========================================================================
   ;;; Utility Functions
@@ -591,101 +591,6 @@
   ;;; Helper Functions
   ;;; =========================================================================
 
-  (declare string-downcase (String -> String))
-  (define (string-downcase str)
-    "Convert string to lowercase"
-    (lisp String (str)
-      (cl:string-downcase str)))
-
-  (declare find-first ((:a -> Boolean) -> (List :a) -> (Optional :a)))
-  (define (find-first pred lst)
-    "Find the first element matching predicate"
-    (match lst
-      ((Nil) None)
-      ((Cons x xs)
-       (if (pred x)
-           (Some x)
-           (find-first pred xs)))))
-
 )
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(Chain
-               NativeCurrency
-               make-chain
-               make-native-currency
-               chain-id
-               chain-name
-               chain-short-name
-               chain-native-currency
-               chain-block-explorer
-               chain-is-testnet
-               currency-name
-               currency-symbol
-               currency-decimals
-               chain-id-mainnet
-               chain-id-sepolia
-               chain-id-holesky
-               chain-id-polygon
-               chain-id-polygon-amoy
-               chain-id-arbitrum
-               chain-id-arbitrum-sepolia
-               chain-id-optimism
-               chain-id-optimism-sepolia
-               chain-id-base
-               chain-id-base-sepolia
-               chain-id-bsc
-               chain-id-bsc-testnet
-               chain-id-avalanche
-               chain-id-avalanche-fuji
-               chain-id-gnosis
-               chain-id-fantom
-               chain-id-celo
-               chain-id-zksync
-               chain-id-linea
-               chain-id-scroll
-               chain-id-mantle
-               chain-id-blast
-               chain-id-local
-               ethereum-mainnet
-               sepolia
-               holesky
-               polygon
-               polygon-amoy
-               arbitrum-one
-               arbitrum-sepolia
-               optimism
-               optimism-sepolia
-               base
-               base-sepolia
-               bsc
-               bsc-testnet
-               avalanche
-               avalanche-fuji
-               gnosis
-               fantom
-               celo
-               zksync-era
-               linea
-               scroll
-               mantle
-               blast
-               localhost
-               hardhat
-               anvil
-               get-chain-by-id
-               get-chain-by-name
-               all-chains
-               mainnet-chains
-               testnet-chains
-               is-eip1559-chain
-               default-block-time
-               explorer-tx-url
-               explorer-address-url
-               explorer-block-url)
-             (cl:find-package '#:web3/chain)))

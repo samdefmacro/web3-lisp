@@ -159,7 +159,7 @@
           (from (result-value (coalton:coalton
                                (web3/address:address-from-hex
                                 "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))))
-          (value (coalton:coalton (web3/types:u256-zero coalton:Unit)))
+          (value (coalton:coalton web3/types:u256-zero))
           (init-code (make-array 4 :fill-pointer 4 :adjustable t
                                  :initial-contents '(#x60 #x80 #x60 #x40))))
       (let ((result (coalton:coalton

@@ -155,11 +155,11 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 1000000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result (coalton:coalton
                     (web3/wallet:wallet-sign-transaction
@@ -189,7 +189,7 @@
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 100000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result (coalton:coalton
                     (web3/wallet:wallet-sign-transaction
@@ -214,11 +214,11 @@
                  web3/transaction:EIP2930Tx
                  1 3
                  (web3/types:u256-from-integer 25000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 500000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result (coalton:coalton
                     (web3/wallet:wallet-sign-transaction
@@ -247,7 +247,7 @@
                  (web3/types:u256-from-integer 30000000000)
                  100000
                  coalton-prelude:None  ; No 'to' = contract creation
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  (coalton:lisp web3/types:Bytes () init-code)
                  coalton:Nil)))
            (result (coalton:coalton
@@ -290,7 +290,7 @@
                  (web3/types:u256-from-integer 50000000000)
                  60000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  (coalton:lisp web3/types:Bytes () calldata)
                  coalton:Nil)))
            (result (coalton:coalton
@@ -317,11 +317,11 @@
                  web3/transaction:LegacyTx
                  1 42
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 1000000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result1 (coalton:coalton
                      (web3/wallet:wallet-sign-transaction
@@ -361,11 +361,11 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 1000000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result1 (coalton:coalton
                      (web3/wallet:wallet-sign-transaction
@@ -396,11 +396,11 @@
                  web3/transaction:LegacyTx
                  1 0
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  coalton-prelude:None
-                 (web3/types:u256-zero coalton:Unit)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:u256-zero
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result (coalton:coalton
                     (web3/wallet:wallet-send-transaction
@@ -469,11 +469,11 @@
                  web3/transaction:LegacyTx
                  1 999999
                  (web3/types:u256-from-integer 20000000000)
-                 (web3/types:u256-zero coalton:Unit)
+                 web3/types:u256-zero
                  21000
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 1000000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result (coalton:coalton
                     (web3/wallet:wallet-sign-transaction
@@ -499,7 +499,7 @@
                  30000000  ; 30M gas limit
                  (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                  (web3/types:u256-from-integer 1000000000000000000)
-                 (web3/types:bytes-empty coalton:Unit)
+                 web3/types:bytes-empty
                  coalton:Nil)))
            (result (coalton:coalton
                     (web3/wallet:wallet-sign-transaction
@@ -526,7 +526,7 @@
                            21000
                            (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                            (web3/types:u256-from-integer 100000000000000000)
-                           (web3/types:bytes-empty coalton:Unit)
+                           web3/types:bytes-empty
                            coalton:Nil)))
              (result-mainnet (coalton:coalton
                               (web3/wallet:wallet-sign-transaction
@@ -543,7 +543,7 @@
                            21000
                            (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                            (web3/types:u256-from-integer 100000000000000000)
-                           (web3/types:bytes-empty coalton:Unit)
+                           web3/types:bytes-empty
                            coalton:Nil)))
              (result-polygon (coalton:coalton
                               (web3/wallet:wallet-sign-transaction
@@ -560,7 +560,7 @@
                        21000
                        (coalton-prelude:Some (coalton:lisp web3/address:Address () to-addr))
                        (web3/types:u256-from-integer 100000000000000000)
-                       (web3/types:bytes-empty coalton:Unit)
+                       web3/types:bytes-empty
                        coalton:Nil)))
              (result-arb (coalton:coalton
                           (web3/wallet:wallet-sign-transaction

@@ -23,7 +23,7 @@
   (test-case "keccak256 empty - full hash (direct CL)"
     ;; keccak256("") = c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
     (let ((result (coalton:coalton
-                   (web3/crypto:keccak256 (web3/types:bytes-empty coalton:Unit)))))
+                   (web3/crypto:keccak256 web3/types:bytes-empty))))
       (assert (= (aref result 0) #xc5))
       (assert (= (aref result 1) #xd2))
       (assert (= (aref result 2) #x46))

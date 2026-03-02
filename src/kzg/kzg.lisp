@@ -279,20 +279,3 @@
                        coalton:False)))))))))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(KZGContext
-               KZGCommitment
-               KZGProof
-               make-kzg-context
-               kzg-context-loaded?
-               blob-to-commitment
-               compute-blob-proof
-               verify-blob-proof
-               compute-kzg-proof
-               blobs-to-commitments
-               verify-blob-proofs)
-             (cl:find-package '#:web3/kzg)))

@@ -175,7 +175,7 @@
                  120000))))  ; 100000 + 20% = 120000
 
   (test-case "standard-gas-limits returns list"
-    (let ((limits (coalton:coalton (web3/gas:standard-gas-limits coalton:Unit))))
+    (let ((limits (coalton:coalton web3/gas:standard-gas-limits)))
       (assert limits)
       ;; Just check that we got something back
       (assert (not (eq limits nil)))))

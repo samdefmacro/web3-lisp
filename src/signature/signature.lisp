@@ -105,8 +105,8 @@
   ;;; EIP-191 Personal Sign
   ;;; =========================================================================
 
-  (declare personal-sign-prefix (Unit -> String))
-  (define (personal-sign-prefix _)
+  (declare personal-sign-prefix String)
+  (define personal-sign-prefix
     "The Ethereum signed message prefix"
     "\x19Ethereum Signed Message:\n")
 
@@ -114,12 +114,12 @@
   (define (hash-personal-message message)
     "Hash a message with the EIP-191 personal sign prefix.
      Returns keccak256(prefix || length || message)"
-    (let ((prefix-str (personal-sign-prefix Unit))
+    (let ((prefix-str personal-sign-prefix)
           (msg-len (types:bytes-length message)))
       ;; Build: prefix || decimal_length || message
       (let ((len-str (ufix-to-string msg-len)))
-        (let ((prefix-bytes (string-to-bytes prefix-str))
-              (len-bytes (string-to-bytes len-str)))
+        (let ((prefix-bytes (types:string-to-bytes prefix-str))
+              (len-bytes (types:string-to-bytes len-str)))
           (crypto:keccak256
            (types:bytes-concat-many
             (Cons prefix-bytes
@@ -197,44 +197,6 @@
     (lisp String (n)
       (cl:format cl:nil "~D" n)))
 
-  (declare string-to-bytes (String -> types:Bytes))
-  (define (string-to-bytes str)
-    "Convert string to bytes (UTF-8 encoding)"
-    (lisp types:Bytes (str)
-      (cl:let* ((octets (cl:map 'cl:vector #'cl:char-code str))
-                (len (cl:length octets))
-                (result (cl:make-array len :element-type 'cl:t
-                                       :fill-pointer len
-                                       :adjustable cl:t)))
-        (cl:dotimes (i len result)
-          (cl:setf (cl:aref result i) (cl:aref octets i)))))))
+)
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(Signature
-               make-signature
-               sig-v
-               sig-r
-               sig-s
-               signature-to-bytes
-               signature-from-bytes
-               signature-to-hex
-               signature-from-hex
-               personal-sign-prefix
-               hash-personal-message
-               personal-sign
-               personal-recover
-               sign-hash
-               recover-from-hash
-               verify-signature
-               verify-personal-signature
-               split-signature
-               join-signature
-               normalize-v
-               to-eip155-v
-               from-eip155-v)
-             (cl:find-package '#:web3/signature)))

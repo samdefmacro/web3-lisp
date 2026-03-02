@@ -56,7 +56,7 @@
     "Convert optional address to RLP item (empty bytes for None)"
     (match maybe-addr
       ((Some addr) (rlp:RlpBytes (addr:address-bytes addr)))
-      ((None) (rlp:RlpBytes (types:bytes-empty)))))
+      ((None) (rlp:RlpBytes types:bytes-empty))))
 
   (declare %encode-access-list (AccessList -> rlp:RlpItem))
   (define (%encode-access-list al)
@@ -93,8 +93,8 @@
                                  (Cons (%u256-to-rlp-item (tx-value tx))
                                        (Cons (rlp:RlpBytes (tx-data tx))
                                              (Cons (%u64-to-rlp-item (tx-chain-id tx))
-                                                   (Cons (rlp:RlpBytes (types:bytes-empty))
-                                                         (Cons (rlp:RlpBytes (types:bytes-empty))
+                                                   (Cons (rlp:RlpBytes types:bytes-empty)
+                                                         (Cons (rlp:RlpBytes types:bytes-empty)
                                                                Nil))))))))))))
 
       ((EIP2930Tx)

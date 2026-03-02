@@ -13,28 +13,6 @@
 (coalton-toplevel
 
   ;;; =========================================================================
-  ;;; Internal Helpers
-  ;;; =========================================================================
-
-  (declare bytes-concat (types:Bytes -> types:Bytes -> types:Bytes))
-  (define (bytes-concat a b)
-    "Concatenate two byte arrays."
-    (types:bytes-concat-many (Cons a (Cons b Nil))))
-
-  (declare string-to-bytes (String -> types:Bytes))
-  (define (string-to-bytes s)
-    "Convert a string to UTF-8 bytes."
-    (lisp types:Bytes (s)
-      (cl:let* ((str (cl:string s))
-                (bytes (sb-ext:string-to-octets str :external-format :utf-8))
-                (len (cl:length bytes))
-                (result (cl:make-array len
-                                       :fill-pointer len
-                                       :adjustable cl:t
-                                       :initial-contents (cl:coerce bytes 'cl:list))))
-        result)))
-
-  ;;; =========================================================================
   ;;; EIP-712 Domain
   ;;; =========================================================================
 
@@ -129,7 +107,7 @@
   (declare type-hash (TypedStruct -> types:Bytes))
   (define (type-hash struct)
     "Compute the type hash: keccak256(encodeType(struct))."
-    (crypto:keccak256 (string-to-bytes (encode-type struct))))
+    (crypto:keccak256 (types:string-to-bytes (encode-type struct))))
 
   ;;; =========================================================================
   ;;; Domain Type and Encoding
@@ -147,7 +125,7 @@
   (declare domain-type-hash (EIP712Domain -> types:Bytes))
   (define (domain-type-hash domain)
     "Compute the type hash for the domain."
-    (crypto:keccak256 (string-to-bytes (domain-type-string domain))))
+    (crypto:keccak256 (types:string-to-bytes (domain-type-string domain))))
 
   ;; Helper to pad bytes to 32 bytes (left-pad with zeros)
   (declare pad-to-32 (types:Bytes -> types:Bytes))
@@ -159,7 +137,7 @@
   (declare encode-string-hash (String -> types:Bytes))
   (define (encode-string-hash s)
     "Encode a string as its keccak256 hash."
-    (crypto:keccak256 (string-to-bytes s)))
+    (crypto:keccak256 (types:string-to-bytes s)))
 
   (declare encode-domain-data (EIP712Domain -> types:Bytes))
   (define (encode-domain-data domain)
@@ -189,7 +167,7 @@
     "Compute the domain separator: keccak256(typeHash || encodeData)."
     (let ((type-h (domain-type-hash domain))
           (data (encode-domain-data domain)))
-      (crypto:keccak256 (bytes-concat type-h data))))
+      (crypto:keccak256 (types:bytes-append type-h data))))
 
   (declare domain-separator-hex (EIP712Domain -> String))
   (define (domain-separator-hex domain)
@@ -222,7 +200,7 @@
       ((TypedBool b)
        (abi:abi-encode (Cons (abi:AbiBoolVal b) Nil)))
       ((TypedString s)
-       (crypto:keccak256 (string-to-bytes s)))
+       (crypto:keccak256 (types:string-to-bytes s)))
       ((TypedBytes b)
        (crypto:keccak256 b))))
 
@@ -235,14 +213,14 @@
   (define (hash-struct type-h values)
     "Compute hashStruct: keccak256(typeHash || encodeData(values))."
     (let ((encoded (encode-data values)))
-      (crypto:keccak256 (bytes-concat type-h encoded))))
+      (crypto:keccak256 (types:bytes-append type-h encoded))))
 
   ;;; =========================================================================
   ;;; Typed Data Hash
   ;;; =========================================================================
 
-  (declare eip712-prefix (Unit -> types:Bytes))
-  (define (eip712-prefix _)
+  (declare eip712-prefix types:Bytes)
+  (define eip712-prefix
     "The EIP-712 prefix: 0x1901"
     (lisp types:Bytes ()
       (cl:make-array 2 :initial-contents '(#x19 #x01)
@@ -253,7 +231,7 @@
   (define (typed-data-hash domain-sep struct-hash)
     "Compute the full EIP-712 typed data hash:
      keccak256(0x19 || 0x01 || domainSeparator || hashStruct(message))"
-    (let ((prefix (eip712-prefix Unit)))
+    (let ((prefix eip712-prefix))
       (crypto:keccak256
        (types:bytes-concat-many
         (Cons prefix (Cons domain-sep (Cons struct-hash Nil)))))))
@@ -286,12 +264,12 @@
     "Create a domain for EIP-2612 Permit signatures."
     (make-domain name version chain-id token-address))
 
-  (declare eip2612-permit-type-hash (Unit -> types:Bytes))
-  (define (eip2612-permit-type-hash _)
+  (declare eip2612-permit-type-hash types:Bytes)
+  (define eip2612-permit-type-hash
     "Type hash for EIP-2612 Permit:
      keccak256('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')"
     (crypto:keccak256
-     (string-to-bytes
+     (types:string-to-bytes
       "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)")))
 
   (declare permit-struct-hash (types:Bytes -> types:Bytes -> types:U256
@@ -299,7 +277,7 @@
   (define (permit-struct-hash owner spender value nonce deadline)
     "Compute the struct hash for an EIP-2612 Permit."
     (hash-struct
-     (eip2612-permit-type-hash Unit)
+     eip2612-permit-type-hash
      (Cons (TypedAddress owner)
            (Cons (TypedAddress spender)
                  (Cons (TypedUint256 value)

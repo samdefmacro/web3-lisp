@@ -86,7 +86,7 @@
      gas-used-ratio is percentage (0-100) of block gas limit used.
      EIP-1559: base fee changes by up to 12.5% per block."
     (lisp types:U256 (current-base-fee gas-used-ratio)
-      (cl:let* ((base-int (web3/types::u256-to-integer current-base-fee))
+      (cl:let* ((base-int (web3/types:u256-to-integer current-base-fee))
                 (target-ratio 50)  ; Target is 50% gas usage
                 (max-change-denom 8)  ; 12.5% = 1/8
                 (diff (cl:- gas-used-ratio target-ratio))
@@ -95,7 +95,7 @@
                 (new-base (cl:if (cl:>= gas-used-ratio target-ratio)
                                  (cl:+ base-int change)
                                  (cl:max 0 (cl:- base-int change)))))
-        (web3/types::u256-from-integer new-base))))
+        (web3/types:u256-from-integer new-base))))
 
   (declare estimate-base-fee-trend (FeeHistory -> types:U256))
   (define (estimate-base-fee-trend history)
@@ -164,8 +164,8 @@
     "Add a safety buffer to estimated gas. buffer-percent is e.g. 20 for 20%"
     (+ estimated-gas (ufix-div (* estimated-gas buffer-percent) 100)))
 
-  (declare standard-gas-limits (Unit -> (List (Tuple String UFix))))
-  (define (standard-gas-limits _)
+  (declare standard-gas-limits (List (Tuple String UFix)))
+  (define standard-gas-limits
     "Common gas limits for standard operations"
     (make-list
      (Tuple "eth-transfer" 21000)
@@ -206,9 +206,9 @@
     "Apply preset multiplier to a fee"
     (let ((mult (preset-multiplier preset)))
       (lisp types:U256 (fee mult)
-        (cl:let* ((fee-int (web3/types::u256-to-integer fee))
+        (cl:let* ((fee-int (web3/types:u256-to-integer fee))
                   (adjusted (cl:floor (cl:* fee-int mult) 100)))
-          (web3/types::u256-from-integer adjusted)))))
+          (web3/types:u256-from-integer adjusted)))))
 
   (declare u256-mul-2 (types:U256 -> types:U256))
   (define (u256-mul-2 x)
@@ -232,8 +232,8 @@
                            coalton:Nil
                            (coalton:Cons (cl:car l) (from-cl-list (cl:cdr l)))))
                   (u256-< (a b)
-                    (cl:< (web3/types::u256-to-integer a)
-                          (web3/types::u256-to-integer b))))
+                    (cl:< (web3/types:u256-to-integer a)
+                          (web3/types:u256-to-integer b))))
         (from-cl-list (cl:sort (to-cl-list lst) #'u256-<)))))
 
   (declare ufix-div (UFix -> UFix -> UFix))
@@ -247,7 +247,7 @@
     "Get element at index, or zero if out of bounds"
     (match (list-ref-u256-opt lst idx)
       ((Some v) v)
-      ((None) (types:u256-zero Unit))))
+      ((None) types:u256-zero)))
 
   (declare list-ref-u256-opt ((List types:U256) -> UFix -> (Optional types:U256)))
   (define (list-ref-u256-opt lst idx)
@@ -267,13 +267,13 @@
   (define (gwei-to-wei gwei)
     "Convert gwei (as UFix) to wei (as U256)"
     (lisp types:U256 (gwei)
-      (web3/types::u256-from-integer (cl:* gwei 1000000000))))
+      (web3/types:u256-from-integer (cl:* gwei 1000000000))))
 
   (declare wei-to-gwei (types:U256 -> UFix))
   (define (wei-to-gwei wei)
     "Convert wei (as U256) to gwei (as UFix, truncated)"
     (lisp UFix (wei)
-      (cl:let ((wei-int (web3/types::u256-to-integer wei)))
+      (cl:let ((wei-int (web3/types:u256-to-integer wei)))
         (cl:floor wei-int 1000000000)))))
 
 
@@ -308,17 +308,12 @@
 
 (cl:defun %encode-fee-history-request (block-count newest-block percentiles)
   "Encode fee history request params as JSON"
-  (cl:let ((percentile-list (%coalton-list-to-cl percentiles)))
+  (cl:let ((percentile-list percentiles))
     (cl:format cl:nil "[\"0x~X\",\"~A\",[~{~A~^,~}]]"
                block-count
                newest-block
                percentile-list)))
 
-(cl:defun %coalton-list-to-cl (lst)
-  "Convert Coalton list to CL list"
-  (cl:if (cl:eq lst coalton:Nil)
-         cl:nil
-         (cl:cons (cl:car lst) (%coalton-list-to-cl (cl:cdr lst)))))
 
 (cl:defun %parse-fee-history-response (json-str)
   "Parse fee history response"
@@ -330,11 +325,11 @@
                          (base-fees-hex (cl:cdr (cl:assoc :base-fee-per-gas result)))
                          (gas-ratios (cl:cdr (cl:assoc :gas-used-ratio result)))
                          (rewards (cl:cdr (cl:assoc :reward result)))
-                         (oldest (%parse-hex-ufix oldest-hex))
+                         (oldest (web3/types:%parse-hex-ufix oldest-hex))
                          (blocks (%build-fee-blocks base-fees-hex gas-ratios rewards))
                          ;; Next base fee is the last element of baseFeePerGas
-                         (next-base-fee (%parse-hex-u256 (cl:car (cl:last base-fees-hex)))))
-                 (Ok (web3/gas::make-fee-history oldest blocks next-base-fee)))
+                         (next-base-fee (web3/types:%parse-hex-u256 (cl:car (cl:last base-fees-hex)))))
+                 (Ok (web3/gas:make-fee-history oldest blocks next-base-fee)))
                (Err (web3/types:ProviderError "No result in response"))))
     (cl:error (e)
       (Err (web3/types:ProviderError
@@ -345,13 +340,13 @@
   ;; base-fees has N+1 elements, gas-ratios and rewards have N elements
   (cl:if (cl:or (cl:null base-fees-hex) (cl:null gas-ratios))
          coalton:Nil
-         (cl:let ((base-fee (%parse-hex-u256 (cl:first base-fees-hex)))
+         (cl:let ((base-fee (web3/types:%parse-hex-u256 (cl:first base-fees-hex)))
                   (ratio (%parse-gas-ratio (cl:first gas-ratios)))
                   (priority-fees (cl:if rewards
                                         (%parse-priority-fees (cl:first rewards))
                                         coalton:Nil)))
            (coalton:Cons
-            (web3/gas::make-fee-history-block base-fee ratio priority-fees)
+            (web3/gas:make-fee-history-block base-fee ratio priority-fees)
             (%build-fee-blocks (cl:rest base-fees-hex) (cl:rest gas-ratios)
                                (cl:if rewards (cl:rest rewards) cl:nil))))))
 
@@ -359,21 +354,9 @@
   "Parse list of priority fee hex strings"
   (cl:if (cl:null fees-list)
          coalton:Nil
-         (coalton:Cons (%parse-hex-u256 (cl:first fees-list))
+         (coalton:Cons (web3/types:%parse-hex-u256 (cl:first fees-list))
                        (%parse-priority-fees (cl:rest fees-list)))))
 
-(cl:defun %parse-hex-u256 (hex-str)
-  "Parse hex string to U256"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:let ((int-val (cl:parse-integer (cl:subseq hex-str 2) :radix 16)))
-           (web3/types::u256-from-integer int-val))
-         (web3/types::u256-from-integer 0)))
-
-(cl:defun %parse-hex-ufix (hex-str)
-  "Parse hex string to UFix"
-  (cl:if (cl:and hex-str (cl:> (cl:length hex-str) 2))
-         (cl:parse-integer (cl:subseq hex-str 2) :radix 16)
-         0))
 
 (cl:defun %parse-gas-ratio (ratio)
   "Parse gas used ratio (float 0-1) to percentage integer (0-100)"
@@ -387,57 +370,10 @@
       (cl:let* ((parsed (cl-json:decode-json-from-string json-str))
                 (result (cl:cdr (cl:assoc :result parsed))))
         (cl:if result
-               (Ok (%parse-hex-u256 result))
+               (Ok (web3/types:%parse-hex-u256 result))
                (Err (web3/types:ProviderError "No result in response"))))
     (cl:error (e)
       (Err (web3/types:ProviderError
             (cl:format cl:nil "Failed to parse gas price: ~A" e))))))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(GasFees
-               make-gas-fees
-               .max-fee-per-gas
-               .max-priority-fee-per-gas
-               LegacyGasPrice
-               make-legacy-gas-price
-               .gas-price
-               FeeEstimate
-               Eip1559Fees
-               LegacyFees
-               FeeHistoryBlock
-               make-fee-history-block
-               .block-base-fee
-               .block-gas-used-ratio
-               .block-priority-fees
-               FeeHistory
-               make-fee-history
-               .history-oldest-block
-               .history-blocks
-               .history-base-fee-next
-               calculate-next-base-fee
-               estimate-base-fee-trend
-               suggest-priority-fee
-               priority-fee-percentile
-               suggest-fees
-               suggest-fees-from-history
-               FeePreset
-               FeeSlow
-               FeeNormal
-               FeeFast
-               FeeInstant
-               preset-multiplier
-               add-gas-buffer
-               standard-gas-limits
-               gwei-to-wei
-               wei-to-gwei
-               fees-sufficient?
-               compare-fees
-               encode-fee-history-request
-               parse-fee-history-response
-               parse-gas-price-response)
-             (cl:find-package '#:web3/gas)))

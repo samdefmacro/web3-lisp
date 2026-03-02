@@ -179,9 +179,9 @@
            (base-type (cl:subseq s 0 bracket-pos))
            (size-str (cl:subseq s (cl:1+ bracket-pos) (cl:1- (cl:length s)))))
     (cl:let ((base-result (%parse-type-string-cl base-type)))
-      (cl:if (cl:not (%cl-result-ok? base-result))
+      (cl:if (cl:not (web3/types:%result-ok-p base-result))
              base-result
-             (cl:let ((base-abi-type (%cl-unwrap-ok base-result)))
+             (cl:let ((base-abi-type (web3/types:%unwrap-ok base-result)))
                (cl:if (cl:zerop (cl:length size-str))
                       ;; Dynamic array: T[]
                       (Ok (web3/abi:AbiArray base-abi-type))
@@ -233,22 +233,12 @@
   (cl:if (cl:null components)
          (Ok (web3/abi:AbiTuple (cl:nreverse acc)))
          (cl:let ((result (%parse-type-string-cl (cl:first components))))
-           (cl:if (cl:not (%cl-result-ok? result))
+           (cl:if (cl:not (web3/types:%result-ok-p result))
                   result
                   (%parse-tuple-components-cl
                    (cl:rest components)
-                   (cl:cons (%cl-unwrap-ok result) acc))))))
+                   (cl:cons (web3/types:%unwrap-ok result) acc))))))
 
-(cl:defun %cl-result-ok? (result)
-  "Check if a Coalton Result is Ok (works at CL level)"
-  ;; Check the type name directly since Coalton Ok is RESULT/OK
-  (cl:and result
-          (cl:typep result 'coalton-library/classes::result/ok)))
-
-(cl:defun %cl-unwrap-ok (result)
-  "Unwrap an Ok result at CL level (use only when you know it's Ok)"
-  ;; Access the value slot of the Ok struct directly
-  (cl:slot-value result 'coalton-library/classes::|_0|))
 
 
 ;;; =========================================================================
@@ -484,8 +474,8 @@
   "Parse a type string using CL parser, returning (:ok . AbiType) or (:err . message)"
   ;; Directly call the CL parser function instead of going through Coalton
   (cl:let ((result (%parse-type-string-cl (cl:string-trim " " type-str))))
-    (cl:if (%cl-result-ok? result)
-           (cl:cons :ok (%cl-unwrap-ok result))
+    (cl:if (web3/types:%result-ok-p result)
+           (cl:cons :ok (web3/types:%unwrap-ok result))
            (cl:cons :err (cl:format cl:nil "Failed to parse type: ~A" type-str)))))
 
 
@@ -567,42 +557,3 @@
                                        decoded-indexed
                                        decoded-data))))))))))
 
-;;; =========================================================================
-;;; Explicit Exports (ensure all Coalton symbols are exported)
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(AbiItem
-               AbiFunction
-               AbiEvent
-               AbiConstructor
-               AbiFallback
-               AbiReceive
-               AbiError
-               AbiParam
-               .param-name
-               .param-type
-               .param-indexed
-               make-abi-param
-               ParsedFunction
-               .fn-name
-               .fn-inputs
-               .fn-outputs
-               .fn-selector
-               .fn-state-mutability
-               ParsedEvent
-               .event-name
-               .event-inputs
-               .event-topic
-               .event-anonymous
-               parse-abi-type
-               type-string-to-abi-type
-               parse-abi-json
-               parse-function-json
-               parse-event-json
-               encode-function-call
-               decode-function-output
-               decode-event-log
-               build-function-signature
-               build-event-signature)
-             (cl:find-package '#:web3/abi-parser)))

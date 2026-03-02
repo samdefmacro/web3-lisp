@@ -6,15 +6,11 @@
   (:use #:coalton
         #:coalton-prelude)
   (:local-nicknames
-   (#:vec #:coalton-library/vector)
-   (#:iter #:coalton-library/iterator)
-   (#:list #:coalton-library/list)
-   (#:str #:coalton-library/string)
    (#:types #:web3/types)
    (#:abi #:web3/abi)
    (#:abi-parser #:web3/abi-parser)
    (#:addr #:web3/address)
-   (#:provider #:web3/provider))
+   (#:list #:coalton-library/list))
   (:export
    ;; Contract type
    #:Contract

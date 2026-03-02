@@ -152,18 +152,3 @@
       Unit)))
 
 
-;;; =========================================================================
-;;; Exports
-;;; =========================================================================
-
-(cl:eval-when (:compile-toplevel :load-toplevel :execute)
-  (cl:export '(NonceManager
-               NonceKey
-               make-nonce-manager
-               nonce-get
-               nonce-consume
-               nonce-reset
-               nonce-sync
-               nonce-peek
-               nonce-manager-provider)
-             (cl:find-package '#:web3/nonce-manager)))

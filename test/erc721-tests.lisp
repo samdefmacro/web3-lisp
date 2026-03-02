@@ -11,7 +11,7 @@
 
   ;; Metadata extension selectors
   (test-case "selector name() = 0x06fdde03"
-    (let ((selector (coalton:coalton (web3/erc721:selector-name coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-name)))
       (assert (= (length selector) 4))
       (assert (= (aref selector 0) #x06))
       (assert (= (aref selector 1) #xfd))
@@ -19,14 +19,14 @@
       (assert (= (aref selector 3) #x03))))
 
   (test-case "selector symbol() = 0x95d89b41"
-    (let ((selector (coalton:coalton (web3/erc721:selector-symbol coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-symbol)))
       (assert (= (aref selector 0) #x95))
       (assert (= (aref selector 1) #xd8))
       (assert (= (aref selector 2) #x9b))
       (assert (= (aref selector 3) #x41))))
 
   (test-case "selector tokenURI(uint256) = 0xc87b56dd"
-    (let ((selector (coalton:coalton (web3/erc721:selector-token-uri coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-token-uri)))
       (assert (= (aref selector 0) #xc8))
       (assert (= (aref selector 1) #x7b))
       (assert (= (aref selector 2) #x56))
@@ -34,63 +34,63 @@
 
   ;; Core ERC-721 selectors
   (test-case "selector balanceOf(address) = 0x70a08231"
-    (let ((selector (coalton:coalton (web3/erc721:selector-balance-of coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-balance-of)))
       (assert (= (aref selector 0) #x70))
       (assert (= (aref selector 1) #xa0))
       (assert (= (aref selector 2) #x82))
       (assert (= (aref selector 3) #x31))))
 
   (test-case "selector ownerOf(uint256) = 0x6352211e"
-    (let ((selector (coalton:coalton (web3/erc721:selector-owner-of coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-owner-of)))
       (assert (= (aref selector 0) #x63))
       (assert (= (aref selector 1) #x52))
       (assert (= (aref selector 2) #x21))
       (assert (= (aref selector 3) #x1e))))
 
   (test-case "selector getApproved(uint256) = 0x081812fc"
-    (let ((selector (coalton:coalton (web3/erc721:selector-get-approved coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-get-approved)))
       (assert (= (aref selector 0) #x08))
       (assert (= (aref selector 1) #x18))
       (assert (= (aref selector 2) #x12))
       (assert (= (aref selector 3) #xfc))))
 
   (test-case "selector isApprovedForAll(address,address) = 0xe985e9c5"
-    (let ((selector (coalton:coalton (web3/erc721:selector-is-approved-for-all coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-is-approved-for-all)))
       (assert (= (aref selector 0) #xe9))
       (assert (= (aref selector 1) #x85))
       (assert (= (aref selector 2) #xe9))
       (assert (= (aref selector 3) #xc5))))
 
   (test-case "selector transferFrom(address,address,uint256) = 0x23b872dd"
-    (let ((selector (coalton:coalton (web3/erc721:selector-transfer-from coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-transfer-from)))
       (assert (= (aref selector 0) #x23))
       (assert (= (aref selector 1) #xb8))
       (assert (= (aref selector 2) #x72))
       (assert (= (aref selector 3) #xdd))))
 
   (test-case "selector safeTransferFrom(address,address,uint256) = 0x42842e0e"
-    (let ((selector (coalton:coalton (web3/erc721:selector-safe-transfer-from coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-safe-transfer-from)))
       (assert (= (aref selector 0) #x42))
       (assert (= (aref selector 1) #x84))
       (assert (= (aref selector 2) #x2e))
       (assert (= (aref selector 3) #x0e))))
 
   (test-case "selector safeTransferFrom(address,address,uint256,bytes) = 0xb88d4fde"
-    (let ((selector (coalton:coalton (web3/erc721:selector-safe-transfer-from-with-data coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-safe-transfer-from-with-data)))
       (assert (= (aref selector 0) #xb8))
       (assert (= (aref selector 1) #x8d))
       (assert (= (aref selector 2) #x4f))
       (assert (= (aref selector 3) #xde))))
 
   (test-case "selector approve(address,uint256) = 0x095ea7b3"
-    (let ((selector (coalton:coalton (web3/erc721:selector-approve coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-approve)))
       (assert (= (aref selector 0) #x09))
       (assert (= (aref selector 1) #x5e))
       (assert (= (aref selector 2) #xa7))
       (assert (= (aref selector 3) #xb3))))
 
   (test-case "selector setApprovalForAll(address,bool) = 0xa22cb465"
-    (let ((selector (coalton:coalton (web3/erc721:selector-set-approval-for-all coalton:Unit))))
+    (let ((selector (coalton:coalton web3/erc721:selector-set-approval-for-all)))
       (assert (= (aref selector 0) #xa2))
       (assert (= (aref selector 1) #x2c))
       (assert (= (aref selector 2) #xb4))
@@ -193,7 +193,7 @@
     (let* ((to-addr (result-value (coalton:coalton
                                    (web3/address:address-from-hex
                                     "0x0000000000000000000000000000000000000000"))))
-           (token-id (coalton:coalton (web3/types:u256-zero coalton:Unit)))
+           (token-id (coalton:coalton web3/types:u256-zero))
            (calldata (coalton:coalton
                       (web3/erc721:erc721-approve-data
                        (coalton:lisp web3/address:Address () to-addr)

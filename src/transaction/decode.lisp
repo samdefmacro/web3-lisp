@@ -39,7 +39,7 @@
     "Extract bytes from an RLP item"
     (match item
       ((rlp:RlpBytes b) b)
-      ((rlp:RlpList _) (types:bytes-empty))))
+      ((rlp:RlpList _) types:bytes-empty)))
 
   (declare %rlp-bytes-to-u64 (types:Bytes -> U64))
   (define (%rlp-bytes-to-u64 bytes)
@@ -57,7 +57,7 @@
       (cl:let ((n 0))
         (cl:loop :for i :from 0 :below (cl:length bytes)
                  :do (cl:setf n (cl:+ (cl:ash n 8) (cl:aref bytes i))))
-        (web3/types::%bignum-to-u256 n))))
+        (web3/types:u256-from-integer n))))
 
   (declare %rlp-bytes-to-address (types:Bytes -> (Optional addr:Address)))
   (define (%rlp-bytes-to-address bytes)
@@ -76,9 +76,9 @@
        (map %rlp-item-to-bytes key-items))
       ((rlp:RlpBytes _) Nil)))
 
-  (declare %empty-access-entry (Unit -> AccessListEntry))
-  (define (%empty-access-entry _)
-    (Tuple (addr:address-zero) (the (List types:Bytes) Nil)))
+  (declare %empty-access-entry AccessListEntry)
+  (define %empty-access-entry
+    (Tuple addr:address-zero (the (List types:Bytes) Nil)))
 
   (declare %decode-access-list-items ((List rlp:RlpItem) -> AccessList))
   (define (%decode-access-list-items items)
@@ -90,18 +90,18 @@
                 ((Cons addr-item (Cons keys-item (Nil)))
                  (let ((address (match (addr:address-from-bytes (%rlp-item-to-bytes addr-item))
                                   ((Ok a) a)
-                                  ((Err _) (addr:address-zero)))))
+                                  ((Err _) addr:address-zero))))
                    (let ((keys (%decode-storage-keys keys-item)))
                      (Tuple address keys))))
-                (_ (%empty-access-entry Unit))))
-             (_ (%empty-access-entry Unit))))
+                (_ %empty-access-entry)))
+             (_ %empty-access-entry)))
          items))
 
   (declare %nth-rlp-item (UFix -> (List rlp:RlpItem) -> rlp:RlpItem))
   (define (%nth-rlp-item n items)
     "Get nth RLP item from list (returns empty bytes if out of bounds)"
     (match items
-      ((Nil) (rlp:RlpBytes (types:bytes-empty)))
+      ((Nil) (rlp:RlpBytes types:bytes-empty))
       ((Cons first rest)
        (if (== n 0)
            first
@@ -130,7 +130,7 @@
                                     (lisp U64 (v-raw) (cl:floor (cl:- v-raw 35) 2))
                                     0)))
                   (Ok (make-transaction LegacyTx chain-id nonce gas-price
-                                        (types:u256-zero) gas-limit to value data Nil))))))
+                                        types:u256-zero gas-limit to value data Nil))))))
          (_ (Err (types:TransactionError "Expected RLP list for legacy tx")))))))
 
   (declare %decode-eip2930 (types:Bytes -> (types:Web3Result Transaction)))
@@ -155,7 +155,7 @@
                                    ((rlp:RlpList al-items) (%decode-access-list-items al-items))
                                    (_ Nil))))
                 (Ok (make-transaction EIP2930Tx chain-id nonce gas-price
-                                      (types:u256-zero) gas-limit to value data access-list)))))
+                                      types:u256-zero gas-limit to value data access-list)))))
          (_ (Err (types:TransactionError "Expected RLP list for EIP-2930 tx")))))))
 
   (declare %decode-eip1559 (types:Bytes -> (types:Web3Result Transaction)))

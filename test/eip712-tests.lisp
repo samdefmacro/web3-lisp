@@ -151,7 +151,7 @@
   (test-case "eip2612-permit-type-hash is correct"
     ;; Known value for Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)
     ;; 0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9
-    (let ((hash (coalton:coalton (web3/eip712:eip2612-permit-type-hash coalton:Unit))))
+    (let ((hash (coalton:coalton web3/eip712:eip2612-permit-type-hash)))
       (assert (= (length hash) 32))
       (assert (= (aref hash 0) #x6e))
       (assert (= (aref hash 1) #x71))
@@ -225,7 +225,7 @@
   ;;; =========================================================================
 
   (test-case "hash-struct produces 32 bytes"
-    (let* ((type-hash (coalton:coalton (web3/eip712:eip2612-permit-type-hash coalton:Unit)))
+    (let* ((type-hash (coalton:coalton web3/eip712:eip2612-permit-type-hash))
            (owner (result-value (coalton:coalton (web3/types:hex-decode "d8da6bf26964af9d7eed9e03e53415d37aa96045"))))
            (spender (result-value (coalton:coalton (web3/types:hex-decode "1234567890123456789012345678901234567890"))))
            (val1 (coalton:coalton (web3/eip712:TypedAddress (coalton:lisp web3/types:Bytes () owner))))
