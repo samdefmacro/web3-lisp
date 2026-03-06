@@ -1,9 +1,0 @@
-[submodule "ethers.js"]
-	path = ethers.js
-	url = https://github.com/ethers-io/ethers.js
-[submodule "viem"]
-	path = viem
-	url = https://github.com/wevm/viem
-[submodule "coalton"]
-	path = coalton
-	url = https://github.com/coalton-lang/coalton.git

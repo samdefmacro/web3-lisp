@@ -1,4 +1,4 @@
-# CLAUDE.md - web3-lisp-claude
+# CLAUDE.md - web3-lisp
 
 ## Project Overview
 
@@ -92,7 +92,7 @@ test/helpers.lisp            -- Coalton test helper functions
 
 ### External Dependencies
 
-- `coalton` — The Coalton language compiler (git submodule)
+- `coalton` — The Coalton language compiler
 - `ironclad` — Cryptographic primitives
 - `dexador` — HTTP client
 - `cl-json` — JSON parsing
@@ -100,8 +100,19 @@ test/helpers.lisp            -- Coalton test helper functions
 - `split-sequence` — String splitting
 - `named-readtables` — Readtable management
 
-### Reference Implementations (git submodules)
+### Related Projects
 
-- `ethers.js/` — ethers-io/ethers.js
-- `viem/` — wevm/viem
-- `coalton/` — coalton-lang/coalton
+- [ssz-lisp](https://github.com/samdefmacro/ssz-lisp) — Ethereum SSZ serialization in Coalton with full spec compliance
+
+### Reference Implementations (in `refs/`, git-ignored)
+
+To set up reference repos for local reading:
+```bash
+git clone --depth 1 https://github.com/ethers-io/ethers.js refs/ethers.js
+git clone --depth 1 https://github.com/wevm/viem refs/viem
+git clone --depth 1 https://github.com/coalton-lang/coalton.git refs/coalton
+```
+
+- `refs/ethers.js/` — ethers-io/ethers.js
+- `refs/viem/` — wevm/viem
+- `refs/coalton/` — coalton-lang/coalton
