@@ -83,7 +83,16 @@
    #:ws-state-add-subscription
    #:ws-state-remove-subscription
    #:ws-state-get-subscription
-   #:ws-state-next-request-id))
+   #:ws-state-next-request-id
+
+   ;; WebSocket I/O (CL-level)
+   #:ws-provider
+   #:make-ws-provider
+   #:ws-provider-connected-p
+   #:ws-connect
+   #:ws-close
+   #:ws-subscribe
+   #:ws-unsubscribe))
 
 (in-package #:web3/ws-provider)
 (named-readtables:in-readtable coalton:coalton)

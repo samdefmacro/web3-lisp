@@ -20,9 +20,19 @@
    #:eth-send-raw-transaction
    #:eth-call
    #:eth-get-transaction-receipt
+   #:eth-get-code
+   #:eth-get-storage-at
+   #:eth-max-priority-fee-per-gas
+   #:eth-get-block-by-number
+   #:eth-get-block-by-hash
+   #:eth-get-transaction-by-hash
+   #:eth-fee-history
+   #:eth-syncing
+   #:wait-for-transaction-receipt
 
    ;; Low-level
-   #:json-rpc-call))
+   #:json-rpc-call
+   #:json-rpc-call-nullable))
 
 (in-package #:web3/provider)
 (named-readtables:in-readtable coalton:coalton)

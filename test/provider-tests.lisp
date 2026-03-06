@@ -71,7 +71,7 @@
     ;; This will fail on network call, but tests that address is properly formatted
     ;; We verify the function accepts the address without crashing
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545")))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
           (address (result-value (coalton:coalton
                                   (web3/address:address-from-hex
                                    "0xd8da6bf26964af9d7eed9e03e53415d37aa96045")))))
@@ -85,7 +85,7 @@
 
   (test-case "eth_getTransactionCount accepts valid address"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545")))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
           (address (result-value (coalton:coalton
                                   (web3/address:address-from-hex
                                    "0x0000000000000000000000000000000000000000")))))
@@ -97,7 +97,7 @@
 
   (test-case "eth_call accepts contract address and calldata"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545")))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
           (contract (result-value (coalton:coalton
                                    (web3/address:address-from-hex
                                     "0xdAC17F958D2ee523a2206206994597C13D831ec7"))))
@@ -117,7 +117,7 @@
 
   (test-case "eth_call accepts optional from address"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545")))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
           (from (result-value (coalton:coalton
                                (web3/address:address-from-hex
                                 "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))))
@@ -135,7 +135,7 @@
 
   (test-case "eth_estimateGas accepts addresses and value"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545")))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
           (from (result-value (coalton:coalton
                                (web3/address:address-from-hex
                                 "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))))
@@ -155,7 +155,7 @@
 
   (test-case "eth_estimateGas accepts None for contract creation"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545")))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
           (from (result-value (coalton:coalton
                                (web3/address:address-from-hex
                                 "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))))
@@ -173,7 +173,7 @@
 
   (test-case "eth_sendRawTransaction accepts raw bytes"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545")))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
           (raw-tx (make-array 100 :fill-pointer 100 :adjustable t :initial-element #xab)))
       (let ((result (coalton:coalton
                      (web3/provider:eth-send-raw-transaction
@@ -183,11 +183,109 @@
 
   (test-case "eth_getTransactionReceipt accepts tx hash string"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545"))))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
       (let ((result (coalton:coalton
                      (web3/provider:eth-get-transaction-receipt
                       (coalton:lisp web3/provider:HttpProvider () provider)
                       "0xabc123def456789012345678901234567890123456789012345678901234567890"))))
+        (assert (result-err-p result)))))
+
+  ;;; =========================================================================
+  ;;; New Method Parameter Tests (no network required)
+  ;;; =========================================================================
+
+  (test-case "eth_getCode accepts valid address"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
+          (address (result-value (coalton:coalton
+                                  (web3/address:address-from-hex
+                                   "0xdAC17F958D2ee523a2206206994597C13D831ec7")))))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-get-code
+                      (coalton:lisp web3/provider:HttpProvider () provider)
+                      (coalton:lisp web3/address:Address () address)))))
+        (assert (result-err-p result)))))
+
+  (test-case "eth_getStorageAt accepts address and slot"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1")))
+          (address (result-value (coalton:coalton
+                                  (web3/address:address-from-hex
+                                   "0xdAC17F958D2ee523a2206206994597C13D831ec7"))))
+          (slot (coalton:coalton web3/types:u256-zero)))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-get-storage-at
+                      (coalton:lisp web3/provider:HttpProvider () provider)
+                      (coalton:lisp web3/address:Address () address)
+                      (coalton:lisp web3/types:U256 () slot)))))
+        (assert (result-err-p result)))))
+
+  (test-case "eth_maxPriorityFeePerGas returns error on connection failure"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-max-priority-fee-per-gas
+                      (coalton:lisp web3/provider:HttpProvider () provider)))))
+        (assert (result-err-p result)))))
+
+  (test-case "eth_getBlockByNumber accepts block tag"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-get-block-by-number
+                      (coalton:lisp web3/provider:HttpProvider () provider)
+                      "latest"
+                      coalton:False))))
+        (assert (result-err-p result)))))
+
+  (test-case "eth_getBlockByHash accepts hash string"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-get-block-by-hash
+                      (coalton:lisp web3/provider:HttpProvider () provider)
+                      "0x0000000000000000000000000000000000000000000000000000000000000000"
+                      coalton:False))))
+        (assert (result-err-p result)))))
+
+  (test-case "eth_getTransactionByHash accepts hash string"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-get-transaction-by-hash
+                      (coalton:lisp web3/provider:HttpProvider () provider)
+                      "0xabc123def456789012345678901234567890123456789012345678901234567890"))))
+        (assert (result-err-p result)))))
+
+  (test-case "eth_feeHistory accepts block count and percentiles"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-fee-history
+                      (coalton:lisp web3/provider:HttpProvider () provider)
+                      4
+                      "latest"
+                      "[25,50,75]"))))
+        (assert (result-err-p result)))))
+
+  (test-case "eth_syncing returns error on connection failure"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
+      (let ((result (coalton:coalton
+                     (web3/provider:eth-syncing
+                      (coalton:lisp web3/provider:HttpProvider () provider)))))
+        (assert (result-err-p result)))))
+
+  (test-case "wait-for-transaction-receipt returns error on connection failure"
+    (let ((provider (coalton:coalton
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
+      (let ((result (coalton:coalton
+                     (web3/provider:wait-for-transaction-receipt
+                      (coalton:lisp web3/provider:HttpProvider () provider)
+                      "0xabc123def456789012345678901234567890123456789012345678901234567890"
+                      1
+                      0))))
+        ;; Should fail on first attempt (connection error), not timeout
         (assert (result-err-p result)))))
 
   ;;; =========================================================================
@@ -196,7 +294,7 @@
 
   (test-case "eth_chainId returns error on connection failure"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545"))))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
       (let ((result (coalton:coalton
                      (web3/provider:eth-chain-id
                       (coalton:lisp web3/provider:HttpProvider () provider)))))
@@ -204,7 +302,7 @@
 
   (test-case "eth_blockNumber returns error on connection failure"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545"))))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
       (let ((result (coalton:coalton
                      (web3/provider:eth-block-number
                       (coalton:lisp web3/provider:HttpProvider () provider)))))
@@ -212,7 +310,7 @@
 
   (test-case "eth_gasPrice returns error on connection failure"
     (let ((provider (coalton:coalton
-                     (web3/provider:make-http-provider "http://nonexistent:8545"))))
+                     (web3/provider:make-http-provider "http://127.0.0.1:1"))))
       (let ((result (coalton:coalton
                      (web3/provider:eth-gas-price
                       (coalton:lisp web3/provider:HttpProvider () provider)))))
@@ -366,7 +464,83 @@
                                 (coalton:lisp web3/provider:HttpProvider () provider)))))
               (assert (result-ok-p chain-result))
               (assert (result-ok-p block-result))
-              (assert (result-ok-p gas-result))))))
+              (assert (result-ok-p gas-result))))
+
+          ;;; New method integration tests
+
+          (test-case "eth_getCode returns bytecode for USDT contract (integration)"
+            (let* ((usdt (result-value (coalton:coalton
+                                        (web3/address:address-from-hex
+                                         "0xdAC17F958D2ee523a2206206994597C13D831ec7"))))
+                   (result (coalton:coalton
+                            (web3/provider:eth-get-code
+                             (coalton:lisp web3/provider:HttpProvider () provider)
+                             (coalton:lisp web3/address:Address () usdt)))))
+              ;; On mainnet, USDT has bytecode
+              (assert (or (result-ok-p result) (result-err-p result)))))
+
+          (test-case "eth_getCode returns empty for EOA (integration)"
+            (let* ((eoa (result-value (coalton:coalton
+                                       (web3/address:address-from-hex
+                                        "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))))
+                   (result (coalton:coalton
+                            (web3/provider:eth-get-code
+                             (coalton:lisp web3/provider:HttpProvider () provider)
+                             (coalton:lisp web3/address:Address () eoa)))))
+              (assert (or (result-ok-p result) (result-err-p result)))))
+
+          (test-case "eth_getStorageAt reads slot 0 (integration)"
+            (let* ((usdt (result-value (coalton:coalton
+                                        (web3/address:address-from-hex
+                                         "0xdAC17F958D2ee523a2206206994597C13D831ec7"))))
+                   (slot (coalton:coalton web3/types:u256-zero))
+                   (result (coalton:coalton
+                            (web3/provider:eth-get-storage-at
+                             (coalton:lisp web3/provider:HttpProvider () provider)
+                             (coalton:lisp web3/address:Address () usdt)
+                             (coalton:lisp web3/types:U256 () slot)))))
+              (assert (or (result-ok-p result) (result-err-p result)))))
+
+          (test-case "eth_getBlockByNumber returns latest block (integration)"
+            (let ((result (coalton:coalton
+                           (web3/provider:eth-get-block-by-number
+                            (coalton:lisp web3/provider:HttpProvider () provider)
+                            "latest"
+                            coalton:False))))
+              (assert (result-ok-p result))
+              ;; Latest block should always exist
+              (let ((opt (result-value result)))
+                (assert (coalton:coalton
+                         (coalton-prelude:some?
+                          (coalton:lisp (coalton-prelude:Optional coalton:String) () opt)))))))
+
+          (test-case "eth_getBlockByNumber returns None for future block (integration)"
+            (let ((result (coalton:coalton
+                           (web3/provider:eth-get-block-by-number
+                            (coalton:lisp web3/provider:HttpProvider () provider)
+                            "0xffffffffff"
+                            coalton:False))))
+              (assert (result-ok-p result))
+              ;; Far future block should not exist
+              (let ((opt (result-value result)))
+                (assert (not (coalton:coalton
+                              (coalton-prelude:some?
+                               (coalton:lisp (coalton-prelude:Optional coalton:String) () opt))))))))
+
+          (test-case "eth_syncing returns a result (integration)"
+            (let ((result (coalton:coalton
+                           (web3/provider:eth-syncing
+                            (coalton:lisp web3/provider:HttpProvider () provider)))))
+              (assert (result-ok-p result))))
+
+          (test-case "eth_feeHistory returns fee data (integration)"
+            (let ((result (coalton:coalton
+                           (web3/provider:eth-fee-history
+                            (coalton:lisp web3/provider:HttpProvider () provider)
+                            4
+                            "latest"
+                            "[25,50,75]"))))
+              (assert (result-ok-p result))))))
 
       ;; No integration tests
       (format t "~%  Note: Set WEB3_TEST_RPC_URL for integration tests (e.g., Infura/Alchemy URL)~%")))

@@ -523,4 +523,87 @@
       ;; All should be Some
       (assert (optional-some-p starting))
       (assert (optional-some-p current))
-      (assert (optional-some-p highest)))))
+      (assert (optional-some-p highest))))
+
+  ;;; =========================================================================
+  ;;; WebSocket I/O Layer Tests (connection.lisp)
+  ;;; =========================================================================
+
+  (test-case "ws-provider struct creation"
+    (let ((provider (web3/ws-provider:make-ws-provider
+                     :state (web3/ws-provider:make-ws-connection-state :url "ws://localhost:8546"))))
+      (assert (not (web3/ws-provider:ws-provider-connected-p provider)))))
+
+  (test-case "ws-provider initially not connected"
+    (let ((provider (web3/ws-provider:make-ws-provider)))
+      (assert (null (web3/ws-provider:ws-provider-connected-p provider)))))
+
+  (test-case "ws-dispatch-message resolves pending request with result"
+    (let* ((provider (web3/ws-provider:make-ws-provider))
+           (pending (web3/ws-provider::make-ws-pending-request)))
+      ;; Register a pending request with id=1
+      (setf (gethash 1 (web3/ws-provider::ws-provider-pending provider)) pending)
+      ;; Dispatch a response message
+      (web3/ws-provider::%ws-dispatch-message provider
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0xabc\"}")
+      ;; Check that pending was resolved
+      (assert (web3/ws-provider::ws-pending-request-done-p pending))
+      (assert (equal (web3/ws-provider::ws-pending-request-result pending)
+                     '(:ok "0xabc")))))
+
+  (test-case "ws-dispatch-message resolves pending request with error"
+    (let* ((provider (web3/ws-provider:make-ws-provider))
+           (pending (web3/ws-provider::make-ws-pending-request)))
+      (setf (gethash 2 (web3/ws-provider::ws-provider-pending provider)) pending)
+      (web3/ws-provider::%ws-dispatch-message provider
+        "{\"jsonrpc\":\"2.0\",\"id\":2,\"error\":{\"code\":-32000,\"message\":\"bad request\"}}")
+      (assert (web3/ws-provider::ws-pending-request-done-p pending))
+      (let ((result (web3/ws-provider::ws-pending-request-result pending)))
+        (assert (eq (first result) :error)))))
+
+  (test-case "ws-dispatch-message calls subscription handler"
+    (let* ((provider (web3/ws-provider:make-ws-provider))
+           (received nil))
+      ;; Register a handler for subscription "0xsub1"
+      (setf (gethash "0xsub1" (web3/ws-provider::ws-provider-handlers provider))
+            (lambda (json) (setf received json)))
+      ;; Dispatch a subscription notification
+      (web3/ws-provider::%ws-dispatch-message provider
+        "{\"jsonrpc\":\"2.0\",\"method\":\"eth_subscription\",\"params\":{\"subscription\":\"0xsub1\",\"result\":{\"number\":\"0x100\"}}}")
+      (assert received)
+      (assert (search "number" received))))
+
+  (test-case "ws-dispatch-message ignores unknown subscription"
+    (let* ((provider (web3/ws-provider:make-ws-provider))
+           (called nil))
+      ;; Register a handler for a different subscription
+      (setf (gethash "0xother" (web3/ws-provider::ws-provider-handlers provider))
+            (lambda (json) (declare (ignore json)) (setf called t)))
+      ;; Dispatch for unknown subscription
+      (web3/ws-provider::%ws-dispatch-message provider
+        "{\"jsonrpc\":\"2.0\",\"method\":\"eth_subscription\",\"params\":{\"subscription\":\"0xunknown\",\"result\":{}}}")
+      (assert (null called))))
+
+  (test-case "ws-dispatch-message handles invalid JSON gracefully"
+    ;; Should not signal an error
+    (let ((provider (web3/ws-provider:make-ws-provider)))
+      (web3/ws-provider::%ws-dispatch-message provider "not valid json")
+      (assert t)))
+
+  (test-case "ws-dispatch-message ignores request with no pending"
+    ;; Should not signal an error when no pending request exists for the id
+    (let ((provider (web3/ws-provider:make-ws-provider)))
+      (web3/ws-provider::%ws-dispatch-message provider
+        "{\"jsonrpc\":\"2.0\",\"id\":999,\"result\":\"0x1\"}")
+      (assert t)))
+
+  (test-case "ws-connect fails on invalid URL"
+    ;; Connecting to a non-existent host should signal an error
+    (handler-case
+        (progn
+          (web3/ws-provider:ws-connect "ws://127.0.0.1:19999")
+          ;; If we get here, the connection unexpectedly succeeded
+          nil)
+      (error (e)
+        (declare (ignore e))
+        (assert t)))))

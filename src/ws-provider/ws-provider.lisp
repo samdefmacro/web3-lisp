@@ -184,7 +184,7 @@
                   (%encode-logs-params log-fltr)))
                (web3/ws-provider::subscriptiontype/subsyncing
                 "[\"syncing\"]")
-               (cl:t "[\"newHeads\"]"))))
+               (cl:t (cl:error "Unknown subscription type: ~A" sub-type)))))
     (cl:format cl:nil
                "{\"jsonrpc\":\"2.0\",\"id\":~A,\"method\":\"eth_subscribe\",\"params\":~A}"
                request-id method-params)))

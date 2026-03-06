@@ -318,11 +318,14 @@
   :version "0.1.0"
   :depends-on ("web3/types"
                "web3/address"
-               "cl-json")
+               "cl-json"
+               "websocket-driver-client"
+               "bordeaux-threads")
   :pathname "src/ws-provider/"
   :serial t
   :components ((:file "package")
-               (:file "ws-provider")))
+               (:file "ws-provider")
+               (:file "connection")))
 
 ;;; Gas Utilities
 (asdf:defsystem "web3/gas"
