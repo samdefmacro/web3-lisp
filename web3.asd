@@ -503,6 +503,25 @@
   :components ((:file "package")
                (:file "simulate")))
 
+;;; ERC-4337 Account Abstraction
+(asdf:defsystem "web3/erc4337"
+  :description "ERC-4337 Account Abstraction - UserOperation types, hashing, and bundler RPC"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/crypto"
+               "web3/address"
+               "web3/abi"
+               "web3/provider"
+               "cl-json")
+  :pathname "src/erc4337/"
+  :serial t
+  :components ((:file "package")
+               (:file "types")
+               (:file "hash")
+               (:file "bundler")))
+
 ;;; Meta-system that loads everything
 (asdf:defsystem "web3"
   :description "Complete Ethereum library in Coalton"
@@ -541,7 +560,8 @@
                "web3/siwe"
                "web3/nonce-manager"
                "web3/simulate"
-               "web3/logs"))
+               "web3/logs"
+               "web3/erc4337"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -584,6 +604,7 @@
                (:file "nonce-manager-tests")
                (:file "simulate-tests")
                (:file "logs-tests")
+               (:file "erc4337-tests")
                (:file "integration-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))

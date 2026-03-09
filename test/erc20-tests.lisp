@@ -457,7 +457,10 @@
   ;; Phase 26: Event Log Querying
   (run-logs-tests)
 
-  ;; Phase 27: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
+  ;; Phase 27: ERC-4337 Account Abstraction
+  (run-erc4337-tests)
+
+  ;; Phase 28: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
   (run-integration-tests)
 
   (format t "~%========================================~%")
