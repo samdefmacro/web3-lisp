@@ -522,6 +522,22 @@
                (:file "hash")
                (:file "bundler")))
 
+;;; Batch JSON-RPC Provider
+(asdf:defsystem "web3/batch-provider"
+  :description "JSON-RPC batch request support for efficient multi-call RPC"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/provider"
+               "dexador"
+               "cl-json")
+  :pathname "src/batch-provider/"
+  :serial t
+  :components ((:file "package")
+               (:file "batch")))
+
 ;;; Meta-system that loads everything
 (asdf:defsystem "web3"
   :description "Complete Ethereum library in Coalton"
@@ -561,7 +577,8 @@
                "web3/nonce-manager"
                "web3/simulate"
                "web3/logs"
-               "web3/erc4337"))
+               "web3/erc4337"
+               "web3/batch-provider"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -605,6 +622,7 @@
                (:file "simulate-tests")
                (:file "logs-tests")
                (:file "erc4337-tests")
+               (:file "batch-provider-tests")
                (:file "integration-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))

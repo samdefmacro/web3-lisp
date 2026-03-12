@@ -460,7 +460,10 @@
   ;; Phase 27: ERC-4337 Account Abstraction
   (run-erc4337-tests)
 
-  ;; Phase 28: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
+  ;; Phase 28: Batch JSON-RPC Provider
+  (run-batch-provider-tests)
+
+  ;; Phase 29: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
   (run-integration-tests)
 
   (format t "~%========================================~%")

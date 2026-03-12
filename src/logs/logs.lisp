@@ -36,7 +36,7 @@
      Sends JSON-RPC request directly to avoid double JSON encode/decode."
     (lisp (types:Web3Result (List receipt:LogEntry)) (provider log-filter)
       (cl:handler-case
-          (cl:let* ((url (cl:slot-value provider 'coalton-library/classes::|_0|))
+          (cl:let* ((url (cl:slot-value provider 'web3/provider::|_0|))
                     (params-str (%serialize-log-filter log-filter))
                     (request-body
                       (cl:format cl:nil

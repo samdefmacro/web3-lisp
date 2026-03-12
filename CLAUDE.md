@@ -10,7 +10,7 @@ Ethereum library implemented in Coalton (a typed language embedded in Common Lis
 # Load the full library
 sbcl --eval '(asdf:load-system "web3")'
 
-# Load and run all tests (803 tests)
+# Load and run all tests (892 tests)
 sbcl --non-interactive \
   --eval '(asdf:load-system "web3/tests")' \
   --eval '(web3-tests/runner:run-all-tests)'
@@ -49,7 +49,8 @@ types (Bytes, U256, hex)
 │       │       ├── erc20, erc721, erc1155 (token standards)
 │       │       ├── nonce-manager (multi-address/chain nonce tracking)
 │       │       ├── simulate (tx simulation, gas estimation)
-│       │       └── logs (eth_getLogs event log querying)
+│       │       ├── logs (eth_getLogs event log querying)
+│       │       └── batch-provider (JSON-RPC batch requests) [depends: dexador, cl-json]
 │       └── signature (EIP-191 personal sign, recovery)
 │           └── siwe (Sign-In with Ethereum, ERC-4361) [depends: split-sequence]
 ├── chain (pre-configured networks)
