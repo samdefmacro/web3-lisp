@@ -10,7 +10,7 @@ Ethereum library implemented in Coalton (a typed language embedded in Common Lis
 # Load the full library
 sbcl --eval '(asdf:load-system "web3")'
 
-# Load and run all tests (922 tests)
+# Load and run all tests (932 tests)
 sbcl --non-interactive \
   --eval '(asdf:load-system "web3/tests")' \
   --eval '(web3-tests/runner:run-all-tests)'
@@ -48,6 +48,7 @@ types (Bytes, U256, hex)
 │       ├── transaction (tx types, encode, decode, sign)
 │       │   └── provider (JSON-RPC) [depends: dexador, cl-json, revert]
 │       │       ├── wallet (private key + provider)
+│       │       ├── erc165 (interface detection, ERC-165)
 │       │       ├── erc20, erc721, erc1155 (token standards)
 │       │       ├── nonce-manager (multi-address/chain nonce tracking)
 │       │       ├── simulate (tx simulation, gas estimation)

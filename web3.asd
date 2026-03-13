@@ -552,6 +552,21 @@
   :components ((:file "package")
                (:file "batch")))
 
+;;; ERC-165 Standard Interface Detection
+(asdf:defsystem "web3/erc165"
+  :description "ERC-165 Standard Interface Detection - supportsInterface"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/abi"
+               "web3/provider")
+  :pathname "src/erc165/"
+  :serial t
+  :components ((:file "package")
+               (:file "erc165")))
+
 ;;; EIP-2612 Permit
 (asdf:defsystem "web3/permit"
   :description "EIP-2612 Permit - gasless ERC-20 token approvals via signed messages"
@@ -611,7 +626,8 @@
                "web3/erc4337"
                "web3/batch-provider"
                "web3/permit"
-               "web3/revert"))
+               "web3/revert"
+               "web3/erc165"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -658,6 +674,7 @@
                (:file "batch-provider-tests")
                (:file "permit-tests")
                (:file "revert-tests")
+               (:file "erc165-tests")
                (:file "integration-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))
