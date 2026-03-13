@@ -32,8 +32,8 @@
 
   (declare interface-erc165 types:Bytes)
   (define interface-erc165
-    "ERC-165 interface ID: 0x01ffc9a7"
-    (%make-interface-id #x01 #xff #xc9 #xa7))
+    "ERC-165 interface ID: 0x01ffc9a7 (= supportsInterface selector)"
+    selector-supports-interface)
 
   (declare interface-erc721 types:Bytes)
   (define interface-erc721
@@ -76,7 +76,7 @@
      interface-id should be a 4-byte identifier."
     (let ((calldata (abi:abi-encode-with-selector
                      selector-supports-interface
-                     (Cons (abi:AbiBytesFixedVal (types:bytes-pad-right 32 interface-id))
+                     (Cons (abi:AbiBytesFixedVal interface-id)
                            Nil))))
       (match (provider:eth-call provider None contract-address calldata)
         ((Err e) (Err e))

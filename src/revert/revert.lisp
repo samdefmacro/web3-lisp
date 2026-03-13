@@ -65,17 +65,6 @@
           (cl:otherwise (cl:format cl:nil "unknown panic code ~A" n))))))
 
   ;;; =========================================================================
-  ;;; Selector Matching
-  ;;; =========================================================================
-
-  (declare %bytes-starts-with? (types:Bytes -> types:Bytes -> Boolean))
-  (define (%bytes-starts-with? prefix data)
-    "Check if data starts with the given prefix bytes."
-    (if (> (types:bytes-length prefix) (types:bytes-length data))
-        False
-        (types:bytes-equal? prefix (types:bytes-take (types:bytes-length prefix) data))))
-
-  ;;; =========================================================================
   ;;; Core Decoding
   ;;; =========================================================================
 
@@ -88,13 +77,13 @@
         (let ((selector (types:bytes-take 4 data))
               (payload (types:bytes-drop 4 data)))
           (cond
-            ((%bytes-starts-with? error-selector data)
+            ((types:bytes-equal? error-selector selector)
              ;; Error(string) — decode the string argument
              (match (abi:abi-decode (Cons abi:AbiString Nil) payload)
                ((Ok (Cons (abi:AbiStringVal msg) (Nil)))
                 (RevertString msg))
                (_ (RevertCustom selector payload))))
-            ((%bytes-starts-with? panic-selector data)
+            ((types:bytes-equal? panic-selector selector)
              ;; Panic(uint256) — decode the panic code
              (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) payload)
                ((Ok (Cons (abi:AbiUintVal code) (Nil)))

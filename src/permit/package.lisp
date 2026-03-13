@@ -22,6 +22,7 @@
 
    ;; Function selectors
    #:selector-nonces
+   #:selector-domain-separator
    #:selector-permit
 
    ;; Calldata builder
