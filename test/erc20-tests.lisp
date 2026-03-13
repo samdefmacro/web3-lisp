@@ -399,6 +399,7 @@
 
   ;; Phase 8: ERC-1155
   (run-erc1155-tests)
+  (run-erc1155-metadata-tests)
 
   ;; Phase 9: Events
   (run-events-tests)
