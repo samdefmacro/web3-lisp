@@ -69,6 +69,22 @@
     "Function selector for setApprovalForAll(address,bool) -> 0xa22cb465"
     (abi:function-selector "setApprovalForAll(address,bool)"))
 
+  ;; Enumerable extension
+  (declare selector-total-supply types:Bytes)
+  (define selector-total-supply
+    "Function selector for totalSupply() -> 0x18160ddd"
+    (abi:function-selector "totalSupply()"))
+
+  (declare selector-token-by-index types:Bytes)
+  (define selector-token-by-index
+    "Function selector for tokenByIndex(uint256) -> 0x4f6ccce7"
+    (abi:function-selector "tokenByIndex(uint256)"))
+
+  (declare selector-token-of-owner-by-index types:Bytes)
+  (define selector-token-of-owner-by-index
+    "Function selector for tokenOfOwnerByIndex(address,uint256) -> 0x2f745c59"
+    (abi:function-selector "tokenOfOwnerByIndex(address,uint256)"))
+
   ;;; =========================================================================
   ;;; Write Function Calldata Builders
   ;;; =========================================================================
@@ -235,4 +251,60 @@
            ((Ok decoded)
             (match decoded
               ((Cons (abi:AbiBoolVal b) (Nil)) (Ok b))
-              (_ (Err (types:AbiError "Unexpected response format for isApprovedForAll()")))))))))))
+              (_ (Err (types:AbiError "Unexpected response format for isApprovedForAll()"))))))))))
+
+  ;;; =========================================================================
+  ;;; Enumerable Extension
+  ;;; =========================================================================
+
+  (declare erc721-total-supply (provider:HttpProvider -> addr:Address -> (types:Web3Result types:U256)))
+  (define (erc721-total-supply provider nft-address)
+    "Get the total number of tokens in the collection (ERC-721 Enumerable)."
+    (let ((calldata selector-total-supply))
+      (match (provider:eth-call provider None nft-address calldata)
+        ((Err e) (Err e))
+        ((Ok result)
+         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
+           ((Err e) (Err e))
+           ((Ok decoded)
+            (match decoded
+              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
+              (_ (Err (types:AbiError "Unexpected response format for totalSupply()"))))))))))
+
+  (declare erc721-token-by-index (provider:HttpProvider -> addr:Address -> types:U256 ->
+                                   (types:Web3Result types:U256)))
+  (define (erc721-token-by-index provider nft-address index)
+    "Get the token ID at a given index (ERC-721 Enumerable).
+     Reverts if index >= totalSupply()."
+    (let ((calldata (abi:abi-encode-with-selector
+                     selector-token-by-index
+                     (Cons (abi:AbiUintVal index) Nil))))
+      (match (provider:eth-call provider None nft-address calldata)
+        ((Err e) (Err e))
+        ((Ok result)
+         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
+           ((Err e) (Err e))
+           ((Ok decoded)
+            (match decoded
+              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
+              (_ (Err (types:AbiError "Unexpected response format for tokenByIndex()"))))))))))
+
+  (declare erc721-token-of-owner-by-index (provider:HttpProvider -> addr:Address ->
+                                            addr:Address -> types:U256 ->
+                                            (types:Web3Result types:U256)))
+  (define (erc721-token-of-owner-by-index provider nft-address owner index)
+    "Get the token ID owned by an address at a given index (ERC-721 Enumerable).
+     Reverts if index >= balanceOf(owner)."
+    (let ((calldata (abi:abi-encode-with-selector
+                     selector-token-of-owner-by-index
+                     (Cons (abi:AbiAddressVal (addr:address-bytes owner))
+                           (Cons (abi:AbiUintVal index) Nil)))))
+      (match (provider:eth-call provider None nft-address calldata)
+        ((Err e) (Err e))
+        ((Ok result)
+         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
+           ((Err e) (Err e))
+           ((Ok decoded)
+            (match decoded
+              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
+              (_ (Err (types:AbiError "Unexpected response format for tokenOfOwnerByIndex()")))))))))))

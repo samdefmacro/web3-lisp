@@ -169,6 +169,24 @@
   :components ((:file "package")
                (:file "erc721")))
 
+;;; ERC-721 Metadata - Fetch and parse NFT metadata JSON
+(asdf:defsystem "web3/erc721-metadata"
+  :description "ERC-721 metadata fetching and parsing from tokenURI"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/erc721"
+               "web3/provider"
+               "dexador"
+               "cl-json"
+               "cl-base64")
+  :pathname "src/erc721-metadata/"
+  :serial t
+  :components ((:file "package")
+               (:file "metadata")))
+
 ;;; ERC-1155 Multi-Token standard
 (asdf:defsystem "web3/erc1155"
   :description "ERC-1155 Multi-Token standard support"
@@ -601,6 +619,7 @@
                "web3/wallet"
                "web3/erc20"
                "web3/erc721"
+               "web3/erc721-metadata"
                "web3/erc1155"
                "web3/events"
                "web3/deploy"
@@ -648,6 +667,7 @@
                (:file "wallet-tests")
                (:file "erc20-tests")
                (:file "erc721-tests")
+               (:file "erc721-metadata-tests")
                (:file "erc1155-tests")
                (:file "events-tests")
                (:file "deploy-tests")

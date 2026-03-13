@@ -395,6 +395,7 @@
 
   ;; Phase 7: ERC-721
   (run-erc721-tests)
+  (run-erc721-metadata-tests)
 
   ;; Phase 8: ERC-1155
   (run-erc1155-tests)

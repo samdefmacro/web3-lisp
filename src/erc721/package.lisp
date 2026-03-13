@@ -17,6 +17,11 @@
    #:erc721-get-approved
    #:erc721-is-approved-for-all
 
+   ;; Enumerable extension (EIP-2309)
+   #:erc721-total-supply
+   #:erc721-token-by-index
+   #:erc721-token-of-owner-by-index
+
    ;; Write function calldata builders
    #:erc721-transfer-from-data
    #:erc721-safe-transfer-from-data
@@ -36,7 +41,10 @@
    #:selector-safe-transfer-from
    #:selector-safe-transfer-from-with-data
    #:selector-approve
-   #:selector-set-approval-for-all))
+   #:selector-set-approval-for-all
+   #:selector-total-supply
+   #:selector-token-by-index
+   #:selector-token-of-owner-by-index))
 
 (in-package #:web3/erc721)
 (named-readtables:in-readtable coalton:coalton)
