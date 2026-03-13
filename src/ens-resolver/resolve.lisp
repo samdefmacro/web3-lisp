@@ -85,10 +85,9 @@
                    (Ok None)
                    (Ok (Some address)))))))))))
 
-  (declare lookup-address (provider:HttpProvider -> addr:Address -> (types:Web3Result (Optional String))))
-  (define (lookup-address provider address)
-    "Reverse-resolve an Ethereum address to an ENS name.
-     Returns Ok None if no reverse record is set."
+  (declare %reverse-resolve-name (provider:HttpProvider -> addr:Address -> (types:Web3Result (Optional String))))
+  (define (%reverse-resolve-name provider address)
+    "Internal: reverse-resolve an address to a name without forward confirmation."
     (let ((addr-hex (addr:address-to-hex address)))
       (match %parse-registry-address
         ((Err e) (Err e))
@@ -113,6 +112,97 @@
                              (if (%is-empty-string name)
                                  (Ok None)
                                  (Ok (Some name))))))))))))))))))
+
+  (declare lookup-address (provider:HttpProvider -> addr:Address -> (types:Web3Result (Optional String))))
+  (define (lookup-address provider address)
+    "Reverse-resolve an Ethereum address to an ENS name with forward confirmation.
+     After obtaining the reverse name, resolves it forward to verify it points
+     back to the original address. Returns Ok None if no reverse record is set
+     or if forward confirmation fails (prevents spoofing)."
+    (match (%reverse-resolve-name provider address)
+      ((Err e) (Err e))
+      ((Ok (None)) (Ok None))
+      ((Ok (Some name))
+       ;; Forward confirmation: resolve the name and verify it matches
+       (match (resolve-name provider name)
+         ((Err _) (Ok None))
+         ((Ok (None)) (Ok None))
+         ((Ok (Some resolved-addr))
+          (if (types:bytes-equal? (addr:address-bytes address)
+                                  (addr:address-bytes resolved-addr))
+              (Ok (Some name))
+              (Ok None)))))))
+
+  (declare lookup-address-unchecked (provider:HttpProvider -> addr:Address -> (types:Web3Result (Optional String))))
+  (define (lookup-address-unchecked provider address)
+    "Reverse-resolve an Ethereum address to an ENS name without forward confirmation.
+     Returns the name from the reverse record as-is.
+     WARNING: Without forward confirmation, the returned name may not be legitimate.
+     Prefer lookup-address for security-critical use cases."
+    (%reverse-resolve-name provider address))
+
+  ;;; =========================================================================
+  ;;; Multi-coin Address Resolution (EIP-2304)
+  ;;; =========================================================================
+
+  (declare resolver-addr-multichain-selector types:Bytes)
+  (define resolver-addr-multichain-selector
+    "Function selector for addr(bytes32,uint256) = 0xf1cb7e06"
+    (abi:function-selector "addr(bytes32,uint256)"))
+
+  (declare resolve-address (provider:HttpProvider -> String -> types:U256 -> (types:Web3Result (Optional types:Bytes))))
+  (define (resolve-address provider name coin-type)
+    "Resolve an ENS name to an address for a specific coin type (EIP-2304).
+     coin-type uses SLIP-44 identifiers (60 = ETH, 0 = BTC, 501 = SOL, etc.).
+     Returns raw address bytes — format depends on the chain.
+     Returns Ok None if no resolver or no address record for that coin type."
+    (let ((node (ens:namehash name)))
+      (match (get-resolver provider name)
+        ((Err e) (Err e))
+        ((Ok (None)) (Ok None))
+        ((Ok (Some resolver-addr))
+         (let ((calldata (abi:abi-encode-with-selector
+                          resolver-addr-multichain-selector
+                          (Cons (abi:AbiBytesFixedVal node)
+                                (Cons (abi:AbiUintVal coin-type) Nil)))))
+           (match (provider:eth-call provider None resolver-addr calldata)
+             ((Err e) (Err e))
+             ((Ok result)
+              (match (abi:abi-decode (Cons abi:AbiBytes Nil) result)
+                ((Err e) (Err e))
+                ((Ok (Cons (abi:AbiBytesVal addr-bytes) (Nil)))
+                 (if (%is-empty-bytes addr-bytes)
+                     (Ok None)
+                     (Ok (Some addr-bytes))))
+                (_ (Ok None))))))))))
+
+  ;;; =========================================================================
+  ;;; Well-known SLIP-44 Coin Types
+  ;;; =========================================================================
+
+  (declare coin-type-btc types:U256)
+  (define coin-type-btc
+    "SLIP-44 coin type for Bitcoin (0)"
+    (types:u256-from-integer 0))
+
+  (declare coin-type-eth types:U256)
+  (define coin-type-eth
+    "SLIP-44 coin type for Ethereum (60)"
+    (types:u256-from-integer 60))
+
+  (declare coin-type-sol types:U256)
+  (define coin-type-sol
+    "SLIP-44 coin type for Solana (501)"
+    (types:u256-from-integer 501))
+
+  (declare coin-type-matic types:U256)
+  (define coin-type-matic
+    "SLIP-44 coin type for Polygon (966)"
+    (types:u256-from-integer 966))
+
+  ;;; =========================================================================
+  ;;; Text Records & Content Hash
+  ;;; =========================================================================
 
   (declare get-text-record (provider:HttpProvider -> String -> String -> (types:Web3Result (Optional String))))
   (define (get-text-record provider name key)

@@ -239,6 +239,7 @@
   :version "0.1.0"
   :depends-on ("web3/types"
                "web3/address"
+               "web3/abi"
                "web3/ens"
                "web3/provider")
   :pathname "src/ens-resolver/"
