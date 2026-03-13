@@ -466,7 +466,10 @@
   ;; Phase 29: EIP-2612 Permit
   (run-permit-tests)
 
-  ;; Phase 30: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
+  ;; Phase 30: Revert Reason Decoding
+  (run-revert-tests)
+
+  ;; Phase 31: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
   (run-integration-tests)
 
   (format t "~%========================================~%")

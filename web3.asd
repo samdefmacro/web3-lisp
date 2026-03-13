@@ -93,6 +93,19 @@
                (:file "sign")))
 
 ;;; JSON-RPC provider
+;;; Revert reason decoding
+(asdf:defsystem "web3/revert"
+  :description "Decode Solidity revert reasons (Error, Panic, custom errors)"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/abi")
+  :pathname "src/revert/"
+  :serial t
+  :components ((:file "package")
+               (:file "revert")))
+
 (asdf:defsystem "web3/provider"
   :description "Ethereum JSON-RPC provider"
   :author "Web3-Coalton Project"
@@ -101,6 +114,7 @@
   :depends-on ("web3/types"
                "web3/address"
                "web3/transaction"
+               "web3/revert"
                "dexador"
                "cl-json")
   :pathname "src/provider/"
@@ -596,7 +610,8 @@
                "web3/logs"
                "web3/erc4337"
                "web3/batch-provider"
-               "web3/permit"))
+               "web3/permit"
+               "web3/revert"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -642,6 +657,7 @@
                (:file "erc4337-tests")
                (:file "batch-provider-tests")
                (:file "permit-tests")
+               (:file "revert-tests")
                (:file "integration-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))

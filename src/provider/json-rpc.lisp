@@ -4,12 +4,29 @@
 ;;; Shared CL helper for JSON-RPC HTTP calls
 
 (cl:defun %format-rpc-error (error-val)
-  "Extract a human-readable error message from a JSON-RPC error value."
-  (cl:format cl:nil "RPC error: ~A"
-             (cl:if (cl:listp error-val)
-                    (cl:or (cl:cdr (cl:assoc :message error-val))
-                           (cl:format cl:nil "~A" error-val))
-                    (cl:format cl:nil "~A" error-val))))
+  "Extract a human-readable error message from a JSON-RPC error value.
+   If the error contains a data field with revert bytes, decode the revert reason."
+  (cl:if (cl:listp error-val)
+         (cl:let* ((msg (cl:or (cl:cdr (cl:assoc :message error-val))
+                               (cl:format cl:nil "~A" error-val)))
+                   (data-val (cl:cdr (cl:assoc :data error-val)))
+                   (decoded (cl:when (cl:and data-val (cl:stringp data-val)
+                                             (cl:> (cl:length data-val) 2))
+                              (cl:handler-case
+                                  (cl:let* ((reason (coalton:coalton
+                                                     (web3/revert:decode-revert-hex
+                                                      (coalton:lisp coalton:String ()
+                                                        data-val))))
+                                            (reason-msg (coalton:coalton
+                                                         (web3/revert:revert-reason-message
+                                                          (coalton:lisp web3/revert:RevertReason ()
+                                                            reason)))))
+                                    reason-msg)
+                                (cl:error () cl:nil)))))
+           (cl:if decoded
+                  (cl:format cl:nil "RPC error: ~A (revert: ~A)" msg decoded)
+                  (cl:format cl:nil "RPC error: ~A" msg)))
+         (cl:format cl:nil "RPC error: ~A" error-val)))
 
 (cl:defun %json-rpc-raw (url method params)
   "Make a JSON-RPC HTTP call and return (values error-val result-pair result-val).
