@@ -463,7 +463,10 @@
   ;; Phase 28: Batch JSON-RPC Provider
   (run-batch-provider-tests)
 
-  ;; Phase 29: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
+  ;; Phase 29: EIP-2612 Permit
+  (run-permit-tests)
+
+  ;; Phase 30: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
   (run-integration-tests)
 
   (format t "~%========================================~%")

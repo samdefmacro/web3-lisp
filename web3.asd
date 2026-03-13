@@ -538,6 +538,23 @@
   :components ((:file "package")
                (:file "batch")))
 
+;;; EIP-2612 Permit
+(asdf:defsystem "web3/permit"
+  :description "EIP-2612 Permit - gasless ERC-20 token approvals via signed messages"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/crypto"
+               "web3/address"
+               "web3/abi"
+               "web3/eip712"
+               "web3/provider")
+  :pathname "src/permit/"
+  :serial t
+  :components ((:file "package")
+               (:file "permit")))
+
 ;;; Meta-system that loads everything
 (asdf:defsystem "web3"
   :description "Complete Ethereum library in Coalton"
@@ -578,7 +595,8 @@
                "web3/simulate"
                "web3/logs"
                "web3/erc4337"
-               "web3/batch-provider"))
+               "web3/batch-provider"
+               "web3/permit"))
 
 ;;; Test system
 (asdf:defsystem "web3/tests"
@@ -623,6 +641,7 @@
                (:file "logs-tests")
                (:file "erc4337-tests")
                (:file "batch-provider-tests")
+               (:file "permit-tests")
                (:file "integration-tests"))
   :perform (asdf:test-op (o s)
              (uiop:symbol-call '#:web3-tests/runner '#:run-all-tests)))

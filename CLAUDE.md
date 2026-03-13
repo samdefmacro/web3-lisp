@@ -10,7 +10,7 @@ Ethereum library implemented in Coalton (a typed language embedded in Common Lis
 # Load the full library
 sbcl --eval '(asdf:load-system "web3")'
 
-# Load and run all tests (892 tests)
+# Load and run all tests (907 tests)
 sbcl --non-interactive \
   --eval '(asdf:load-system "web3/tests")' \
   --eval '(web3-tests/runner:run-all-tests)'
@@ -41,6 +41,7 @@ types (Bytes, U256, hex)
 │       │   │   └── ens-resolver (live ENS resolution via provider)
 │       │   ├── multicall (Multicall3 batching)
 │       │   ├── eip712 (typed data hashing)
+│       │   │   └── permit (EIP-2612 gasless approvals) [depends: provider]
 │       │   └── abi-parser (Solidity JSON ABI) [depends: cl-json]
 │       │       └── contract (high-level contract abstraction)
 │       ├── transaction (tx types, encode, decode, sign)
