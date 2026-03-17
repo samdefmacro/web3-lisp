@@ -136,7 +136,7 @@
       (assert (result-ok-p parsed-result))
       (let* ((parsed (result-value parsed-result))
              (domain (coalton:coalton
-                      (web3/siwe:siwe-domain
+                      (web3/siwe:.siwe-domain
                        (coalton:lisp web3/siwe:SiweMessage () parsed)))))
         (assert (string= domain "example.com")))))
 
@@ -171,16 +171,16 @@
       (assert (result-ok-p parsed-result))
       (let* ((parsed (result-value parsed-result))
              (parsed-domain (coalton:coalton
-                             (web3/siwe:siwe-domain
+                             (web3/siwe:.siwe-domain
                               (coalton:lisp web3/siwe:SiweMessage () parsed))))
              (parsed-uri (coalton:coalton
-                          (web3/siwe:siwe-uri
+                          (web3/siwe:.siwe-uri
                            (coalton:lisp web3/siwe:SiweMessage () parsed))))
              (parsed-chain-id (coalton:coalton
-                               (web3/siwe:siwe-chain-id
+                               (web3/siwe:.siwe-chain-id
                                 (coalton:lisp web3/siwe:SiweMessage () parsed))))
              (parsed-nonce (coalton:coalton
-                            (web3/siwe:siwe-nonce
+                            (web3/siwe:.siwe-nonce
                              (coalton:lisp web3/siwe:SiweMessage () parsed)))))
         (assert (string= parsed-domain "test.example.com"))
         (assert (string= parsed-uri "https://test.example.com/login"))
@@ -412,7 +412,7 @@
       (assert (result-ok-p parsed-result))
       (let* ((parsed (result-value parsed-result))
              (statement-opt (coalton:coalton
-                             (web3/siwe:siwe-statement
+                             (web3/siwe:.siwe-statement
                               (coalton:lisp web3/siwe:SiweMessage () parsed)))))
         (assert (optional-some-p statement-opt))
         (assert (string= (result-value statement-opt)

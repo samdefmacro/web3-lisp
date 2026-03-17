@@ -31,20 +31,21 @@
   (define (create-siwe-message msg)
     "Create the ERC-4361 message string from a SiweMessage struct.
      This is the string that should be signed."
-    (lisp String (msg)
-      (cl:let* ((domain (siwe-domain msg))
-                (address (addr:address-to-checksum-hex (siwe-address msg)))
-                (statement (siwe-statement msg))
-                (uri (siwe-uri msg))
-                (version (siwe-version msg))
-                (chain-id (siwe-chain-id msg))
-                (nonce (siwe-nonce msg))
-                (issued-at (siwe-issued-at msg))
-                (expiration-time (siwe-expiration-time msg))
-                (not-before (siwe-not-before msg))
-                (request-id (siwe-request-id msg))
-                (resources (siwe-resources msg))
-                ;; Build message
+    (let ((domain (.siwe-domain msg))
+          (address (addr:address-to-checksum-hex (.siwe-address msg)))
+          (statement (.siwe-statement msg))
+          (uri (.siwe-uri msg))
+          (version (.siwe-version msg))
+          (chain-id (.siwe-chain-id msg))
+          (nonce (.siwe-nonce msg))
+          (issued-at (.siwe-issued-at msg))
+          (expiration-time (.siwe-expiration-time msg))
+          (not-before (.siwe-not-before msg))
+          (request-id (.siwe-request-id msg))
+          (resources (.siwe-resources msg)))
+    (lisp String (domain address statement uri version chain-id nonce issued-at
+                  expiration-time not-before request-id resources)
+      (cl:let* (;; Build message
                 (lines (cl:list)))
         ;; Line 1: "{domain} wants you to sign in with your Ethereum account:"
         (cl:push (cl:format cl:nil "~A wants you to sign in with your Ethereum account:" domain) lines)
@@ -83,7 +84,7 @@
               (cl:dolist (res res-list)
                 (cl:push (cl:format cl:nil "- ~A" res) lines)))))
         ;; Join lines with newlines
-        (cl:format cl:nil "~{~A~^~%~}" (cl:nreverse lines)))))
+        (cl:format cl:nil "~{~A~^~%~}" (cl:nreverse lines))))))
 
   ;;; =========================================================================
   ;;; Message Parsing

@@ -15,18 +15,18 @@
    ;; Types
    #:SiweMessage
    #:make-siwe-message
-   #:siwe-domain
-   #:siwe-address
-   #:siwe-statement
-   #:siwe-uri
-   #:siwe-version
-   #:siwe-chain-id
-   #:siwe-nonce
-   #:siwe-issued-at
-   #:siwe-expiration-time
-   #:siwe-not-before
-   #:siwe-request-id
-   #:siwe-resources
+   #:.siwe-domain
+   #:.siwe-address
+   #:.siwe-statement
+   #:.siwe-uri
+   #:.siwe-version
+   #:.siwe-chain-id
+   #:.siwe-nonce
+   #:.siwe-issued-at
+   #:.siwe-expiration-time
+   #:.siwe-not-before
+   #:.siwe-request-id
+   #:.siwe-resources
 
    ;; Message creation/parsing
    #:create-siwe-message
