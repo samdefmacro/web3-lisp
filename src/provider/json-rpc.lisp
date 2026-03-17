@@ -55,63 +55,61 @@
 
   ;;; HTTP Provider type
 
-  (define-type HttpProvider
+  (define-struct HttpProvider
     "JSON-RPC HTTP provider"
-    (%HttpProvider String))   ; URL
+    (provider-url String))
 
   (declare make-http-provider (String -> HttpProvider))
   (define (make-http-provider url)
     "Create a new HTTP provider with the given RPC URL"
-    (%HttpProvider url))
+    (HttpProvider url))
 
   ;;; JSON-RPC call (low-level)
 
   (declare json-rpc-call (HttpProvider -> String -> String -> (types:Web3Result String)))
   (define (json-rpc-call provider method params)
     "Make a JSON-RPC call and return the result as a JSON string"
-    (match provider
-      ((%HttpProvider url)
-       (lisp (types:Web3Result String) (url method params)
-         (cl:handler-case
-             (cl:multiple-value-bind (error-val result-pair result-val)
-                 (%json-rpc-raw url method params)
-               (cl:declare (cl:ignore result-pair))
-               (cl:if error-val
-                      (coalton-prelude:Err
-                       (types:ProviderError (%format-rpc-error error-val)))
-                      (cl:if result-val
-                             (coalton-prelude:Ok (%stringify-result result-val))
-                             (coalton-prelude:Err
-                              (types:ProviderError "No result in RPC response")))))
-           (cl:error (e)
-             (coalton-prelude:Err
-              (types:ProviderError (cl:format cl:nil "HTTP error: ~A" e)))))))))
+    (let ((url (.provider-url provider)))
+      (lisp (types:Web3Result String) (url method params)
+        (cl:handler-case
+            (cl:multiple-value-bind (error-val result-pair result-val)
+                (%json-rpc-raw url method params)
+              (cl:declare (cl:ignore result-pair))
+              (cl:if error-val
+                     (coalton-prelude:Err
+                      (types:ProviderError (%format-rpc-error error-val)))
+                     (cl:if result-val
+                            (coalton-prelude:Ok (%stringify-result result-val))
+                            (coalton-prelude:Err
+                             (types:ProviderError "No result in RPC response")))))
+          (cl:error (e)
+            (coalton-prelude:Err
+             (types:ProviderError (cl:format cl:nil "HTTP error: ~A" e))))))))
 
   ;;; Nullable JSON-RPC call (for methods that may return null)
 
   (declare json-rpc-call-nullable (HttpProvider -> String -> String -> (types:Web3Result (Optional String))))
   (define (json-rpc-call-nullable provider method params)
     "Make a JSON-RPC call where null is a valid result. Returns None for null/false results."
-    (match provider
-      ((%HttpProvider url)
-       (lisp (types:Web3Result (Optional String)) (url method params)
-         (cl:handler-case
-             (cl:multiple-value-bind (error-val result-pair result-val)
-                 (%json-rpc-raw url method params)
-               (cl:cond
-                 (error-val
-                  (coalton-prelude:Err
-                   (types:ProviderError (%format-rpc-error error-val))))
-                 ((cl:and result-pair result-val)
-                  (coalton-prelude:Ok
-                   (coalton-prelude:Some (%stringify-result result-val))))
-                 (result-pair
-                  ;; Result key present but value is null/false
-                  (coalton-prelude:Ok
-                   (coalton:coalton (the (Optional coalton:String) None))))
-                 (cl:t
-                  (coalton-prelude:Err
-                   (types:ProviderError "No result in RPC response")))))
-           (cl:error (e)
-             (coalton-prelude:Err
-              (types:ProviderError (cl:format cl:nil "HTTP error: ~A" e))))))))))
+    (let ((url (.provider-url provider)))
+      (lisp (types:Web3Result (Optional String)) (url method params)
+        (cl:handler-case
+            (cl:multiple-value-bind (error-val result-pair result-val)
+                (%json-rpc-raw url method params)
+              (cl:cond
+                (error-val
+                 (coalton-prelude:Err
+                  (types:ProviderError (%format-rpc-error error-val))))
+                ((cl:and result-pair result-val)
+                 (coalton-prelude:Ok
+                  (coalton-prelude:Some (%stringify-result result-val))))
+                (result-pair
+                 ;; Result key present but value is null/false
+                 (coalton-prelude:Ok
+                  (coalton:coalton (the (Optional coalton:String) None))))
+                (cl:t
+                 (coalton-prelude:Err
+                  (types:ProviderError "No result in RPC response")))))
+          (cl:error (e)
+            (coalton-prelude:Err
+             (types:ProviderError (cl:format cl:nil "HTTP error: ~A" e)))))))))

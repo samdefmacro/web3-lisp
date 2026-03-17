@@ -590,13 +590,13 @@
       (assert (result-ok-p result))
       (let* ((tx (result-value result))
              (chain-id (coalton:coalton
-                        (web3/transaction:tx-chain-id
+                        (web3/transaction:.tx-chain-id
                          (coalton:lisp web3/transaction:Transaction () tx))))
              (gas-limit (coalton:coalton
-                         (web3/transaction:tx-gas-limit
+                         (web3/transaction:.tx-gas-limit
                           (coalton:lisp web3/transaction:Transaction () tx))))
              (nonce (coalton:coalton
-                     (web3/transaction:tx-nonce
+                     (web3/transaction:.tx-nonce
                       (coalton:lisp web3/transaction:Transaction () tx)))))
         (assert (= chain-id 31337))
         (assert (> gas-limit 0))

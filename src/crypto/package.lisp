@@ -15,9 +15,9 @@
    ;; Signature
    #:Signature
    #:make-signature
-   #:signature-r
-   #:signature-s
-   #:signature-v
+   #:.signature-r
+   #:.signature-s
+   #:.signature-v
    #:sign-hash
    #:recover-public-key
    #:signature-to-bytes

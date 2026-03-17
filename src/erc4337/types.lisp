@@ -35,20 +35,19 @@
   ;;; v0.6 UserOperation
   ;;; =========================================================================
 
-  (define-type UserOperation
+  (define-struct UserOperation
     "ERC-4337 v0.6 UserOperation"
-    (%UserOperation
-     addr:Address     ; sender
-     types:U256       ; nonce
-     types:Bytes      ; initCode
-     types:Bytes      ; callData
-     types:U256       ; callGasLimit
-     types:U256       ; verificationGasLimit
-     types:U256       ; preVerificationGas
-     types:U256       ; maxFeePerGas
-     types:U256       ; maxPriorityFeePerGas
-     types:Bytes      ; paymasterAndData
-     types:Bytes))    ; signature
+    (user-op-sender addr:Address)
+    (user-op-nonce types:U256)
+    (user-op-init-code types:Bytes)
+    (user-op-call-data types:Bytes)
+    (user-op-call-gas-limit types:U256)
+    (user-op-verification-gas-limit types:U256)
+    (user-op-pre-verification-gas types:U256)
+    (user-op-max-fee-per-gas types:U256)
+    (user-op-max-priority-fee-per-gas types:U256)
+    (user-op-paymaster-and-data types:Bytes)
+    (user-op-signature types:Bytes))
 
   (declare make-user-operation
     (addr:Address -> types:U256 -> types:Bytes -> types:Bytes ->
@@ -60,71 +59,26 @@
                                max-fee-per-gas max-priority-fee-per-gas
                                paymaster-and-data signature)
     "Create a v0.6 UserOperation"
-    (%UserOperation sender nonce init-code call-data
-                    call-gas-limit verification-gas-limit pre-verification-gas
-                    max-fee-per-gas max-priority-fee-per-gas
-                    paymaster-and-data signature))
-
-  (declare user-op-sender (UserOperation -> addr:Address))
-  (define (user-op-sender op)
-    (match op ((%UserOperation s _ _ _ _ _ _ _ _ _ _) s)))
-
-  (declare user-op-nonce (UserOperation -> types:U256))
-  (define (user-op-nonce op)
-    (match op ((%UserOperation _ n _ _ _ _ _ _ _ _ _) n)))
-
-  (declare user-op-init-code (UserOperation -> types:Bytes))
-  (define (user-op-init-code op)
-    (match op ((%UserOperation _ _ ic _ _ _ _ _ _ _ _) ic)))
-
-  (declare user-op-call-data (UserOperation -> types:Bytes))
-  (define (user-op-call-data op)
-    (match op ((%UserOperation _ _ _ cd _ _ _ _ _ _ _) cd)))
-
-  (declare user-op-call-gas-limit (UserOperation -> types:U256))
-  (define (user-op-call-gas-limit op)
-    (match op ((%UserOperation _ _ _ _ cgl _ _ _ _ _ _) cgl)))
-
-  (declare user-op-verification-gas-limit (UserOperation -> types:U256))
-  (define (user-op-verification-gas-limit op)
-    (match op ((%UserOperation _ _ _ _ _ vgl _ _ _ _ _) vgl)))
-
-  (declare user-op-pre-verification-gas (UserOperation -> types:U256))
-  (define (user-op-pre-verification-gas op)
-    (match op ((%UserOperation _ _ _ _ _ _ pvg _ _ _ _) pvg)))
-
-  (declare user-op-max-fee-per-gas (UserOperation -> types:U256))
-  (define (user-op-max-fee-per-gas op)
-    (match op ((%UserOperation _ _ _ _ _ _ _ mfpg _ _ _) mfpg)))
-
-  (declare user-op-max-priority-fee-per-gas (UserOperation -> types:U256))
-  (define (user-op-max-priority-fee-per-gas op)
-    (match op ((%UserOperation _ _ _ _ _ _ _ _ mpfpg _ _) mpfpg)))
-
-  (declare user-op-paymaster-and-data (UserOperation -> types:Bytes))
-  (define (user-op-paymaster-and-data op)
-    (match op ((%UserOperation _ _ _ _ _ _ _ _ _ pd _) pd)))
-
-  (declare user-op-signature (UserOperation -> types:Bytes))
-  (define (user-op-signature op)
-    (match op ((%UserOperation _ _ _ _ _ _ _ _ _ _ sig) sig)))
+    (UserOperation sender nonce init-code call-data
+                   call-gas-limit verification-gas-limit pre-verification-gas
+                   max-fee-per-gas max-priority-fee-per-gas
+                   paymaster-and-data signature))
 
   ;;; =========================================================================
   ;;; v0.7 PackedUserOperation
   ;;; =========================================================================
 
-  (define-type PackedUserOperation
+  (define-struct PackedUserOperation
     "ERC-4337 v0.7 PackedUserOperation with packed gas fields"
-    (%PackedUserOperation
-     addr:Address     ; sender
-     types:U256       ; nonce
-     types:Bytes      ; initCode
-     types:Bytes      ; callData
-     types:Bytes      ; accountGasLimits (bytes32: verificationGasLimit | callGasLimit)
-     types:U256       ; preVerificationGas
-     types:Bytes      ; gasFees (bytes32: maxPriorityFeePerGas | maxFeePerGas)
-     types:Bytes      ; paymasterAndData
-     types:Bytes))    ; signature
+    (packed-op-sender addr:Address)
+    (packed-op-nonce types:U256)
+    (packed-op-init-code types:Bytes)
+    (packed-op-call-data types:Bytes)
+    (packed-op-account-gas-limits types:Bytes)   ; bytes32: verificationGasLimit | callGasLimit
+    (packed-op-pre-verification-gas types:U256)
+    (packed-op-gas-fees types:Bytes)             ; bytes32: maxPriorityFeePerGas | maxFeePerGas
+    (packed-op-paymaster-and-data types:Bytes)
+    (packed-op-signature types:Bytes))
 
   (declare make-packed-user-operation
     (addr:Address -> types:U256 -> types:Bytes -> types:Bytes ->
@@ -134,45 +88,9 @@
                                       account-gas-limits pre-verification-gas gas-fees
                                       paymaster-and-data signature)
     "Create a v0.7 PackedUserOperation"
-    (%PackedUserOperation sender nonce init-code call-data
-                          account-gas-limits pre-verification-gas gas-fees
-                          paymaster-and-data signature))
-
-  (declare packed-op-sender (PackedUserOperation -> addr:Address))
-  (define (packed-op-sender op)
-    (match op ((%PackedUserOperation s _ _ _ _ _ _ _ _) s)))
-
-  (declare packed-op-nonce (PackedUserOperation -> types:U256))
-  (define (packed-op-nonce op)
-    (match op ((%PackedUserOperation _ n _ _ _ _ _ _ _) n)))
-
-  (declare packed-op-init-code (PackedUserOperation -> types:Bytes))
-  (define (packed-op-init-code op)
-    (match op ((%PackedUserOperation _ _ ic _ _ _ _ _ _) ic)))
-
-  (declare packed-op-call-data (PackedUserOperation -> types:Bytes))
-  (define (packed-op-call-data op)
-    (match op ((%PackedUserOperation _ _ _ cd _ _ _ _ _) cd)))
-
-  (declare packed-op-account-gas-limits (PackedUserOperation -> types:Bytes))
-  (define (packed-op-account-gas-limits op)
-    (match op ((%PackedUserOperation _ _ _ _ agl _ _ _ _) agl)))
-
-  (declare packed-op-pre-verification-gas (PackedUserOperation -> types:U256))
-  (define (packed-op-pre-verification-gas op)
-    (match op ((%PackedUserOperation _ _ _ _ _ pvg _ _ _) pvg)))
-
-  (declare packed-op-gas-fees (PackedUserOperation -> types:Bytes))
-  (define (packed-op-gas-fees op)
-    (match op ((%PackedUserOperation _ _ _ _ _ _ gf _ _) gf)))
-
-  (declare packed-op-paymaster-and-data (PackedUserOperation -> types:Bytes))
-  (define (packed-op-paymaster-and-data op)
-    (match op ((%PackedUserOperation _ _ _ _ _ _ _ pd _) pd)))
-
-  (declare packed-op-signature (PackedUserOperation -> types:Bytes))
-  (define (packed-op-signature op)
-    (match op ((%PackedUserOperation _ _ _ _ _ _ _ _ sig) sig)))
+    (PackedUserOperation sender nonce init-code call-data
+                         account-gas-limits pre-verification-gas gas-fees
+                         paymaster-and-data signature))
 
   ;;; =========================================================================
   ;;; v0.7 Packing Helpers
@@ -249,67 +167,47 @@
   (define (user-op-to-packed op)
     "Convert v0.6 UserOperation to v0.7 PackedUserOperation"
     (make-packed-user-operation
-     (user-op-sender op)
-     (user-op-nonce op)
-     (user-op-init-code op)
-     (user-op-call-data op)
-     (pack-account-gas-limits (user-op-verification-gas-limit op)
-                              (user-op-call-gas-limit op))
-     (user-op-pre-verification-gas op)
-     (pack-gas-fees (user-op-max-priority-fee-per-gas op)
-                    (user-op-max-fee-per-gas op))
-     (user-op-paymaster-and-data op)
-     (user-op-signature op)))
+     (.user-op-sender op)
+     (.user-op-nonce op)
+     (.user-op-init-code op)
+     (.user-op-call-data op)
+     (pack-account-gas-limits (.user-op-verification-gas-limit op)
+                              (.user-op-call-gas-limit op))
+     (.user-op-pre-verification-gas op)
+     (pack-gas-fees (.user-op-max-priority-fee-per-gas op)
+                    (.user-op-max-fee-per-gas op))
+     (.user-op-paymaster-and-data op)
+     (.user-op-signature op)))
 
   (declare packed-to-user-op (PackedUserOperation -> UserOperation))
   (define (packed-to-user-op op)
     "Convert v0.7 PackedUserOperation to v0.6 UserOperation"
-    (let ((gas-limits (unpack-account-gas-limits (packed-op-account-gas-limits op)))
-          (fees (unpack-gas-fees (packed-op-gas-fees op))))
+    (let ((gas-limits (unpack-account-gas-limits (.packed-op-account-gas-limits op)))
+          (fees (unpack-gas-fees (.packed-op-gas-fees op))))
       (match gas-limits
         ((Tuple vgl cgl)
          (match fees
            ((Tuple mpfpg mfpg)
             (make-user-operation
-             (packed-op-sender op)
-             (packed-op-nonce op)
-             (packed-op-init-code op)
-             (packed-op-call-data op)
+             (.packed-op-sender op)
+             (.packed-op-nonce op)
+             (.packed-op-init-code op)
+             (.packed-op-call-data op)
              cgl vgl
-             (packed-op-pre-verification-gas op)
+             (.packed-op-pre-verification-gas op)
              mfpg mpfpg
-             (packed-op-paymaster-and-data op)
-             (packed-op-signature op))))))))
+             (.packed-op-paymaster-and-data op)
+             (.packed-op-signature op))))))))
 
   ;;; =========================================================================
   ;;; Gas Estimate Result
   ;;; =========================================================================
 
-  (define-type GasEstimate
+  (define-struct GasEstimate
     "Gas estimation result from bundler"
-    (%GasEstimate
-     types:U256              ; preVerificationGas
-     types:U256              ; verificationGasLimit
-     types:U256              ; callGasLimit
-     (Optional types:U256)   ; paymasterVerificationGasLimit (v0.7 only)
-     (Optional types:U256))) ; paymasterPostOpGasLimit (v0.7 only)
-
-  (declare gas-estimate-pre-verification-gas (GasEstimate -> types:U256))
-  (define (gas-estimate-pre-verification-gas est)
-    (match est ((%GasEstimate pvg _ _ _ _) pvg)))
-
-  (declare gas-estimate-verification-gas-limit (GasEstimate -> types:U256))
-  (define (gas-estimate-verification-gas-limit est)
-    (match est ((%GasEstimate _ vgl _ _ _) vgl)))
-
-  (declare gas-estimate-call-gas-limit (GasEstimate -> types:U256))
-  (define (gas-estimate-call-gas-limit est)
-    (match est ((%GasEstimate _ _ cgl _ _) cgl)))
-
-  (declare gas-estimate-paymaster-verification-gas-limit (GasEstimate -> (Optional types:U256)))
-  (define (gas-estimate-paymaster-verification-gas-limit est)
-    (match est ((%GasEstimate _ _ _ pvgl _) pvgl)))
-
-  (declare gas-estimate-paymaster-post-op-gas-limit (GasEstimate -> (Optional types:U256)))
-  (define (gas-estimate-paymaster-post-op-gas-limit est)
-    (match est ((%GasEstimate _ _ _ _ pogl) pogl))))
+    (gas-estimate-pre-verification-gas types:U256)
+    (gas-estimate-verification-gas-limit types:U256)
+    (gas-estimate-call-gas-limit types:U256)
+    (gas-estimate-paymaster-verification-gas-limit (Optional types:U256))   ; v0.7 only
+    (gas-estimate-paymaster-post-op-gas-limit (Optional types:U256)))       ; v0.7 only
+)

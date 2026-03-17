@@ -72,13 +72,13 @@
                  web3/types:bytes-empty
                  coalton:Nil)))
            (chain-id (coalton:coalton
-                      (web3/transaction:tx-chain-id
+                      (web3/transaction:.tx-chain-id
                        (coalton:lisp web3/transaction:Transaction () tx))))
            (nonce (coalton:coalton
-                   (web3/transaction:tx-nonce
+                   (web3/transaction:.tx-nonce
                     (coalton:lisp web3/transaction:Transaction () tx))))
            (gas-limit (coalton:coalton
-                       (web3/transaction:tx-gas-limit
+                       (web3/transaction:.tx-gas-limit
                         (coalton:lisp web3/transaction:Transaction () tx)))))
       (assert (= chain-id 1))
       (assert (= nonce 0))
@@ -238,10 +238,10 @@
       (assert (result-ok-p decoded-result))
       (let* ((decoded-tx (result-value decoded-result))
              (decoded-nonce (coalton:coalton
-                             (web3/transaction:tx-nonce
+                             (web3/transaction:.tx-nonce
                               (coalton:lisp web3/transaction:Transaction () decoded-tx))))
              (decoded-gas-limit (coalton:coalton
-                                 (web3/transaction:tx-gas-limit
+                                 (web3/transaction:.tx-gas-limit
                                   (coalton:lisp web3/transaction:Transaction () decoded-tx)))))
         (assert (= decoded-nonce 42))
         (assert (= decoded-gas-limit 21000)))))
@@ -273,13 +273,13 @@
       (assert (result-ok-p decoded-result))
       (let* ((decoded-tx (result-value decoded-result))
              (decoded-nonce (coalton:coalton
-                             (web3/transaction:tx-nonce
+                             (web3/transaction:.tx-nonce
                               (coalton:lisp web3/transaction:Transaction () decoded-tx))))
              (decoded-gas-limit (coalton:coalton
-                                 (web3/transaction:tx-gas-limit
+                                 (web3/transaction:.tx-gas-limit
                                   (coalton:lisp web3/transaction:Transaction () decoded-tx))))
              (decoded-chain-id (coalton:coalton
-                                (web3/transaction:tx-chain-id
+                                (web3/transaction:.tx-chain-id
                                  (coalton:lisp web3/transaction:Transaction () decoded-tx)))))
         (assert (= decoded-nonce 99))
         (assert (= decoded-gas-limit 50000))
@@ -372,10 +372,10 @@
       (assert (result-ok-p decoded-result))
       (let* ((decoded-tx (result-value decoded-result))
              (decoded-nonce (coalton:coalton
-                             (web3/transaction:tx-nonce
+                             (web3/transaction:.tx-nonce
                               (coalton:lisp web3/transaction:Transaction () decoded-tx))))
              (decoded-gas-limit (coalton:coalton
-                                 (web3/transaction:tx-gas-limit
+                                 (web3/transaction:.tx-gas-limit
                                   (coalton:lisp web3/transaction:Transaction () decoded-tx)))))
         (assert (= decoded-nonce 77))
         (assert (= decoded-gas-limit 35000)))))
@@ -469,13 +469,13 @@
       (assert (result-ok-p decoded-result))
       (let* ((decoded-tx (result-value decoded-result))
              (decoded-nonce (coalton:coalton
-                             (web3/transaction:tx-nonce
+                             (web3/transaction:.tx-nonce
                               (coalton:lisp web3/transaction:Transaction () decoded-tx))))
              (decoded-gas-limit (coalton:coalton
-                                 (web3/transaction:tx-gas-limit
+                                 (web3/transaction:.tx-gas-limit
                                   (coalton:lisp web3/transaction:Transaction () decoded-tx))))
              (decoded-chain-id (coalton:coalton
-                                (web3/transaction:tx-chain-id
+                                (web3/transaction:.tx-chain-id
                                  (coalton:lisp web3/transaction:Transaction () decoded-tx)))))
         (assert (= decoded-nonce 88))
         (assert (= decoded-gas-limit 150000))
@@ -505,7 +505,7 @@
                                              coalton:Nil))))))
       ;; Test blob-specific accessors
       (let* ((blob-hashes (coalton:coalton
-                           (web3/transaction:tx-blob-versioned-hashes
+                           (web3/transaction:.tx-blob-versioned-hashes
                             (coalton:lisp web3/transaction:Transaction () tx))))
              (hash-count (coalton:coalton
                           (coalton-library/list:length
@@ -549,7 +549,7 @@
       (assert (result-ok-p decoded-result))
       (let* ((decoded-tx (result-value decoded-result))
              (decoded-hashes (coalton:coalton
-                              (web3/transaction:tx-blob-versioned-hashes
+                              (web3/transaction:.tx-blob-versioned-hashes
                                (coalton:lisp web3/transaction:Transaction () decoded-tx))))
              (hash-count (coalton:coalton
                           (coalton-library/list:length

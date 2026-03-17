@@ -184,13 +184,13 @@
       (assert (result-ok-p parsed))
       (let* ((sig (result-value parsed))
              (r2 (coalton:coalton
-                  (web3/crypto:signature-r
+                  (web3/crypto:.signature-r
                    (coalton:lisp web3/crypto:Signature () sig))))
              (s2 (coalton:coalton
-                  (web3/crypto:signature-s
+                  (web3/crypto:.signature-s
                    (coalton:lisp web3/crypto:Signature () sig))))
              (v2 (coalton:coalton
-                  (web3/crypto:signature-v
+                  (web3/crypto:.signature-v
                    (coalton:lisp web3/crypto:Signature () sig)))))
         (assert (bytes-equal r r2))
         (assert (bytes-equal s s2))
@@ -222,13 +222,13 @@
       (assert (result-ok-p sig-result))
       (let* ((sig (result-value sig-result))
              (r (coalton:coalton
-                 (web3/crypto:signature-r
+                 (web3/crypto:.signature-r
                   (coalton:lisp web3/crypto:Signature () sig))))
              (s (coalton:coalton
-                 (web3/crypto:signature-s
+                 (web3/crypto:.signature-s
                   (coalton:lisp web3/crypto:Signature () sig))))
              (v (coalton:coalton
-                 (web3/crypto:signature-v
+                 (web3/crypto:.signature-v
                   (coalton:lisp web3/crypto:Signature () sig)))))
         ;; r and s should be 32 bytes each
         (assert (= (length r) 32))
@@ -367,13 +367,13 @@
            (sig (result-value sig-result))
            ;; Get signature components
            (r (coalton:coalton
-               (web3/crypto:signature-r
+               (web3/crypto:.signature-r
                 (coalton:lisp web3/crypto:Signature () sig))))
            (s (coalton:coalton
-               (web3/crypto:signature-s
+               (web3/crypto:.signature-s
                 (coalton:lisp web3/crypto:Signature () sig))))
            (v (coalton:coalton
-               (web3/crypto:signature-v
+               (web3/crypto:.signature-v
                 (coalton:lisp web3/crypto:Signature () sig))))
            ;; Create signature with v+27 (legacy Ethereum format)
            (sig-legacy (coalton:coalton

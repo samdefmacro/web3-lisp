@@ -27,19 +27,19 @@
    #:Transaction
    #:make-transaction
    #:make-blob-transaction
-   #:tx-type
-   #:tx-chain-id
-   #:tx-nonce
-   #:tx-gas-price
-   #:tx-max-priority-fee
-   #:tx-max-fee
-   #:tx-gas-limit
-   #:tx-to
-   #:tx-value
-   #:tx-data
-   #:tx-access-list
-   #:tx-max-fee-per-blob-gas
-   #:tx-blob-versioned-hashes
+   #:.tx-type
+   #:.tx-chain-id
+   #:.tx-nonce
+   #:.tx-gas-price
+   #:.tx-max-priority-fee
+   #:.tx-max-fee
+   #:.tx-gas-limit
+   #:.tx-to
+   #:.tx-value
+   #:.tx-data
+   #:.tx-access-list
+   #:.tx-max-fee-per-blob-gas
+   #:.tx-blob-versioned-hashes
 
    ;; Encoding
    #:tx-encode-for-signing

@@ -5,36 +5,24 @@
 
   ;;; ECDSA Signature type
 
-  (define-type Signature
+  (define-struct Signature
     "ECDSA signature with r, s, and recovery id v"
-    (%Signature types:Bytes   ; r (32 bytes)
-                types:Bytes   ; s (32 bytes)
-                U8))          ; v (recovery id: 0 or 1, or 27/28 for legacy)
+    (signature-r types:Bytes)   ; r (32 bytes)
+    (signature-s types:Bytes)   ; s (32 bytes)
+    (signature-v U8))           ; v (recovery id: 0 or 1, or 27/28 for legacy)
 
   (declare make-signature (types:Bytes -> types:Bytes -> U8 -> Signature))
   (define (make-signature r s v)
     "Create a Signature from r, s, v components"
-    (%Signature r s v))
-
-  (declare signature-r (Signature -> types:Bytes))
-  (define (signature-r sig)
-    (match sig ((%Signature r _ _) r)))
-
-  (declare signature-s (Signature -> types:Bytes))
-  (define (signature-s sig)
-    (match sig ((%Signature _ s _) s)))
-
-  (declare signature-v (Signature -> U8))
-  (define (signature-v sig)
-    (match sig ((%Signature _ _ v) v)))
+    (Signature r s v))
 
   (declare signature-to-bytes (Signature -> types:Bytes))
   (define (signature-to-bytes sig)
     "Convert signature to 65-byte encoding (r || s || v)"
     (types:bytes-concat-many
-     (Cons (types:bytes-pad-left 32 (signature-r sig))
-           (Cons (types:bytes-pad-left 32 (signature-s sig))
-                 (Cons (types:bytes-from-list (Cons (signature-v sig) Nil))
+     (Cons (types:bytes-pad-left 32 (.signature-r sig))
+           (Cons (types:bytes-pad-left 32 (.signature-s sig))
+                 (Cons (types:bytes-from-list (Cons (.signature-v sig) Nil))
                        Nil)))))
 
   (declare signature-from-bytes (types:Bytes -> (types:Web3Result Signature)))
@@ -193,7 +181,7 @@
                                (coalton-prelude:Err
                                 (types:CryptoError "Failed to determine recovery id"))
                                (coalton-prelude:Ok
-                                (%Signature r-bytes s-bytes recovery-id))))))
+                                (Signature r-bytes s-bytes recovery-id))))))
                 (cl:error (e)
                   (coalton-prelude:Err
                    (types:CryptoError (cl:format cl:nil "Signing error: ~A" e)))))))))
@@ -203,9 +191,9 @@
     "Recover the uncompressed public key from a hash and signature"
     (if (/= (types:bytes-length hash-bytes) 32)
         (Err (types:CryptoError "Hash must be 32 bytes"))
-        (let ((r-bytes (signature-r sig))
-              (s-bytes (signature-s sig))
-              (v (signature-v sig)))
+        (let ((r-bytes (.signature-r sig))
+              (s-bytes (.signature-s sig))
+              (v (.signature-v sig)))
           (lisp (types:Web3Result types:Bytes) (hash-bytes r-bytes s-bytes v)
             (cl:handler-case
                 (cl:let* ((hash-vec (cl:make-array 32 :element-type '(cl:unsigned-byte 8)

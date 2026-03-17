@@ -12,35 +12,35 @@
    ;; Block Header type
    #:BlockHeader
    #:make-block-header
-   #:header-number
-   #:header-hash
-   #:header-parent-hash
-   #:header-nonce
-   #:header-sha3-uncles
-   #:header-logs-bloom
-   #:header-transactions-root
-   #:header-state-root
-   #:header-receipts-root
-   #:header-miner
-   #:header-difficulty
-   #:header-total-difficulty
-   #:header-extra-data
-   #:header-size
-   #:header-gas-limit
-   #:header-gas-used
-   #:header-timestamp
-   #:header-base-fee
-   #:header-withdrawals-root
-   #:header-blob-gas-used
-   #:header-excess-blob-gas
+   #:.header-number
+   #:.header-hash
+   #:.header-parent-hash
+   #:.header-nonce
+   #:.header-sha3-uncles
+   #:.header-logs-bloom
+   #:.header-transactions-root
+   #:.header-state-root
+   #:.header-receipts-root
+   #:.header-miner
+   #:.header-difficulty
+   #:.header-total-difficulty
+   #:.header-extra-data
+   #:.header-size
+   #:.header-gas-limit
+   #:.header-gas-used
+   #:.header-timestamp
+   #:.header-base-fee
+   #:.header-withdrawals-root
+   #:.header-blob-gas-used
+   #:.header-excess-blob-gas
 
    ;; Full Block type
    #:Block
    #:make-block
-   #:block-header
-   #:block-transactions
-   #:block-uncles
-   #:block-withdrawals
+   #:.block-header
+   #:.block-transactions
+   #:.block-uncles
+   #:.block-withdrawals
 
    ;; Transaction in block (can be hash or full)
    #:BlockTx
@@ -50,10 +50,10 @@
    ;; Withdrawal type
    #:Withdrawal
    #:make-withdrawal
-   #:withdrawal-index
-   #:withdrawal-validator-index
-   #:withdrawal-address
-   #:withdrawal-amount
+   #:.withdrawal-index
+   #:.withdrawal-validator-index
+   #:.withdrawal-address
+   #:.withdrawal-amount
 
    ;; Parsing functions
    #:parse-block-header

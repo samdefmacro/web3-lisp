@@ -45,7 +45,7 @@
       ;; Verify sender round-trips
       (let ((got-sender (coalton:coalton
                          (web3/address:address-to-hex
-                          (web3/erc4337:user-op-sender
+                          (web3/erc4337:.user-op-sender
                            (coalton:lisp web3/erc4337:UserOperation () op))))))
         (assert (string-equal got-sender "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")))))
 
@@ -76,19 +76,19 @@
       ;; Verify nonce
       (let ((got-nonce (web3/types:u256-to-integer
                         (coalton:coalton
-                         (web3/erc4337:user-op-nonce
+                         (web3/erc4337:.user-op-nonce
                           (coalton:lisp web3/erc4337:UserOperation () op))))))
         (assert (= got-nonce 42)))
       ;; Verify call gas limit
       (let ((got-cgl (web3/types:u256-to-integer
                       (coalton:coalton
-                       (web3/erc4337:user-op-call-gas-limit
+                       (web3/erc4337:.user-op-call-gas-limit
                         (coalton:lisp web3/erc4337:UserOperation () op))))))
         (assert (= got-cgl 100000)))
       ;; Verify verification gas limit
       (let ((got-vgl (web3/types:u256-to-integer
                       (coalton:coalton
-                       (web3/erc4337:user-op-verification-gas-limit
+                       (web3/erc4337:.user-op-verification-gas-limit
                         (coalton:lisp web3/erc4337:UserOperation () op))))))
         (assert (= got-vgl 200000)))))
 
@@ -123,7 +123,7 @@
                  (coalton:lisp web3/types:Bytes () empty)))))
       ;; Account gas limits should be 32 bytes
       (let ((agl (coalton:coalton
-                  (web3/erc4337:packed-op-account-gas-limits
+                  (web3/erc4337:.packed-op-account-gas-limits
                    (coalton:lisp web3/erc4337:PackedUserOperation () op)))))
         (assert (= (length agl) 32)))))
 
@@ -242,7 +242,7 @@
       ;; Nonce preserved
       (let ((got-nonce (web3/types:u256-to-integer
                         (coalton:coalton
-                         (web3/erc4337:packed-op-nonce
+                         (web3/erc4337:.packed-op-nonce
                           (coalton:lisp web3/erc4337:PackedUserOperation () packed))))))
         (assert (= got-nonce 7)))))
 
@@ -275,7 +275,7 @@
                      (coalton:lisp web3/erc4337:UserOperation () op)))))
       ;; Unpack gas limits from the packed op
       (let* ((agl (coalton:coalton
-                   (web3/erc4337:packed-op-account-gas-limits
+                   (web3/erc4337:.packed-op-account-gas-limits
                     (coalton:lisp web3/erc4337:PackedUserOperation () packed))))
              (unpacked-gas (coalton:coalton
                             (web3/erc4337:unpack-account-gas-limits
@@ -321,27 +321,27 @@
       ;; All gas values should survive the roundtrip
       (assert (= (web3/types:u256-to-integer
                   (coalton:coalton
-                   (web3/erc4337:user-op-call-gas-limit
+                   (web3/erc4337:.user-op-call-gas-limit
                     (coalton:lisp web3/erc4337:UserOperation () roundtripped))))
                  150000))
       (assert (= (web3/types:u256-to-integer
                   (coalton:coalton
-                   (web3/erc4337:user-op-verification-gas-limit
+                   (web3/erc4337:.user-op-verification-gas-limit
                     (coalton:lisp web3/erc4337:UserOperation () roundtripped))))
                  300000))
       (assert (= (web3/types:u256-to-integer
                   (coalton:coalton
-                   (web3/erc4337:user-op-pre-verification-gas
+                   (web3/erc4337:.user-op-pre-verification-gas
                     (coalton:lisp web3/erc4337:UserOperation () roundtripped))))
                  60000))
       (assert (= (web3/types:u256-to-integer
                   (coalton:coalton
-                   (web3/erc4337:user-op-max-fee-per-gas
+                   (web3/erc4337:.user-op-max-fee-per-gas
                     (coalton:lisp web3/erc4337:UserOperation () roundtripped))))
                  25000000000))
       (assert (= (web3/types:u256-to-integer
                   (coalton:coalton
-                   (web3/erc4337:user-op-max-priority-fee-per-gas
+                   (web3/erc4337:.user-op-max-priority-fee-per-gas
                     (coalton:lisp web3/erc4337:UserOperation () roundtripped))))
                  2000000000))))
 

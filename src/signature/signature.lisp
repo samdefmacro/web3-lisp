@@ -21,17 +21,17 @@
   (declare sig-r (Signature -> types:Bytes))
   (define (sig-r sig)
     "Get the r component of the signature"
-    (crypto:signature-r sig))
+    (crypto:.signature-r sig))
 
   (declare sig-s (Signature -> types:Bytes))
   (define (sig-s sig)
     "Get the s component of the signature"
-    (crypto:signature-s sig))
+    (crypto:.signature-s sig))
 
   (declare sig-v (Signature -> U8))
   (define (sig-v sig)
     "Get the v component (recovery id) of the signature"
-    (crypto:signature-v sig))
+    (crypto:.signature-v sig))
 
   ;;; =========================================================================
   ;;; Signature Encoding

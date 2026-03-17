@@ -56,14 +56,16 @@
 (coalton-toplevel
 
   ;; A single RPC request in a batch
-  (define-type RpcRequest
+  (define-struct RpcRequest
     "A JSON-RPC request to include in a batch"
-    (%RpcRequest UFix String String))   ; id, method, params-json
+    (request-id UFix)
+    (request-method String)
+    (request-params String))
 
   (declare make-rpc-request (UFix -> String -> String -> RpcRequest))
   (define (make-rpc-request id method params)
     "Create a batch RPC request with an ID, method name, and JSON params string"
-    (%RpcRequest id method params))
+    (RpcRequest id method params))
 
   ;; A single result from a batch response
   (define-type BatchResult

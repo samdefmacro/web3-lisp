@@ -51,15 +51,15 @@
                          (coalton:lisp web3/address:Address () addr)
                          1000000))))
       (assert (= (coalton:coalton
-                  (web3/block:withdrawal-index
+                  (web3/block:.withdrawal-index
                    (coalton:lisp web3/block:Withdrawal () withdrawal)))
                  1))
       (assert (= (coalton:coalton
-                  (web3/block:withdrawal-validator-index
+                  (web3/block:.withdrawal-validator-index
                    (coalton:lisp web3/block:Withdrawal () withdrawal)))
                  100))
       (assert (= (coalton:coalton
-                  (web3/block:withdrawal-amount
+                  (web3/block:.withdrawal-amount
                    (coalton:lisp web3/block:Withdrawal () withdrawal)))
                  1000000))))
 
@@ -79,13 +79,13 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (number (coalton:coalton
-                        (web3/block:header-number
+                        (web3/block:.header-number
                          (coalton:lisp web3/block:BlockHeader () header))))
                (gas-limit (coalton:coalton
-                           (web3/block:header-gas-limit
+                           (web3/block:.header-gas-limit
                             (coalton:lisp web3/block:BlockHeader () header))))
                (gas-used (coalton:coalton
-                          (web3/block:header-gas-used
+                          (web3/block:.header-gas-used
                            (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (= number 68943))  ; 0x10d4f
           (assert (= gas-limit 30000000))  ; 0x1c9c380
@@ -103,7 +103,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (timestamp (coalton:coalton
-                           (web3/block:header-timestamp
+                           (web3/block:.header-timestamp
                             (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (= timestamp 1000))))))  ; 0x65b9a123
 
@@ -119,7 +119,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (base-fee-opt (coalton:coalton
-                              (web3/block:header-base-fee
+                              (web3/block:.header-base-fee
                                (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (optional-some-p base-fee-opt))
           (let ((base-fee (result-value base-fee-opt)))
@@ -278,10 +278,10 @@
         (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (header (coalton:coalton
-                        (web3/block:block-header
+                        (web3/block:.block-header
                          (coalton:lisp web3/block:Block () block))))
                (number (coalton:coalton
-                        (web3/block:header-number
+                        (web3/block:.header-number
                          (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (= number 68943))))))  ; 0x10d4f
 
@@ -299,7 +299,7 @@
                          (coalton:lisp web3/address:Address () addr)
                          500000)))
            (retrieved-addr (coalton:coalton
-                            (web3/block:withdrawal-address
+                            (web3/block:.withdrawal-address
                              (coalton:lisp web3/block:Withdrawal () withdrawal))))
            (addr-hex (coalton:coalton
                       (web3/address:address-to-hex
@@ -317,11 +317,11 @@
                          (coalton:lisp web3/address:Address () addr)
                          0))))
       (assert (= (coalton:coalton
-                  (web3/block:withdrawal-index
+                  (web3/block:.withdrawal-index
                    (coalton:lisp web3/block:Withdrawal () withdrawal)))
                  0))
       (assert (= (coalton:coalton
-                  (web3/block:withdrawal-amount
+                  (web3/block:.withdrawal-amount
                    (coalton:lisp web3/block:Withdrawal () withdrawal)))
                  0))))
 
@@ -335,7 +335,7 @@
                          (coalton:lisp web3/address:Address () addr)
                          32000000000))))  ; 32 ETH in Gwei
       (assert (= (coalton:coalton
-                  (web3/block:withdrawal-validator-index
+                  (web3/block:.withdrawal-validator-index
                    (coalton:lisp web3/block:Withdrawal () withdrawal)))
                  1000000))))
 
@@ -355,7 +355,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (hash (coalton:coalton
-                      (web3/block:header-hash
+                      (web3/block:.header-hash
                        (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (= (length hash) 32))
           (assert (= (aref hash 0) #xab))
@@ -373,7 +373,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (miner (coalton:coalton
-                       (web3/block:header-miner
+                       (web3/block:.header-miner
                         (coalton:lisp web3/block:BlockHeader () header))))
                (miner-hex (coalton:coalton
                            (web3/address:address-to-hex
@@ -393,7 +393,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (extra-data (coalton:coalton
-                            (web3/block:header-extra-data
+                            (web3/block:.header-extra-data
                              (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (= (length extra-data) 4))
           (assert (= (aref extra-data 0) #xde))
@@ -413,7 +413,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (size (coalton:coalton
-                      (web3/block:header-size
+                      (web3/block:.header-size
                        (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (= size #x1234))))))
 
@@ -520,7 +520,7 @@
         (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (txs (coalton:coalton
-                     (web3/block:block-transactions
+                     (web3/block:.block-transactions
                       (coalton:lisp web3/block:Block () block))))
                (tx-count (coalton:coalton
                           (coalton-library/list:length
@@ -538,7 +538,7 @@
         (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (uncles (coalton:coalton
-                        (web3/block:block-uncles
+                        (web3/block:.block-uncles
                          (coalton:lisp web3/block:Block () block))))
                (uncle-count (coalton:coalton
                              (coalton-library/list:length
@@ -556,7 +556,7 @@
         (assert (optional-some-p block-opt))
         (let* ((block (result-value block-opt))
                (withdrawals (coalton:coalton
-                             (web3/block:block-withdrawals
+                             (web3/block:.block-withdrawals
                               (coalton:lisp web3/block:Block () block))))
                (withdrawal-count (coalton:coalton
                                   (coalton-library/list:length
@@ -591,7 +591,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (blob-gas-opt (coalton:coalton
-                              (web3/block:header-blob-gas-used
+                              (web3/block:.header-blob-gas-used
                                (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (optional-some-p blob-gas-opt))
           (let ((blob-gas (result-value blob-gas-opt)))
@@ -609,7 +609,7 @@
         (assert (result-ok-p result))
         (let* ((header (result-value result))
                (excess-blob-opt (coalton:coalton
-                                 (web3/block:header-excess-blob-gas
+                                 (web3/block:.header-excess-blob-gas
                                   (coalton:lisp web3/block:BlockHeader () header)))))
           (assert (optional-some-p excess-blob-opt))
           (let ((excess-blob (result-value excess-blob-opt)))

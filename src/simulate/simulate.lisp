@@ -177,15 +177,15 @@
                                  CallOptions -> (types:Web3Result types:Bytes)))
   (define (simulate-transaction provider transaction opts)
     "Simulate a full transaction object"
-    (match (tx:tx-to transaction)
+    (match (tx:.tx-to transaction)
       ((None) (Err (types:TransactionError "Cannot simulate contract creation")))
       ((Some to-addr)
        (match opts
          ((CallOptions block-spec from-opt _ _ _)
           (let ((to-hex (addr:address-to-hex to-addr))
-                (data-hex (types:hex-encode-prefixed (tx:tx-data transaction)))
-                (value-hex (types:hex-encode-prefixed (types:u256-to-bytes (tx:tx-value transaction))))
-                (gas-limit (tx:tx-gas-limit transaction))
+                (data-hex (types:hex-encode-prefixed (tx:.tx-data transaction)))
+                (value-hex (types:hex-encode-prefixed (types:u256-to-bytes (tx:.tx-value transaction))))
+                (gas-limit (tx:.tx-gas-limit transaction))
                 (block-str (block-spec-to-string block-spec))
                 (from-json (%optional-address-to-json "from" from-opt)))
             (let ((params (lisp String (to-hex data-hex value-hex gas-limit block-str from-json)
@@ -222,9 +222,9 @@
                                      (types:Web3Result U64)))
   (define (estimate-transaction-gas provider transaction)
     "Estimate gas for a full transaction object"
-    (let ((data-hex (types:hex-encode-prefixed (tx:tx-data transaction)))
-          (value-hex (types:hex-encode-prefixed (types:u256-to-bytes (tx:tx-value transaction)))))
-      (match (tx:tx-to transaction)
+    (let ((data-hex (types:hex-encode-prefixed (tx:.tx-data transaction)))
+          (value-hex (types:hex-encode-prefixed (types:u256-to-bytes (tx:.tx-value transaction)))))
+      (match (tx:.tx-to transaction)
         ((None)
          (let ((params (lisp String (value-hex data-hex)
                          (cl:format cl:nil "[{\"value\":\"~A\",\"data\":\"~A\"}]"

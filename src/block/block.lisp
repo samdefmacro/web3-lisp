@@ -35,61 +35,45 @@
   ;;; Withdrawal Type (EIP-4895)
   ;;; =========================================================================
 
-  (define-type Withdrawal
-    (Withdrawal UFix      ; index
-                UFix      ; validator index
-                addr:Address  ; address
-                UFix))    ; amount in Gwei
+  (define-struct Withdrawal
+    "EIP-4895 withdrawal"
+    (withdrawal-index UFix)
+    (withdrawal-validator-index UFix)
+    (withdrawal-address addr:Address)
+    (withdrawal-amount UFix))
 
   (declare make-withdrawal (UFix -> UFix -> addr:Address -> UFix -> Withdrawal))
   (define (make-withdrawal index validator-index address amount)
     "Create a withdrawal"
     (Withdrawal index validator-index address amount))
 
-  (declare withdrawal-index (Withdrawal -> UFix))
-  (define (withdrawal-index w)
-    (match w ((Withdrawal i _ _ _) i)))
-
-  (declare withdrawal-validator-index (Withdrawal -> UFix))
-  (define (withdrawal-validator-index w)
-    (match w ((Withdrawal _ vi _ _) vi)))
-
-  (declare withdrawal-address (Withdrawal -> addr:Address))
-  (define (withdrawal-address w)
-    (match w ((Withdrawal _ _ a _) a)))
-
-  (declare withdrawal-amount (Withdrawal -> UFix))
-  (define (withdrawal-amount w)
-    (match w ((Withdrawal _ _ _ amt) amt)))
-
   ;;; =========================================================================
   ;;; Block Header Type
   ;;; =========================================================================
 
-  ;; Using a record-style approach with a lisp struct for the many fields
-  (define-type BlockHeader
-    (%BlockHeader
-     UFix              ; number
-     types:Bytes       ; hash
-     types:Bytes       ; parent hash
-     types:Bytes       ; nonce (8 bytes)
-     types:Bytes       ; sha3Uncles
-     types:Bytes       ; logsBloom
-     types:Bytes       ; transactionsRoot
-     types:Bytes       ; stateRoot
-     types:Bytes       ; receiptsRoot
-     addr:Address      ; miner
-     types:U256        ; difficulty
-     (Optional types:U256)  ; totalDifficulty (may be null)
-     types:Bytes       ; extraData
-     UFix              ; size
-     UFix              ; gasLimit
-     UFix              ; gasUsed
-     UFix              ; timestamp
-     (Optional UFix)   ; baseFeePerGas (EIP-1559)
-     (Optional types:Bytes)  ; withdrawalsRoot (Shanghai)
-     (Optional UFix)   ; blobGasUsed (Cancun)
-     (Optional UFix))) ; excessBlobGas (Cancun)
+  (define-struct BlockHeader
+    "Ethereum block header"
+    (header-number UFix)
+    (header-hash types:Bytes)
+    (header-parent-hash types:Bytes)
+    (header-nonce types:Bytes)                        ; 8 bytes
+    (header-sha3-uncles types:Bytes)
+    (header-logs-bloom types:Bytes)
+    (header-transactions-root types:Bytes)
+    (header-state-root types:Bytes)
+    (header-receipts-root types:Bytes)
+    (header-miner addr:Address)
+    (header-difficulty types:U256)
+    (header-total-difficulty (Optional types:U256))    ; may be null
+    (header-extra-data types:Bytes)
+    (header-size UFix)
+    (header-gas-limit UFix)
+    (header-gas-used UFix)
+    (header-timestamp UFix)
+    (header-base-fee (Optional UFix))                  ; EIP-1559
+    (header-withdrawals-root (Optional types:Bytes))   ; Shanghai
+    (header-blob-gas-used (Optional UFix))             ; Cancun
+    (header-excess-blob-gas (Optional UFix)))          ; Cancun
 
   (declare make-block-header
            (UFix -> types:Bytes -> types:Bytes -> types:Bytes -> types:Bytes ->
@@ -103,96 +87,11 @@
                              miner difficulty total-difficulty
                              extra-data size gas-limit gas-used timestamp
                              base-fee withdrawals-root blob-gas-used excess-blob-gas)
-    (%BlockHeader number hash parent-hash nonce sha3-uncles
-                  logs-bloom tx-root state-root receipts-root
-                  miner difficulty total-difficulty
-                  extra-data size gas-limit gas-used timestamp
-                  base-fee withdrawals-root blob-gas-used excess-blob-gas))
-
-  ;; Accessors
-  (declare header-number (BlockHeader -> UFix))
-  (define (header-number h)
-    (match h ((%BlockHeader n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) n)))
-
-  (declare header-hash (BlockHeader -> types:Bytes))
-  (define (header-hash h)
-    (match h ((%BlockHeader _ hash _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) hash)))
-
-  (declare header-parent-hash (BlockHeader -> types:Bytes))
-  (define (header-parent-hash h)
-    (match h ((%BlockHeader _ _ ph _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) ph)))
-
-  (declare header-nonce (BlockHeader -> types:Bytes))
-  (define (header-nonce h)
-    (match h ((%BlockHeader _ _ _ n _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) n)))
-
-  (declare header-sha3-uncles (BlockHeader -> types:Bytes))
-  (define (header-sha3-uncles h)
-    (match h ((%BlockHeader _ _ _ _ u _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) u)))
-
-  (declare header-logs-bloom (BlockHeader -> types:Bytes))
-  (define (header-logs-bloom h)
-    (match h ((%BlockHeader _ _ _ _ _ lb _ _ _ _ _ _ _ _ _ _ _ _ _ _ _) lb)))
-
-  (declare header-transactions-root (BlockHeader -> types:Bytes))
-  (define (header-transactions-root h)
-    (match h ((%BlockHeader _ _ _ _ _ _ tr _ _ _ _ _ _ _ _ _ _ _ _ _ _) tr)))
-
-  (declare header-state-root (BlockHeader -> types:Bytes))
-  (define (header-state-root h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ sr _ _ _ _ _ _ _ _ _ _ _ _ _) sr)))
-
-  (declare header-receipts-root (BlockHeader -> types:Bytes))
-  (define (header-receipts-root h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ rr _ _ _ _ _ _ _ _ _ _ _ _) rr)))
-
-  (declare header-miner (BlockHeader -> addr:Address))
-  (define (header-miner h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ m _ _ _ _ _ _ _ _ _ _ _) m)))
-
-  (declare header-difficulty (BlockHeader -> types:U256))
-  (define (header-difficulty h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ d _ _ _ _ _ _ _ _ _ _) d)))
-
-  (declare header-total-difficulty (BlockHeader -> (Optional types:U256)))
-  (define (header-total-difficulty h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ td _ _ _ _ _ _ _ _ _) td)))
-
-  (declare header-extra-data (BlockHeader -> types:Bytes))
-  (define (header-extra-data h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ ed _ _ _ _ _ _ _ _) ed)))
-
-  (declare header-size (BlockHeader -> UFix))
-  (define (header-size h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ sz _ _ _ _ _ _ _) sz)))
-
-  (declare header-gas-limit (BlockHeader -> UFix))
-  (define (header-gas-limit h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ _ gl _ _ _ _ _ _) gl)))
-
-  (declare header-gas-used (BlockHeader -> UFix))
-  (define (header-gas-used h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ gu _ _ _ _ _) gu)))
-
-  (declare header-timestamp (BlockHeader -> UFix))
-  (define (header-timestamp h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ts _ _ _ _) ts)))
-
-  (declare header-base-fee (BlockHeader -> (Optional UFix)))
-  (define (header-base-fee h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ bf _ _ _) bf)))
-
-  (declare header-withdrawals-root (BlockHeader -> (Optional types:Bytes)))
-  (define (header-withdrawals-root h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ wr _ _) wr)))
-
-  (declare header-blob-gas-used (BlockHeader -> (Optional UFix)))
-  (define (header-blob-gas-used h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ bgu _) bgu)))
-
-  (declare header-excess-blob-gas (BlockHeader -> (Optional UFix)))
-  (define (header-excess-blob-gas h)
-    (match h ((%BlockHeader _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ ebg) ebg)))
+    (BlockHeader number hash parent-hash nonce sha3-uncles
+                 logs-bloom tx-root state-root receipts-root
+                 miner difficulty total-difficulty
+                 extra-data size gas-limit gas-used timestamp
+                 base-fee withdrawals-root blob-gas-used excess-blob-gas))
 
   ;;; =========================================================================
   ;;; Block Transaction Type
@@ -206,31 +105,16 @@
   ;;; Full Block Type
   ;;; =========================================================================
 
-  (define-type Block
-    (%Block BlockHeader
-            (List BlockTx)
-            (List types:Bytes)      ; uncle hashes
-            (List Withdrawal)))     ; withdrawals (Shanghai+)
+  (define-struct Block
+    "Ethereum block"
+    (block-header BlockHeader)
+    (block-transactions (List BlockTx))
+    (block-uncles (List types:Bytes))        ; uncle hashes
+    (block-withdrawals (List Withdrawal)))   ; withdrawals (Shanghai+)
 
   (declare make-block (BlockHeader -> (List BlockTx) -> (List types:Bytes) -> (List Withdrawal) -> Block))
   (define (make-block header txs uncles withdrawals)
-    (%Block header txs uncles withdrawals))
-
-  (declare block-header (Block -> BlockHeader))
-  (define (block-header b)
-    (match b ((%Block h _ _ _) h)))
-
-  (declare block-transactions (Block -> (List BlockTx)))
-  (define (block-transactions b)
-    (match b ((%Block _ txs _ _) txs)))
-
-  (declare block-uncles (Block -> (List types:Bytes)))
-  (define (block-uncles b)
-    (match b ((%Block _ _ uncles _) uncles)))
-
-  (declare block-withdrawals (Block -> (List Withdrawal)))
-  (define (block-withdrawals b)
-    (match b ((%Block _ _ _ ws) ws)))
+    (Block header txs uncles withdrawals))
 
   ;;; =========================================================================
   ;;; Utility Functions
@@ -239,32 +123,32 @@
   (declare is-post-merge (BlockHeader -> Boolean))
   (define (is-post-merge header)
     "Check if block is post-merge (difficulty = 0)"
-    (types:u256-zero? (header-difficulty header)))
+    (types:u256-zero? (.header-difficulty header)))
 
   (declare is-post-shanghai (BlockHeader -> Boolean))
   (define (is-post-shanghai header)
     "Check if block is post-Shanghai (has withdrawals root)"
-    (match (header-withdrawals-root header)
+    (match (.header-withdrawals-root header)
       ((Some _) True)
       ((None) False)))
 
   (declare is-post-cancun (BlockHeader -> Boolean))
   (define (is-post-cancun header)
     "Check if block is post-Cancun (has blob gas fields)"
-    (match (header-blob-gas-used header)
+    (match (.header-blob-gas-used header)
       ((Some _) True)
       ((None) False)))
 
   (declare block-age (BlockHeader -> UFix -> UFix))
   (define (block-age header current-timestamp)
     "Calculate block age in seconds"
-    (- current-timestamp (header-timestamp header)))
+    (- current-timestamp (.header-timestamp header)))
 
   (declare gas-utilization (BlockHeader -> UFix))
   (define (gas-utilization header)
     "Calculate gas utilization as percentage (0-100)"
-    (let ((limit (header-gas-limit header))
-          (used (header-gas-used header)))
+    (let ((limit (.header-gas-limit header))
+          (used (.header-gas-used header)))
       (if (== limit 0)
           0
           (lisp UFix (used limit)
@@ -400,7 +284,7 @@
 
 (cl:defun %parse-header-from-alist (alist)
   "Parse a BlockHeader from a JSON alist. Shared helper used by all block/header parsers."
-  (%BlockHeader
+  (BlockHeader
    (parse-hex-to-ufix (json-get alist "number"))
    (parse-hex-to-bytes (json-get alist "hash"))
    (parse-hex-to-bytes (json-get alist "parentHash"))
@@ -521,7 +405,7 @@
                                      raw-withdrawals
                                      :initial-value Nil
                                      :from-end cl:t)))
-                            (block (%Block header txs uncles withdrawals)))
+                            (block (Block header txs uncles withdrawals)))
                      (make-ok-block block))))
         (cl:error (e)
           (cl:declare (cl:ignore e))
@@ -609,7 +493,7 @@
                                   raw-withdrawals
                                   :initial-value Nil
                                   :from-end cl:t)))
-                         (block (%Block header txs uncles withdrawals)))
+                         (block (Block header txs uncles withdrawals)))
                  (make-ok-optional-block (make-coalton-some-block block))))))
         (cl:error (e)
           (cl:declare (cl:ignore e))

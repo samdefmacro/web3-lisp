@@ -10,37 +10,37 @@
    All numeric fields are hex-encoded, all bytes fields are hex-encoded."
   (cl:let ((sender (coalton:coalton
                     (web3/address:address-to-hex
-                     (user-op-sender (coalton:lisp UserOperation () op)))))
+                     (.user-op-sender (coalton:lisp UserOperation () op)))))
            (nonce (web3/types:u256-to-integer
                    (coalton:coalton
-                    (user-op-nonce (coalton:lisp UserOperation () op)))))
+                    (.user-op-nonce (coalton:lisp UserOperation () op)))))
            (init-code (coalton:coalton
                        (types:hex-encode-prefixed
-                        (user-op-init-code (coalton:lisp UserOperation () op)))))
+                        (.user-op-init-code (coalton:lisp UserOperation () op)))))
            (call-data (coalton:coalton
                        (types:hex-encode-prefixed
-                        (user-op-call-data (coalton:lisp UserOperation () op)))))
+                        (.user-op-call-data (coalton:lisp UserOperation () op)))))
            (call-gas-limit (web3/types:u256-to-integer
                             (coalton:coalton
-                             (user-op-call-gas-limit (coalton:lisp UserOperation () op)))))
+                             (.user-op-call-gas-limit (coalton:lisp UserOperation () op)))))
            (verification-gas-limit (web3/types:u256-to-integer
                                     (coalton:coalton
-                                     (user-op-verification-gas-limit (coalton:lisp UserOperation () op)))))
+                                     (.user-op-verification-gas-limit (coalton:lisp UserOperation () op)))))
            (pre-verification-gas (web3/types:u256-to-integer
                                   (coalton:coalton
-                                   (user-op-pre-verification-gas (coalton:lisp UserOperation () op)))))
+                                   (.user-op-pre-verification-gas (coalton:lisp UserOperation () op)))))
            (max-fee-per-gas (web3/types:u256-to-integer
                              (coalton:coalton
-                              (user-op-max-fee-per-gas (coalton:lisp UserOperation () op)))))
+                              (.user-op-max-fee-per-gas (coalton:lisp UserOperation () op)))))
            (max-priority-fee (web3/types:u256-to-integer
                               (coalton:coalton
-                               (user-op-max-priority-fee-per-gas (coalton:lisp UserOperation () op)))))
+                               (.user-op-max-priority-fee-per-gas (coalton:lisp UserOperation () op)))))
            (paymaster-data (coalton:coalton
                             (types:hex-encode-prefixed
-                             (user-op-paymaster-and-data (coalton:lisp UserOperation () op)))))
+                             (.user-op-paymaster-and-data (coalton:lisp UserOperation () op)))))
            (signature (coalton:coalton
                        (types:hex-encode-prefixed
-                        (user-op-signature (coalton:lisp UserOperation () op))))))
+                        (.user-op-signature (coalton:lisp UserOperation () op))))))
     (cl:format cl:nil
                "{\"sender\":\"~A\",\"nonce\":\"0x~X\",\"initCode\":\"~A\",\"callData\":\"~A\",\"callGasLimit\":\"0x~X\",\"verificationGasLimit\":\"0x~X\",\"preVerificationGas\":\"0x~X\",\"maxFeePerGas\":\"0x~X\",\"maxPriorityFeePerGas\":\"0x~X\",\"paymasterAndData\":\"~A\",\"signature\":\"~A\"}"
                sender nonce init-code call-data
@@ -55,19 +55,19 @@
    paymaster/paymasterData (split from paymasterAndData)."
   (cl:let* ((sender (coalton:coalton
                      (web3/address:address-to-hex
-                      (packed-op-sender (coalton:lisp PackedUserOperation () op)))))
+                      (.packed-op-sender (coalton:lisp PackedUserOperation () op)))))
             (nonce (web3/types:u256-to-integer
                     (coalton:coalton
-                     (packed-op-nonce (coalton:lisp PackedUserOperation () op)))))
+                     (.packed-op-nonce (coalton:lisp PackedUserOperation () op)))))
             (init-code (coalton:coalton
-                        (packed-op-init-code (coalton:lisp PackedUserOperation () op))))
+                        (.packed-op-init-code (coalton:lisp PackedUserOperation () op))))
             (call-data (coalton:coalton
                         (types:hex-encode-prefixed
-                         (packed-op-call-data (coalton:lisp PackedUserOperation () op)))))
+                         (.packed-op-call-data (coalton:lisp PackedUserOperation () op)))))
             ;; Unpack accountGasLimits -> verificationGasLimit + callGasLimit
             (gas-limits (coalton:coalton
                          (unpack-account-gas-limits
-                          (packed-op-account-gas-limits (coalton:lisp PackedUserOperation () op)))))
+                          (.packed-op-account-gas-limits (coalton:lisp PackedUserOperation () op)))))
             (verification-gas-limit
               (web3/types:u256-to-integer
                (cl:slot-value gas-limits 'coalton-library/classes::_0)))
@@ -76,11 +76,11 @@
                (cl:slot-value gas-limits 'coalton-library/classes::_1)))
             (pre-verification-gas (web3/types:u256-to-integer
                                    (coalton:coalton
-                                    (packed-op-pre-verification-gas (coalton:lisp PackedUserOperation () op)))))
+                                    (.packed-op-pre-verification-gas (coalton:lisp PackedUserOperation () op)))))
             ;; Unpack gasFees -> maxPriorityFeePerGas + maxFeePerGas
             (fees (coalton:coalton
                    (unpack-gas-fees
-                    (packed-op-gas-fees (coalton:lisp PackedUserOperation () op)))))
+                    (.packed-op-gas-fees (coalton:lisp PackedUserOperation () op)))))
             (max-priority-fee
               (web3/types:u256-to-integer
                (cl:slot-value fees 'coalton-library/classes::_0)))
@@ -90,11 +90,11 @@
             ;; Split initCode into factory + factoryData (first 20 bytes = factory address)
             (init-code-len (cl:length init-code))
             (paymaster-and-data (coalton:coalton
-                                 (packed-op-paymaster-and-data (coalton:lisp PackedUserOperation () op))))
+                                 (.packed-op-paymaster-and-data (coalton:lisp PackedUserOperation () op))))
             (pm-len (cl:length paymaster-and-data))
             (signature (coalton:coalton
                         (types:hex-encode-prefixed
-                         (packed-op-signature (coalton:lisp PackedUserOperation () op))))))
+                         (.packed-op-signature (coalton:lisp PackedUserOperation () op))))))
     ;; Build JSON with v0.7 RPC field names
     (cl:with-output-to-string (s)
       (cl:format s "{\"sender\":\"~A\",\"nonce\":\"0x~X\",\"callData\":~A"
@@ -148,7 +148,7 @@
             (cgl-raw (cl:cdr (cl:assoc :call-gas-limit json)))
             (pm-vgl-raw (cl:cdr (cl:assoc :paymaster-verification-gas-limit json)))
             (pm-pogl-raw (cl:cdr (cl:assoc :paymaster-post-op-gas-limit json))))
-    (%GasEstimate
+    (GasEstimate
      (web3/types:%parse-hex-u256 (cl:or pvg-raw "0x0"))
      (web3/types:%parse-hex-u256 (cl:or vgl-raw "0x0"))
      (web3/types:%parse-hex-u256 (cl:or cgl-raw "0x0"))

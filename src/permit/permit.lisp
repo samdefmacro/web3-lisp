@@ -94,9 +94,9 @@
   (define (permit-data owner spender value deadline sig)
     "Build calldata for permit(address owner, address spender, uint256 value,
      uint256 deadline, uint8 v, bytes32 r, bytes32 s)."
-    (let ((v-val (crypto:signature-v sig))
-          (r-bytes (crypto:signature-r sig))
-          (s-bytes (crypto:signature-s sig)))
+    (let ((v-val (crypto:.signature-v sig))
+          (r-bytes (crypto:.signature-r sig))
+          (s-bytes (crypto:.signature-s sig)))
       (abi:abi-encode-with-selector
        selector-permit
        (Cons (abi:AbiAddressVal (addr:address-bytes owner))
