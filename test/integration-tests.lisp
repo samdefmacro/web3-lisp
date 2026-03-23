@@ -295,7 +295,7 @@
       (let* ((receipt-json (result-value receipt-json-result))
              (receipt-result
                (coalton:coalton
-                (web3/receipt:parse-receipt-json
+                (web3/receipt:parse-receipt
                  (coalton:lisp coalton:String () receipt-json)))))
         (assert (result-ok-p receipt-result))
         (let* ((receipt (result-value receipt-result))
@@ -662,7 +662,7 @@
       (let* ((receipt-json (result-value receipt-json-result))
              (receipt-result
                (coalton:coalton
-                (web3/receipt:parse-receipt-json
+                (web3/receipt:parse-receipt
                  (coalton:lisp coalton:String () receipt-json)))))
         (assert (result-ok-p receipt-result))
         (let* ((receipt (result-value receipt-result))

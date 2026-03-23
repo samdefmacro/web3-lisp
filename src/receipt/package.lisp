@@ -56,9 +56,7 @@
 
    ;; Parsing functions
    #:parse-receipt
-   #:parse-receipt-json
    #:parse-log-entry
-   #:parse-log-entry-json
 
    ;; Query helpers
    #:receipt-success?

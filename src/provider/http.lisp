@@ -31,16 +31,12 @@
   (declare eth-chain-id (HttpProvider -> (types:Web3Result U64)))
   (define (eth-chain-id provider)
     "Get the chain ID"
-    (match (json-rpc-call provider "eth_chainId" "[]")
-      ((Err e) (Err e))
-      ((Ok result) (Ok (%hex-result-to-u64 result)))))
+    (map %hex-result-to-u64 (json-rpc-call provider "eth_chainId" "[]")))
 
   (declare eth-block-number (HttpProvider -> (types:Web3Result U64)))
   (define (eth-block-number provider)
     "Get the latest block number"
-    (match (json-rpc-call provider "eth_blockNumber" "[]")
-      ((Err e) (Err e))
-      ((Ok result) (Ok (%hex-result-to-u64 result)))))
+    (map %hex-result-to-u64 (json-rpc-call provider "eth_blockNumber" "[]")))
 
   (declare eth-get-balance (HttpProvider -> addr:Address -> (types:Web3Result types:U256)))
   (define (eth-get-balance provider address)
@@ -48,9 +44,7 @@
     (let ((addr-hex (addr:address-to-hex address)))
       (let ((params (lisp String (addr-hex)
                       (cl:format cl:nil "[\"~A\",\"latest\"]" addr-hex))))
-        (match (json-rpc-call provider "eth_getBalance" params)
-          ((Err e) (Err e))
-          ((Ok result) (Ok (%hex-result-to-u256 result)))))))
+        (map %hex-result-to-u256 (json-rpc-call provider "eth_getBalance" params)))))
 
   (declare eth-get-transaction-count (HttpProvider -> addr:Address -> (types:Web3Result U64)))
   (define (eth-get-transaction-count provider address)
@@ -58,16 +52,12 @@
     (let ((addr-hex (addr:address-to-hex address)))
       (let ((params (lisp String (addr-hex)
                       (cl:format cl:nil "[\"~A\",\"latest\"]" addr-hex))))
-        (match (json-rpc-call provider "eth_getTransactionCount" params)
-          ((Err e) (Err e))
-          ((Ok result) (Ok (%hex-result-to-u64 result)))))))
+        (map %hex-result-to-u64 (json-rpc-call provider "eth_getTransactionCount" params)))))
 
   (declare eth-gas-price (HttpProvider -> (types:Web3Result types:U256)))
   (define (eth-gas-price provider)
     "Get the current gas price"
-    (match (json-rpc-call provider "eth_gasPrice" "[]")
-      ((Err e) (Err e))
-      ((Ok result) (Ok (%hex-result-to-u256 result)))))
+    (map %hex-result-to-u256 (json-rpc-call provider "eth_gasPrice" "[]")))
 
   (declare eth-estimate-gas (HttpProvider -> addr:Address -> (Optional addr:Address) ->
                              types:U256 -> types:Bytes -> (types:Web3Result U64)))
@@ -87,9 +77,7 @@
                  (lisp String (from-hex value-hex data-hex)
                    (cl:format cl:nil "[{\"from\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"}]"
                               from-hex value-hex data-hex))))))
-        (match (json-rpc-call provider "eth_estimateGas" params)
-          ((Err e) (Err e))
-          ((Ok result) (Ok (%hex-result-to-u64 result)))))))
+        (map %hex-result-to-u64 (json-rpc-call provider "eth_estimateGas" params)))))
 
   (declare eth-send-raw-transaction (HttpProvider -> types:Bytes -> (types:Web3Result String)))
   (define (eth-send-raw-transaction provider raw-tx)
@@ -116,9 +104,7 @@
                  (lisp String (to-hex data-hex)
                    (cl:format cl:nil "[{\"to\":\"~A\",\"data\":\"~A\"},\"latest\"]"
                               to-hex data-hex))))))
-        (match (json-rpc-call provider "eth_call" params)
-          ((Err e) (Err e))
-          ((Ok result) (types:hex-decode result))))))
+        (>>= (json-rpc-call provider "eth_call" params) types:hex-decode))))
 
   (declare eth-get-transaction-receipt (HttpProvider -> String -> (types:Web3Result String)))
   (define (eth-get-transaction-receipt provider tx-hash)
@@ -137,9 +123,7 @@
     (let ((addr-hex (addr:address-to-hex address)))
       (let ((params (lisp String (addr-hex)
                       (cl:format cl:nil "[\"~A\",\"latest\"]" addr-hex))))
-        (match (json-rpc-call provider "eth_getCode" params)
-          ((Err e) (Err e))
-          ((Ok result) (types:hex-decode result))))))
+        (>>= (json-rpc-call provider "eth_getCode" params) types:hex-decode))))
 
   (declare eth-get-storage-at (HttpProvider -> addr:Address -> types:U256 -> (types:Web3Result types:Bytes)))
   (define (eth-get-storage-at provider address slot)
@@ -148,16 +132,12 @@
           (slot-hex (types:hex-encode-prefixed (types:u256-to-bytes slot))))
       (let ((params (lisp String (addr-hex slot-hex)
                       (cl:format cl:nil "[\"~A\",\"~A\",\"latest\"]" addr-hex slot-hex))))
-        (match (json-rpc-call provider "eth_getStorageAt" params)
-          ((Err e) (Err e))
-          ((Ok result) (types:hex-decode result))))))
+        (>>= (json-rpc-call provider "eth_getStorageAt" params) types:hex-decode))))
 
   (declare eth-max-priority-fee-per-gas (HttpProvider -> (types:Web3Result types:U256)))
   (define (eth-max-priority-fee-per-gas provider)
     "Get the suggested max priority fee per gas (EIP-1559)"
-    (match (json-rpc-call provider "eth_maxPriorityFeePerGas" "[]")
-      ((Err e) (Err e))
-      ((Ok result) (Ok (%hex-result-to-u256 result)))))
+    (map %hex-result-to-u256 (json-rpc-call provider "eth_maxPriorityFeePerGas" "[]")))
 
   (declare eth-get-block-by-number (HttpProvider -> String -> Boolean -> (types:Web3Result (Optional String))))
   (define (eth-get-block-by-number provider block-tag full-txs)
@@ -197,10 +177,8 @@
   (declare eth-syncing (HttpProvider -> (types:Web3Result Boolean)))
   (define (eth-syncing provider)
     "Check if the node is syncing. Returns True if syncing, False if synced."
-    (match (json-rpc-call-nullable provider "eth_syncing" "[]")
-      ((Err e) (Err e))
-      ((Ok (None)) (Ok False))
-      ((Ok (Some _)) (Ok True)))))
+    (map (fn (opt) (match opt ((None) False) ((Some _) True)))
+         (json-rpc-call-nullable provider "eth_syncing" "[]"))))
 
 ;;; =========================================================================
 ;;; Transaction Receipt Waiting (CL-level polling loop)

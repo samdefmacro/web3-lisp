@@ -31,85 +31,70 @@
   ;;; Function/Event Lookup
   ;;; =========================================================================
 
-  (declare get-function (Contract -> String -> (Optional abi-parser:ParsedFunction)))
-  (define (get-function contract name)
-    "Get a function from the contract ABI by name"
-    (find-function-in-items (.contract-abi contract) name))
-
-  (declare find-function-in-items ((List abi-parser:AbiItem) -> String -> (Optional abi-parser:ParsedFunction)))
-  (define (find-function-in-items items name)
-    "Search for a function by name in ABI items"
+  (declare %find-mapped ((List abi-parser:AbiItem) -> (abi-parser:AbiItem -> (Optional :a)) -> (Optional :a)))
+  (define (%find-mapped items extract)
     (match items
       ((Nil) None)
       ((Cons item rest)
-       (match item
-         ((abi-parser:AbiFunction fn)
-          (if (lisp Boolean (fn name)
-                (cl:string= (coalton:coalton
-                             (abi-parser:.fn-name
-                              (coalton:lisp abi-parser:ParsedFunction () fn)))
-                            name))
-              (Some fn)
-              (find-function-in-items rest name)))
-         (_ (find-function-in-items rest name))))))
+       (match (extract item)
+         ((Some val) (Some val))
+         ((None) (%find-mapped rest extract))))))
+
+  (declare get-function (Contract -> String -> (Optional abi-parser:ParsedFunction)))
+  (define (get-function contract name)
+    "Get a function from the contract ABI by name"
+    (%find-mapped (.contract-abi contract)
+      (fn (item)
+        (match item
+          ((abi-parser:AbiFunction fn)
+           (if (lisp Boolean (fn name)
+                 (cl:string= (coalton:coalton
+                              (abi-parser:.fn-name
+                               (coalton:lisp abi-parser:ParsedFunction () fn)))
+                             name))
+               (Some fn)
+               None))
+          (_ None)))))
 
   (declare get-event (Contract -> String -> (Optional abi-parser:ParsedEvent)))
   (define (get-event contract name)
     "Get an event from the contract ABI by name"
-    (find-event-in-items (.contract-abi contract) name))
-
-  (declare find-event-in-items ((List abi-parser:AbiItem) -> String -> (Optional abi-parser:ParsedEvent)))
-  (define (find-event-in-items items name)
-    "Search for an event by name in ABI items"
-    (match items
-      ((Nil) None)
-      ((Cons item rest)
-       (match item
-         ((abi-parser:AbiEvent ev)
-          (if (lisp Boolean (ev name)
-                (cl:string= (coalton:coalton
-                             (abi-parser:.event-name
-                              (coalton:lisp abi-parser:ParsedEvent () ev)))
-                            name))
-              (Some ev)
-              (find-event-in-items rest name)))
-         (_ (find-event-in-items rest name))))))
+    (%find-mapped (.contract-abi contract)
+      (fn (item)
+        (match item
+          ((abi-parser:AbiEvent ev)
+           (if (lisp Boolean (ev name)
+                 (cl:string= (coalton:coalton
+                              (abi-parser:.event-name
+                               (coalton:lisp abi-parser:ParsedEvent () ev)))
+                             name))
+               (Some ev)
+               None))
+          (_ None)))))
 
   (declare get-function-by-selector (Contract -> types:Bytes -> (Optional abi-parser:ParsedFunction)))
   (define (get-function-by-selector contract selector)
     "Get a function from the contract ABI by its 4-byte selector"
-    (find-function-by-selector-in-items (.contract-abi contract) selector))
-
-  (declare find-function-by-selector-in-items ((List abi-parser:AbiItem) -> types:Bytes -> (Optional abi-parser:ParsedFunction)))
-  (define (find-function-by-selector-in-items items selector)
-    "Search for a function by selector in ABI items"
-    (match items
-      ((Nil) None)
-      ((Cons item rest)
-       (match item
-         ((abi-parser:AbiFunction fn)
-          (if (bytes-prefix-equal? (abi-parser:.fn-selector fn) selector 4)
-              (Some fn)
-              (find-function-by-selector-in-items rest selector)))
-         (_ (find-function-by-selector-in-items rest selector))))))
+    (%find-mapped (.contract-abi contract)
+      (fn (item)
+        (match item
+          ((abi-parser:AbiFunction fn)
+           (if (bytes-prefix-equal? (abi-parser:.fn-selector fn) selector 4)
+               (Some fn)
+               None))
+          (_ None)))))
 
   (declare get-event-by-topic (Contract -> types:Bytes -> (Optional abi-parser:ParsedEvent)))
   (define (get-event-by-topic contract topic)
     "Get an event from the contract ABI by its topic0 (32-byte keccak hash)"
-    (find-event-by-topic-in-items (.contract-abi contract) topic))
-
-  (declare find-event-by-topic-in-items ((List abi-parser:AbiItem) -> types:Bytes -> (Optional abi-parser:ParsedEvent)))
-  (define (find-event-by-topic-in-items items topic)
-    "Search for an event by topic in ABI items"
-    (match items
-      ((Nil) None)
-      ((Cons item rest)
-       (match item
-         ((abi-parser:AbiEvent ev)
-          (if (bytes-equal? (abi-parser:.event-topic ev) topic)
-              (Some ev)
-              (find-event-by-topic-in-items rest topic)))
-         (_ (find-event-by-topic-in-items rest topic))))))
+    (%find-mapped (.contract-abi contract)
+      (fn (item)
+        (match item
+          ((abi-parser:AbiEvent ev)
+           (if (bytes-equal? (abi-parser:.event-topic ev) topic)
+               (Some ev)
+               None))
+          (_ None)))))
 
   ;; Byte comparison helpers
   (declare bytes-equal? (types:Bytes -> types:Bytes -> Boolean))

@@ -11,21 +11,19 @@
    ;; Chain type
    #:Chain
    #:NativeCurrency
-   #:make-chain
-   #:make-native-currency
 
    ;; Chain accessors
-   #:chain-id
-   #:chain-name
-   #:chain-short-name
-   #:chain-native-currency
-   #:chain-block-explorer
-   #:chain-is-testnet
+   #:.chain-id
+   #:.chain-name
+   #:.chain-short-name
+   #:.chain-native-currency
+   #:.chain-block-explorer
+   #:.chain-is-testnet
 
    ;; Native currency accessors
-   #:currency-name
-   #:currency-symbol
-   #:currency-decimals
+   #:.currency-name
+   #:.currency-symbol
+   #:.currency-decimals
 
    ;; Chain ID constants
    #:chain-id-mainnet

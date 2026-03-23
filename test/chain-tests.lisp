@@ -39,46 +39,46 @@
   ;;; =========================================================================
 
   (test-case "ethereum-mainnet has correct chain ID"
-    (let ((id (coalton:coalton (web3/chain:chain-id web3/chain:ethereum-mainnet))))
+    (let ((id (coalton:coalton (web3/chain:.chain-id web3/chain:ethereum-mainnet))))
       (assert (= id 1))))
 
   (test-case "ethereum-mainnet has correct name"
-    (let ((name (coalton:coalton (web3/chain:chain-name web3/chain:ethereum-mainnet))))
+    (let ((name (coalton:coalton (web3/chain:.chain-name web3/chain:ethereum-mainnet))))
       (assert (string= name "Ethereum"))))
 
   (test-case "ethereum-mainnet is not a testnet"
-    (let ((testnet (coalton:coalton (web3/chain:chain-is-testnet web3/chain:ethereum-mainnet))))
+    (let ((testnet (coalton:coalton (web3/chain:.chain-is-testnet web3/chain:ethereum-mainnet))))
       (assert (not testnet))))
 
   (test-case "sepolia is a testnet"
-    (let ((testnet (coalton:coalton (web3/chain:chain-is-testnet web3/chain:sepolia))))
+    (let ((testnet (coalton:coalton (web3/chain:.chain-is-testnet web3/chain:sepolia))))
       (assert testnet)))
 
   (test-case "polygon has correct explorer"
-    (let ((explorer (coalton:coalton (web3/chain:chain-block-explorer web3/chain:polygon))))
+    (let ((explorer (coalton:coalton (web3/chain:.chain-block-explorer web3/chain:polygon))))
       (assert (search "polygonscan" explorer))))
 
   (test-case "arbitrum-one uses ETH"
     (let* ((chain (coalton:coalton web3/chain:arbitrum-one))
-           (currency (coalton:coalton (web3/chain:chain-native-currency
+           (currency (coalton:coalton (web3/chain:.chain-native-currency
                                        (coalton:lisp web3/chain:Chain () chain))))
-           (symbol (coalton:coalton (web3/chain:currency-symbol
+           (symbol (coalton:coalton (web3/chain:.currency-symbol
                                      (coalton:lisp web3/chain:NativeCurrency () currency)))))
       (assert (string= symbol "ETH"))))
 
   (test-case "bsc uses BNB"
     (let* ((chain (coalton:coalton web3/chain:bsc))
-           (currency (coalton:coalton (web3/chain:chain-native-currency
+           (currency (coalton:coalton (web3/chain:.chain-native-currency
                                        (coalton:lisp web3/chain:Chain () chain))))
-           (symbol (coalton:coalton (web3/chain:currency-symbol
+           (symbol (coalton:coalton (web3/chain:.currency-symbol
                                      (coalton:lisp web3/chain:NativeCurrency () currency)))))
       (assert (string= symbol "BNB"))))
 
   (test-case "avalanche uses AVAX"
     (let* ((chain (coalton:coalton web3/chain:avalanche))
-           (currency (coalton:coalton (web3/chain:chain-native-currency
+           (currency (coalton:coalton (web3/chain:.chain-native-currency
                                        (coalton:lisp web3/chain:Chain () chain))))
-           (symbol (coalton:coalton (web3/chain:currency-symbol
+           (symbol (coalton:coalton (web3/chain:.currency-symbol
                                      (coalton:lisp web3/chain:NativeCurrency () currency)))))
       (assert (string= symbol "AVAX"))))
 
@@ -86,13 +86,13 @@
   ;;; Native Currency Tests
   ;;; =========================================================================
 
-  (test-case "make-native-currency creates currency"
-    (let* ((currency (coalton:coalton (web3/chain:make-native-currency "Test" "TST" 18)))
-           (name (coalton:coalton (web3/chain:currency-name
+  (test-case "NativeCurrency constructor creates currency"
+    (let* ((currency (coalton:coalton (web3/chain:NativeCurrency "Test" "TST" 18)))
+           (name (coalton:coalton (web3/chain:.currency-name
                                    (coalton:lisp web3/chain:NativeCurrency () currency))))
-           (symbol (coalton:coalton (web3/chain:currency-symbol
+           (symbol (coalton:coalton (web3/chain:.currency-symbol
                                      (coalton:lisp web3/chain:NativeCurrency () currency))))
-           (decimals (coalton:coalton (web3/chain:currency-decimals
+           (decimals (coalton:coalton (web3/chain:.currency-decimals
                                        (coalton:lisp web3/chain:NativeCurrency () currency)))))
       (assert (string= name "Test"))
       (assert (string= symbol "TST"))
@@ -106,7 +106,7 @@
     (let ((result (coalton:coalton (web3/chain:get-chain-by-id 1))))
       (assert (optional-some-p result))
       (let* ((chain (result-value result))
-             (name (coalton:coalton (web3/chain:chain-name
+             (name (coalton:coalton (web3/chain:.chain-name
                                      (coalton:lisp web3/chain:Chain () chain)))))
         (assert (string= name "Ethereum")))))
 
@@ -114,7 +114,7 @@
     (let ((result (coalton:coalton (web3/chain:get-chain-by-id 137))))
       (assert (optional-some-p result))
       (let* ((chain (result-value result))
-             (name (coalton:coalton (web3/chain:chain-name
+             (name (coalton:coalton (web3/chain:.chain-name
                                      (coalton:lisp web3/chain:Chain () chain)))))
         (assert (string= name "Polygon")))))
 
@@ -214,13 +214,13 @@
   ;;; =========================================================================
 
   (test-case "localhost has chain ID 31337"
-    (let ((id (coalton:coalton (web3/chain:chain-id web3/chain:localhost))))
+    (let ((id (coalton:coalton (web3/chain:.chain-id web3/chain:localhost))))
       (assert (= id 31337))))
 
   (test-case "hardhat has chain ID 31337"
-    (let ((id (coalton:coalton (web3/chain:chain-id web3/chain:hardhat))))
+    (let ((id (coalton:coalton (web3/chain:.chain-id web3/chain:hardhat))))
       (assert (= id 31337))))
 
   (test-case "anvil has chain ID 31337"
-    (let ((id (coalton:coalton (web3/chain:chain-id web3/chain:anvil))))
+    (let ((id (coalton:coalton (web3/chain:.chain-id web3/chain:anvil))))
       (assert (= id 31337)))))

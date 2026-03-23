@@ -10,86 +10,24 @@
   ;;; Native Currency Type
   ;;; =========================================================================
 
-  (define-type NativeCurrency
-    (NativeCurrency String   ; name (e.g., "Ether")
-                    String   ; symbol (e.g., "ETH")
-                    UFix))   ; decimals (e.g., 18)
-
-  (declare make-native-currency (String -> String -> UFix -> NativeCurrency))
-  (define (make-native-currency name symbol decimals)
-    "Create a native currency configuration"
-    (NativeCurrency name symbol decimals))
-
-  (declare currency-name (NativeCurrency -> String))
-  (define (currency-name curr)
-    "Get the currency name"
-    (match curr
-      ((NativeCurrency name _ _) name)))
-
-  (declare currency-symbol (NativeCurrency -> String))
-  (define (currency-symbol curr)
-    "Get the currency symbol"
-    (match curr
-      ((NativeCurrency _ sym _) sym)))
-
-  (declare currency-decimals (NativeCurrency -> UFix))
-  (define (currency-decimals curr)
-    "Get the currency decimals"
-    (match curr
-      ((NativeCurrency _ _ dec) dec)))
+  (define-struct NativeCurrency
+    "Native currency configuration"
+    (currency-name String)       ; e.g., "Ether"
+    (currency-symbol String)     ; e.g., "ETH"
+    (currency-decimals UFix))    ; e.g., 18
 
   ;;; =========================================================================
   ;;; Chain Type
   ;;; =========================================================================
 
-  (define-type Chain
-    (Chain UFix            ; chain ID
-           String          ; name
-           String          ; short name
-           NativeCurrency  ; native currency
-           String          ; block explorer URL
-           Boolean))       ; is testnet
-
-  (declare make-chain (UFix -> String -> String -> NativeCurrency -> String -> Boolean -> Chain))
-  (define (make-chain id name short-name currency explorer is-testnet)
-    "Create a chain configuration"
-    (Chain id name short-name currency explorer is-testnet))
-
-  (declare chain-id (Chain -> UFix))
-  (define (chain-id chain)
-    "Get the chain ID"
-    (match chain
-      ((Chain id _ _ _ _ _) id)))
-
-  (declare chain-name (Chain -> String))
-  (define (chain-name chain)
-    "Get the chain name"
-    (match chain
-      ((Chain _ name _ _ _ _) name)))
-
-  (declare chain-short-name (Chain -> String))
-  (define (chain-short-name chain)
-    "Get the chain short name"
-    (match chain
-      ((Chain _ _ short _ _ _) short)))
-
-  (declare chain-native-currency (Chain -> NativeCurrency))
-  (define (chain-native-currency chain)
-    "Get the native currency"
-    (match chain
-      ((Chain _ _ _ curr _ _) curr)))
-
-  (declare chain-block-explorer (Chain -> String))
-  (define (chain-block-explorer chain)
-    "Get the block explorer URL"
-    (match chain
-      ((Chain _ _ _ _ explorer _) explorer)))
-
-  (declare chain-is-testnet (Chain -> Boolean))
-  (define (chain-is-testnet chain)
-    "Check if chain is a testnet"
-    (match chain
-      ((Chain _ _ _ _ _ testnet) testnet)))
+  (define-struct Chain
+    "Blockchain network configuration"
+    (chain-id UFix)
+    (chain-name String)
+    (chain-short-name String)
+    (chain-native-currency NativeCurrency)
+    (chain-block-explorer String)
+    (chain-is-testnet Boolean))
 
   ;;; =========================================================================
   ;;; Chain ID Constants
@@ -509,12 +447,12 @@
   (declare mainnet-chains (List Chain))
   (define mainnet-chains
     "Get all mainnet chains"
-    (filter (fn (c) (not (chain-is-testnet c))) all-chains))
+    (filter (fn (c) (not (.chain-is-testnet c))) all-chains))
 
   (declare testnet-chains (List Chain))
   (define testnet-chains
     "Get all testnet chains"
-    (filter chain-is-testnet all-chains))
+    (filter .chain-is-testnet all-chains))
 
   ;;; =========================================================================
   ;;; Lookup Functions
@@ -523,15 +461,15 @@
   (declare get-chain-by-id (UFix -> (Optional Chain)))
   (define (get-chain-by-id id)
     "Look up a chain by its chain ID"
-    (find (fn (c) (== (chain-id c) id)) all-chains))
+    (find (fn (c) (== (.chain-id c) id)) all-chains))
 
   (declare get-chain-by-name (String -> (Optional Chain)))
   (define (get-chain-by-name name)
     "Look up a chain by name (case-insensitive)"
     (let ((lower-name (types:string-downcase name)))
       (find (fn (c)
-              (or (== (types:string-downcase (chain-name c)) lower-name)
-                  (== (types:string-downcase (chain-short-name c)) lower-name)))
+              (or (== (types:string-downcase (.chain-name c)) lower-name)
+                  (== (types:string-downcase (.chain-short-name c)) lower-name)))
             all-chains)))
 
   ;;; =========================================================================
@@ -563,7 +501,7 @@
   (declare explorer-tx-url (Chain -> String -> String))
   (define (explorer-tx-url chain tx-hash)
     "Build a transaction URL for the block explorer"
-    (let ((base (chain-block-explorer chain)))
+    (let ((base (.chain-block-explorer chain)))
       (if (== base "")
           ""
           (lisp String (base tx-hash)
@@ -572,7 +510,7 @@
   (declare explorer-address-url (Chain -> String -> String))
   (define (explorer-address-url chain address)
     "Build an address URL for the block explorer"
-    (let ((base (chain-block-explorer chain)))
+    (let ((base (.chain-block-explorer chain)))
       (if (== base "")
           ""
           (lisp String (base address)
@@ -581,7 +519,7 @@
   (declare explorer-block-url (Chain -> UFix -> String))
   (define (explorer-block-url chain block-number)
     "Build a block URL for the block explorer"
-    (let ((base (chain-block-explorer chain)))
+    (let ((base (.chain-block-explorer chain)))
       (if (== base "")
           ""
           (lisp String (base block-number)

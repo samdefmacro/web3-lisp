@@ -307,6 +307,39 @@
    (parse-optional-ufix (json-get alist "blobGasUsed"))
    (parse-optional-ufix (json-get alist "excessBlobGas"))))
 
+(cl:defun %parse-transactions (raw-txs full-txs)
+  "Parse transaction list from JSON."
+  (cl:if (cl:null raw-txs)
+         Nil
+         (cl:reduce
+          (cl:lambda (acc tx)
+            (Cons (cl:if full-txs
+                         (TxFull (parse-hex-to-bytes (cl:or (json-get tx "hash") "")))
+                         (TxHash (parse-hex-to-bytes tx)))
+                  acc))
+          raw-txs :initial-value Nil :from-end cl:t)))
+
+(cl:defun %parse-uncles (raw-uncles)
+  "Parse uncle hash list from JSON."
+  (cl:if (cl:null raw-uncles)
+         Nil
+         (cl:reduce
+          (cl:lambda (acc u) (Cons (parse-hex-to-bytes u) acc))
+          raw-uncles :initial-value Nil :from-end cl:t)))
+
+(cl:defun %parse-withdrawals (raw-withdrawals)
+  "Parse withdrawal list from JSON."
+  (cl:if (cl:null raw-withdrawals)
+         Nil
+         (cl:reduce
+          (cl:lambda (acc w)
+            (Cons (Withdrawal
+                   (parse-hex-to-ufix (json-get w "index"))
+                   (parse-hex-to-ufix (json-get w "validatorIndex"))
+                   (parse-address-from-hex (json-get w "address"))
+                   (parse-hex-to-ufix (json-get w "amount")))
+                  acc))
+          raw-withdrawals :initial-value Nil :from-end cl:t)))
 
 (coalton-toplevel
 
@@ -365,46 +398,9 @@
             (cl:if (cl:null obj)
                    (make-err-provider "Invalid JSON")
                    (cl:let* ((header (%parse-header-from-alist obj))
-                            ;; Parse transactions
-                            (raw-txs (json-get obj "transactions"))
-                            (txs (cl:if (cl:null raw-txs)
-                                        Nil
-                                        (cl:reduce
-                                         (cl:lambda (acc tx)
-                                           (Cons (cl:if full-txs
-                                                        (TxFull (parse-hex-to-bytes
-                                                                 (cl:or (json-get tx "hash") "")))
-                                                        (TxHash (parse-hex-to-bytes tx)))
-                                                 acc))
-                                         raw-txs
-                                         :initial-value Nil
-                                         :from-end cl:t)))
-                            ;; Parse uncles
-                            (raw-uncles (json-get obj "uncles"))
-                            (uncles (cl:if (cl:null raw-uncles)
-                                           Nil
-                                           (cl:reduce
-                                            (cl:lambda (acc u)
-                                              (Cons (parse-hex-to-bytes u) acc))
-                                            raw-uncles
-                                            :initial-value Nil
-                                            :from-end cl:t)))
-                            ;; Parse withdrawals
-                            (raw-withdrawals (json-get obj "withdrawals"))
-                            (withdrawals
-                             (cl:if (cl:null raw-withdrawals)
-                                    Nil
-                                    (cl:reduce
-                                     (cl:lambda (acc w)
-                                       (Cons (Withdrawal
-                                              (parse-hex-to-ufix (json-get w "index"))
-                                              (parse-hex-to-ufix (json-get w "validatorIndex"))
-                                              (parse-address-from-hex (json-get w "address"))
-                                              (parse-hex-to-ufix (json-get w "amount")))
-                                             acc))
-                                     raw-withdrawals
-                                     :initial-value Nil
-                                     :from-end cl:t)))
+                            (txs (%parse-transactions (json-get obj "transactions") full-txs))
+                            (uncles (%parse-uncles (json-get obj "uncles")))
+                            (withdrawals (%parse-withdrawals (json-get obj "withdrawals")))
                             (block (Block header txs uncles withdrawals)))
                      (make-ok-block block))))
         (cl:error (e)
@@ -456,43 +452,9 @@
               (cl:t
                ;; Parse the block
                (cl:let* ((header (%parse-header-from-alist result))
-                         (raw-txs (json-get result "transactions"))
-                         (txs (cl:if (cl:null raw-txs)
-                                     Nil
-                                     (cl:reduce
-                                      (cl:lambda (acc tx)
-                                        (Cons (cl:if full-txs
-                                                     (TxFull (parse-hex-to-bytes
-                                                              (cl:or (json-get tx "hash") "")))
-                                                     (TxHash (parse-hex-to-bytes tx)))
-                                              acc))
-                                      raw-txs
-                                      :initial-value Nil
-                                      :from-end cl:t)))
-                         (raw-uncles (json-get result "uncles"))
-                         (uncles (cl:if (cl:null raw-uncles)
-                                        Nil
-                                        (cl:reduce
-                                         (cl:lambda (acc u)
-                                           (Cons (parse-hex-to-bytes u) acc))
-                                         raw-uncles
-                                         :initial-value Nil
-                                         :from-end cl:t)))
-                         (raw-withdrawals (json-get result "withdrawals"))
-                         (withdrawals
-                          (cl:if (cl:null raw-withdrawals)
-                                 Nil
-                                 (cl:reduce
-                                  (cl:lambda (acc w)
-                                    (Cons (Withdrawal
-                                           (parse-hex-to-ufix (json-get w "index"))
-                                           (parse-hex-to-ufix (json-get w "validatorIndex"))
-                                           (parse-address-from-hex (json-get w "address"))
-                                           (parse-hex-to-ufix (json-get w "amount")))
-                                          acc))
-                                  raw-withdrawals
-                                  :initial-value Nil
-                                  :from-end cl:t)))
+                         (txs (%parse-transactions (json-get result "transactions") full-txs))
+                         (uncles (%parse-uncles (json-get result "uncles")))
+                         (withdrawals (%parse-withdrawals (json-get result "withdrawals")))
                          (block (Block header txs uncles withdrawals)))
                  (make-ok-optional-block (make-coalton-some-block block))))))
         (cl:error (e)

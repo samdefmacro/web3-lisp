@@ -146,21 +146,11 @@
     (lisp (types:Web3Result Receipt) (json-str)
       (%parse-receipt-json json-str)))
 
-  (declare parse-receipt-json (String -> (types:Web3Result Receipt)))
-  (define (parse-receipt-json json-str)
-    "Alias for parse-receipt"
-    (parse-receipt json-str))
-
   (declare parse-log-entry (String -> (types:Web3Result LogEntry)))
   (define (parse-log-entry json-str)
     "Parse a single log entry from JSON string"
     (lisp (types:Web3Result LogEntry) (json-str)
       (%parse-log-entry-json json-str)))
-
-  (declare parse-log-entry-json (String -> (types:Web3Result LogEntry)))
-  (define (parse-log-entry-json json-str)
-    "Alias for parse-log-entry"
-    (parse-log-entry json-str))
 
   ;;; =========================================================================
   ;;; JSON-RPC Request/Response
