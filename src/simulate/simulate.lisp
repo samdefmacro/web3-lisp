@@ -335,22 +335,26 @@
     (match (provider:eth-get-transaction-count provider from)
       ((Err e) (Err e))
       ((Ok nonce)
-       (let ((data-hex (types:hex-encode-prefixed data))
+       (let ((from-hex (addr:address-to-hex from))
+             (data-hex (types:hex-encode-prefixed data))
              (value-hex (types:hex-encode-prefixed (types:u256-to-bytes value))))
+         ;; from must be passed to eth_estimateGas — without it,
+         ;; access-controlled functions (msg.sender checks) revert and gas
+         ;; estimation fails or returns wrong values.
          (let ((gas-result
                  (match to
                    ((Some to-addr)
                     (let ((to-hex (addr:address-to-hex to-addr)))
-                      (let ((params (lisp String (to-hex value-hex data-hex)
-                                      (cl:format cl:nil "[{\"to\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"}]"
-                                                 to-hex value-hex data-hex))))
+                      (let ((params (lisp String (from-hex to-hex value-hex data-hex)
+                                      (cl:format cl:nil "[{\"from\":\"~A\",\"to\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"}]"
+                                                 from-hex to-hex value-hex data-hex))))
                         (match (provider:json-rpc-call provider "eth_estimateGas" params)
                           ((Err e) (Err e))
                           ((Ok result) (Ok (%hex-result-to-u64 result)))))))
                    ((None)
-                    (let ((params (lisp String (value-hex data-hex)
-                                    (cl:format cl:nil "[{\"value\":\"~A\",\"data\":\"~A\"}]"
-                                               value-hex data-hex))))
+                    (let ((params (lisp String (from-hex value-hex data-hex)
+                                    (cl:format cl:nil "[{\"from\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"}]"
+                                               from-hex value-hex data-hex))))
                       (match (provider:json-rpc-call provider "eth_estimateGas" params)
                         ((Err e) (Err e))
                         ((Ok result) (Ok (%hex-result-to-u64 result)))))))))
