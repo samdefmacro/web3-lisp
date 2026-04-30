@@ -14,6 +14,9 @@
    #:make-wallet
    #:wallet-with-provider
 
+   ;; Struct accessors
+   #:.wallet-provider
+
    ;; Wallet operations
    #:wallet-address
    #:wallet-sign-transaction

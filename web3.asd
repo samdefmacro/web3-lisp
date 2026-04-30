@@ -360,6 +360,25 @@
   :components ((:file "package")
                (:file "contract")))
 
+;;; Contract Write - high-level send-transaction for contracts
+(asdf:defsystem "web3/contract-write"
+  :description "Contract write transactions: encode + sign + send (EIP-1559)"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/abi"
+               "web3/transaction"
+               "web3/provider"
+               "web3/wallet"
+               "web3/simulate"
+               "web3/contract")
+  :pathname "src/contract-write/"
+  :serial t
+  :components ((:file "package")
+               (:file "contract-write")))
+
 ;;; WebSocket Provider
 (asdf:defsystem "web3/ws-provider"
   :description "WebSocket provider for real-time Ethereum subscriptions"
@@ -648,6 +667,7 @@
                "web3/hdwallet"
                "web3/abi-parser"
                "web3/contract"
+               "web3/contract-write"
                "web3/ws-provider"
                "web3/gas"
                "web3/receipt"
@@ -697,6 +717,7 @@
                (:file "hdwallet-tests")
                (:file "abi-parser-tests")
                (:file "contract-tests")
+               (:file "contract-write-tests")
                (:file "ws-provider-tests")
                (:file "gas-tests")
                (:file "receipt-tests")

@@ -420,6 +420,9 @@
   ;; Phase 13: Contract Abstraction
   (run-contract-tests)
 
+  ;; Phase 13b: Contract Write (high-level send-transaction)
+  (run-contract-write-tests)
+
   ;; Phase 14: WebSocket Provider
   (run-ws-provider-tests)
 
