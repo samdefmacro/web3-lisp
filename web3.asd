@@ -71,6 +71,7 @@
   :components ((:file "package")
                (:file "types")
                (:file "encode")
+               (:file "encode-packed")
                (:file "decode")
                (:file "selector")))
 

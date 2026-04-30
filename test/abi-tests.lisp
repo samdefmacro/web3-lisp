@@ -271,4 +271,248 @@
                                     (coalton:Cons web3/abi:AbiString
                                                   (coalton:Cons web3/abi:AbiBool coalton:Nil)))
                       (coalton:lisp web3/types:Bytes () encoded)))))
-      (assert (result-ok-p decoded)))))
+      (assert (result-ok-p decoded))))
+
+  ;;; =========================================================================
+  ;;; abi-encode-packed (Solidity abi.encodePacked)
+  ;;; Test vectors from viem's encodePacked.test.ts
+  ;;; =========================================================================
+
+  (test-case "abi-encode-packed: address (no padding at top level)"
+    (let* ((addr (web3/types:%parse-hex-bytes "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))
+           (result (coalton:coalton
+                     (coalton:match
+                       (web3/abi:abi-encode-packed
+                        (coalton:Cons
+                         (coalton-prelude:Tuple
+                          web3/abi:AbiAddress
+                          (web3/abi:AbiAddressVal
+                           (coalton:lisp web3/types:Bytes () addr)))
+                         coalton:Nil))
+                       ((coalton-library/classes:Ok b) b)
+                       ((coalton-library/classes:Err _e)
+                        (coalton:lisp web3/types:Bytes ()
+                          (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal addr result))))
+
+  (test-case "abi-encode-packed: string (utf-8, no length prefix)"
+    (let ((expected (web3/types:%parse-hex-bytes "0x68656c6c6f20776f726c64"))
+          (result (coalton:coalton
+                    (coalton:match
+                      (web3/abi:abi-encode-packed
+                       (coalton:Cons
+                        (coalton-prelude:Tuple
+                         web3/abi:AbiString
+                         (web3/abi:AbiStringVal "hello world"))
+                        coalton:Nil))
+                      ((coalton-library/classes:Ok b) b)
+                      ((coalton-library/classes:Err _e)
+                       (coalton:lisp web3/types:Bytes ()
+                         (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: bool true is single byte 0x01"
+    (let ((result (coalton:coalton
+                    (coalton:match
+                      (web3/abi:abi-encode-packed
+                       (coalton:Cons
+                        (coalton-prelude:Tuple
+                         web3/abi:AbiBool
+                         (web3/abi:AbiBoolVal coalton:True))
+                        coalton:Nil))
+                      ((coalton-library/classes:Ok b) b)
+                      ((coalton-library/classes:Err _e)
+                       (coalton:lisp web3/types:Bytes ()
+                         (web3/types:make-bytes 0)))))))
+      (assert (= (length result) 1))
+      (assert (= (aref result 0) 1))))
+
+  (test-case "abi-encode-packed: uint8(200) -> 0xc8"
+    (let ((expected (web3/types:%parse-hex-bytes "0xc8"))
+          (result (coalton:coalton
+                    (coalton:match
+                      (web3/abi:abi-encode-packed
+                       (coalton:Cons
+                        (coalton-prelude:Tuple
+                         (web3/abi:AbiUint 8)
+                         (web3/abi:AbiUintVal (web3/types:u256-from-integer 200)))
+                        coalton:Nil))
+                      ((coalton-library/classes:Ok b) b)
+                      ((coalton-library/classes:Err _e)
+                       (coalton:lisp web3/types:Bytes ()
+                         (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: uint48(20123120) -> 6 bytes"
+    (let ((expected (web3/types:%parse-hex-bytes "0x000001330df0"))
+          (result (coalton:coalton
+                    (coalton:match
+                      (web3/abi:abi-encode-packed
+                       (coalton:Cons
+                        (coalton-prelude:Tuple
+                         (web3/abi:AbiUint 48)
+                         (web3/abi:AbiUintVal (web3/types:u256-from-integer 20123120)))
+                        coalton:Nil))
+                      ((coalton-library/classes:Ok b) b)
+                      ((coalton-library/classes:Err _e)
+                       (coalton:lisp web3/types:Bytes ()
+                         (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: uint256(69420) -> 32 bytes"
+    (let ((expected (web3/types:%parse-hex-bytes
+                     "0x0000000000000000000000000000000000000000000000000000000000010f2c"))
+          (result (coalton:coalton
+                    (coalton:match
+                      (web3/abi:abi-encode-packed
+                       (coalton:Cons
+                        (coalton-prelude:Tuple
+                         (web3/abi:AbiUint 256)
+                         (web3/abi:AbiUintVal (web3/types:u256-from-integer 69420)))
+                        coalton:Nil))
+                      ((coalton-library/classes:Ok b) b)
+                      ((coalton-library/classes:Err _e)
+                       (coalton:lisp web3/types:Bytes ()
+                         (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: int8(-121) -> 0x87 (two's complement)"
+    (let ((expected (web3/types:%parse-hex-bytes "0x87"))
+          (result (coalton:coalton
+                    (coalton:match
+                      (web3/abi:abi-encode-packed
+                       (coalton:Cons
+                        (coalton-prelude:Tuple
+                         (web3/abi:AbiInt 8)
+                         (web3/abi:AbiIntVal -121))
+                        coalton:Nil))
+                      ((coalton-library/classes:Ok b) b)
+                      ((coalton-library/classes:Err _e)
+                       (coalton:lisp web3/types:Bytes ()
+                         (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: int256(-69420) sign-extended to 32 bytes"
+    (let ((expected (web3/types:%parse-hex-bytes
+                     "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffef0d4"))
+          (result (coalton:coalton
+                    (coalton:match
+                      (web3/abi:abi-encode-packed
+                       (coalton:Cons
+                        (coalton-prelude:Tuple
+                         (web3/abi:AbiInt 256)
+                         (web3/abi:AbiIntVal -69420))
+                        coalton:Nil))
+                      ((coalton-library/classes:Ok b) b)
+                      ((coalton-library/classes:Err _e)
+                       (coalton:lisp web3/types:Bytes ()
+                         (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: bytes4 (no padding at top level)"
+    (let* ((data (web3/types:%parse-hex-bytes "0xdeadbeef"))
+           (result (coalton:coalton
+                     (coalton:match
+                       (web3/abi:abi-encode-packed
+                        (coalton:Cons
+                         (coalton-prelude:Tuple
+                          (web3/abi:AbiBytesFixed 4)
+                          (web3/abi:AbiBytesFixedVal
+                           (coalton:lisp web3/types:Bytes () data)))
+                         coalton:Nil))
+                       ((coalton-library/classes:Ok b) b)
+                       ((coalton-library/classes:Err _e)
+                        (coalton:lisp web3/types:Bytes ()
+                          (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal data result))))
+
+  (test-case "abi-encode-packed: dynamic bytes (no length prefix)"
+    (let* ((data (web3/types:%parse-hex-bytes "0xdeadbeef"))
+           (result (coalton:coalton
+                     (coalton:match
+                       (web3/abi:abi-encode-packed
+                        (coalton:Cons
+                         (coalton-prelude:Tuple
+                          web3/abi:AbiBytes
+                          (web3/abi:AbiBytesVal
+                           (coalton:lisp web3/types:Bytes () data)))
+                         coalton:Nil))
+                       ((coalton-library/classes:Ok b) b)
+                       ((coalton-library/classes:Err _e)
+                        (coalton:lisp web3/types:Bytes ()
+                          (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal data result))))
+
+  (test-case "abi-encode-packed: address[] (each padded to 32)"
+    (let* ((a1 (web3/types:%parse-hex-bytes "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))
+           (a2 (web3/types:%parse-hex-bytes "0x5414d89a8bf7e99d732bc52f3e6a3ef461c0c078"))
+           (expected
+             (web3/types:%parse-hex-bytes
+              "0x000000000000000000000000d8da6bf26964af9d7eed9e03e53415d37aa960450000000000000000000000005414d89a8bf7e99d732bc52f3e6a3ef461c0c078"))
+           (result (coalton:coalton
+                     (coalton:match
+                       (web3/abi:abi-encode-packed
+                        (coalton:Cons
+                         (coalton-prelude:Tuple
+                          (web3/abi:AbiArray web3/abi:AbiAddress)
+                          (web3/abi:AbiArrayVal
+                           (coalton:Cons
+                            (web3/abi:AbiAddressVal
+                             (coalton:lisp web3/types:Bytes () a1))
+                            (coalton:Cons
+                             (web3/abi:AbiAddressVal
+                              (coalton:lisp web3/types:Bytes () a2))
+                             coalton:Nil))))
+                         coalton:Nil))
+                       ((coalton-library/classes:Ok b) b)
+                       ((coalton-library/classes:Err _e)
+                        (coalton:lisp web3/types:Bytes ()
+                          (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: address + string (mixed top-level)"
+    (let* ((vit (web3/types:%parse-hex-bytes "0xd8da6bf26964af9d7eed9e03e53415d37aa96045"))
+           (expected
+             (web3/types:%parse-hex-bytes
+              "0xd8da6bf26964af9d7eed9e03e53415d37aa9604568656c6c6f20776f726c64"))
+           (result (coalton:coalton
+                     (coalton:match
+                       (web3/abi:abi-encode-packed
+                        (coalton:Cons
+                         (coalton-prelude:Tuple
+                          web3/abi:AbiAddress
+                          (web3/abi:AbiAddressVal
+                           (coalton:lisp web3/types:Bytes () vit)))
+                         (coalton:Cons
+                          (coalton-prelude:Tuple
+                           web3/abi:AbiString
+                           (web3/abi:AbiStringVal "hello world"))
+                          coalton:Nil)))
+                       ((coalton-library/classes:Ok b) b)
+                       ((coalton-library/classes:Err _e)
+                        (coalton:lisp web3/types:Bytes ()
+                          (web3/types:make-bytes 0)))))))
+      (assert (bytes-equal expected result))))
+
+  (test-case "abi-encode-packed: tuples are rejected"
+    (let ((result (coalton:coalton
+                    (web3/abi:abi-encode-packed
+                     (coalton:Cons
+                      (coalton-prelude:Tuple
+                       (web3/abi:AbiTuple coalton:Nil)
+                       (web3/abi:AbiTupleVal coalton:Nil))
+                      coalton:Nil)))))
+      (assert (result-err-p result))))
+
+  (test-case "abi-encode-packed: bytesN size mismatch is rejected"
+    (let* ((data (web3/types:%parse-hex-bytes "0xdeadbeef"))
+           (result (coalton:coalton
+                     (web3/abi:abi-encode-packed
+                      (coalton:Cons
+                       (coalton-prelude:Tuple
+                        (web3/abi:AbiBytesFixed 8)
+                        (web3/abi:AbiBytesFixedVal
+                         (coalton:lisp web3/types:Bytes () data)))
+                       coalton:Nil)))))
+      (assert (result-err-p result)))))
+

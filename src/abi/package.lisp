@@ -35,6 +35,7 @@
 
    ;; Encoding/decoding
    #:abi-encode
+   #:abi-encode-packed
    #:abi-decode
    #:abi-encode-with-selector
 
