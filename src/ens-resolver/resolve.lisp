@@ -24,8 +24,6 @@
     "Parse the ENS registry address constant."
     (addr:address-from-hex ens:ens-registry-address))
 
-  ;; Use types:bytes-append (exported 2-arg concat) instead of local wrapper
-
   (declare %contenthash-calldata (types:Bytes -> types:Bytes))
   (define (%contenthash-calldata node)
     "Build calldata for contenthash(bytes32 node)."
@@ -44,6 +42,10 @@
   (define (%is-empty-bytes b)
     (== (types:bytes-length b) 0))
 
+  (declare %some-if-nonzero (addr:Address -> (Optional addr:Address)))
+  (define (%some-if-nonzero address)
+    (if (%is-zero-address address) None (Some address)))
+
   ;;; =========================================================================
   ;;; Core Resolution Functions
   ;;; =========================================================================
@@ -52,19 +54,11 @@
   (define (get-resolver provider name)
     "Get the resolver address for an ENS name.
      Returns Ok None if no resolver is set."
-    (match %parse-registry-address
-      ((Err e) (Err e))
-      ((Ok registry)
-       (let ((calldata (ens:ens-resolver-calldata (ens:namehash name))))
-         (match (provider:eth-call provider None registry calldata)
-           ((Err e) (Err e))
-           ((Ok result)
-            (match (ens:decode-address-result result)
-              ((Err e) (Err e))
-              ((Ok resolver-addr)
-               (if (%is-zero-address resolver-addr)
-                   (Ok None)
-                   (Ok (Some resolver-addr)))))))))))
+    (do (registry      <- %parse-registry-address)
+        (raw           <- (provider:eth-call provider None registry
+                            (ens:ens-resolver-calldata (ens:namehash name))))
+        (resolver-addr <- (ens:decode-address-result raw))
+        (Ok (%some-if-nonzero resolver-addr))))
 
   (declare resolve-name (provider:HttpProvider -> String -> (types:Web3Result (Optional addr:Address))))
   (define (resolve-name provider name)
@@ -74,44 +68,25 @@
       ((Err e) (Err e))
       ((Ok (None)) (Ok None))
       ((Ok (Some resolver-addr))
-       (let ((calldata (ens:resolver-addr-calldata (ens:namehash name))))
-         (match (provider:eth-call provider None resolver-addr calldata)
-           ((Err e) (Err e))
-           ((Ok result)
-            (match (ens:decode-address-result result)
-              ((Err e) (Err e))
-              ((Ok address)
-               (if (%is-zero-address address)
-                   (Ok None)
-                   (Ok (Some address)))))))))))
+       (do (raw     <- (provider:eth-call provider None resolver-addr
+                         (ens:resolver-addr-calldata (ens:namehash name))))
+           (address <- (ens:decode-address-result raw))
+           (Ok (%some-if-nonzero address))))))
 
   (declare %reverse-resolve-name (provider:HttpProvider -> addr:Address -> (types:Web3Result (Optional String))))
   (define (%reverse-resolve-name provider address)
     "Internal: reverse-resolve an address to a name without forward confirmation."
-    (let ((addr-hex (addr:address-to-hex address)))
-      (match %parse-registry-address
-        ((Err e) (Err e))
-        ((Ok registry)
-         (let ((rev-node (ens:reverse-node addr-hex))
-               (calldata (ens:ens-resolver-calldata rev-node)))
-           (match (provider:eth-call provider None registry calldata)
-             ((Err e) (Err e))
-             ((Ok result)
-              (match (ens:decode-address-result result)
-                ((Err e) (Err e))
-                ((Ok resolver-addr)
-                 (if (%is-zero-address resolver-addr)
-                     (Ok None)
-                     (let ((name-calldata (ens:resolver-name-calldata rev-node)))
-                       (match (provider:eth-call provider None resolver-addr name-calldata)
-                         ((Err e) (Err e))
-                         ((Ok name-result)
-                          (match (ens:decode-name-result name-result)
-                            ((Err e) (Err e))
-                            ((Ok name)
-                             (if (%is-empty-string name)
-                                 (Ok None)
-                                 (Ok (Some name))))))))))))))))))
+    (let ((rev-node (ens:reverse-node (addr:address-to-hex address))))
+      (do (registry      <- %parse-registry-address)
+          (raw           <- (provider:eth-call provider None registry
+                              (ens:ens-resolver-calldata rev-node)))
+          (resolver-addr <- (ens:decode-address-result raw))
+          (if (%is-zero-address resolver-addr)
+              (Ok None)
+              (do (name-raw <- (provider:eth-call provider None resolver-addr
+                                 (ens:resolver-name-calldata rev-node)))
+                  (name     <- (ens:decode-name-result name-raw))
+                  (Ok (if (%is-empty-string name) None (Some name))))))))
 
   (declare lookup-address (provider:HttpProvider -> addr:Address -> (types:Web3Result (Optional String))))
   (define (lookup-address provider address)
@@ -123,7 +98,9 @@
       ((Err e) (Err e))
       ((Ok (None)) (Ok None))
       ((Ok (Some name))
-       ;; Forward confirmation: resolve the name and verify it matches
+       ;; Forward confirmation: resolve the name and verify it matches.
+       ;; A forward-resolution error is treated as "no match" rather than
+       ;; bubbling up — the reverse name is unverifiable, not the lookup itself.
        (match (resolve-name provider name)
          ((Err _) (Ok None))
          ((Ok (None)) (Ok None))
@@ -210,20 +187,12 @@
      Returns Ok None if no resolver or no text record."
     (match (get-resolver provider name)
       ((Err e) (Err e))
-      ((Ok opt-resolver)
-       (match opt-resolver
-         ((None) (Ok None))
-         ((Some resolver-addr)
-          (let ((calldata (ens:resolver-text-calldata (ens:namehash name) key)))
-            (match (provider:eth-call provider None resolver-addr calldata)
-              ((Err e) (Err e))
-              ((Ok result)
-               (match (ens:decode-text-result result)
-                 ((Err e) (Err e))
-                 ((Ok text)
-                  (if (%is-empty-string text)
-                      (Ok None)
-                      (Ok (Some text)))))))))))))
+      ((Ok (None)) (Ok None))
+      ((Ok (Some resolver-addr))
+       (do (raw  <- (provider:eth-call provider None resolver-addr
+                      (ens:resolver-text-calldata (ens:namehash name) key)))
+           (text <- (ens:decode-text-result raw))
+           (Ok (if (%is-empty-string text) None (Some text)))))))
 
   (declare get-contenthash (provider:HttpProvider -> String -> (types:Web3Result (Optional types:Bytes))))
   (define (get-contenthash provider name)
@@ -232,14 +201,8 @@
      The raw bytes are returned; caller interprets the IPFS vs Swarm prefix."
     (match (get-resolver provider name)
       ((Err e) (Err e))
-      ((Ok opt-resolver)
-       (match opt-resolver
-         ((None) (Ok None))
-         ((Some resolver-addr)
-          (let ((calldata (%contenthash-calldata (ens:namehash name))))
-            (match (provider:eth-call provider None resolver-addr calldata)
-              ((Err e) (Err e))
-              ((Ok result)
-               (if (%is-empty-bytes result)
-                   (Ok None)
-                   (Ok (Some result))))))))))))
+      ((Ok (None)) (Ok None))
+      ((Ok (Some resolver-addr))
+       (do (raw <- (provider:eth-call provider None resolver-addr
+                     (%contenthash-calldata (ens:namehash name))))
+           (Ok (if (%is-empty-bytes raw) None (Some raw))))))))

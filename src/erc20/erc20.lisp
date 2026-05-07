@@ -53,6 +53,91 @@
     (abi:function-selector "transferFrom(address,address,uint256)"))
 
   ;;; =========================================================================
+  ;;; Internal helpers - eth_call -> abi-decode -> extract single value
+  ;;; =========================================================================
+
+  (declare %call-decode-string
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result String)))
+  (define (%call-decode-string provider token-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None token-address calldata))
+        (decoded <- (abi:abi-decode (Cons abi:AbiString Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc20:~A: unexpected response format" fn-label))))))))
+
+  (declare %call-decode-u256
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result types:U256)))
+  (define (%call-decode-u256 provider token-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None token-address calldata))
+        (decoded <- (abi:abi-decode (Cons (abi:AbiUint 256) Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiUintVal u) (Nil)) (Ok u))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc20:~A: unexpected response format" fn-label))))))))
+
+  ;;; =========================================================================
+  ;;; Read Functions (View Calls)
+  ;;; =========================================================================
+
+  (declare erc20-name (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
+  (define (erc20-name provider token-address)
+    "Get the token name"
+    (%call-decode-string provider token-address selector-name "name"))
+
+  (declare erc20-symbol (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
+  (define (erc20-symbol provider token-address)
+    "Get the token symbol"
+    (%call-decode-string provider token-address selector-symbol "symbol"))
+
+  (declare erc20-decimals (provider:HttpProvider -> addr:Address -> (types:Web3Result U8)))
+  (define (erc20-decimals provider token-address)
+    "Get the token decimals (typically 18)"
+    (do (raw     <- (provider:eth-call provider None token-address selector-decimals))
+        (decoded <- (abi:abi-decode (Cons (abi:AbiUint 8) Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiUintVal u256) (Nil))
+           (Ok (lisp U8 (u256)
+                 (cl:let ((n (web3/types:u256-to-integer
+                              (coalton (lisp types:U256 () u256)))))
+                   (cl:min n 255)))))
+          (_ (Err (types:AbiError "erc20:decimals: unexpected response format"))))))
+
+  (declare erc20-total-supply (provider:HttpProvider -> addr:Address ->
+                               (types:Web3Result types:U256)))
+  (define (erc20-total-supply provider token-address)
+    "Get the total token supply"
+    (%call-decode-u256 provider token-address selector-total-supply "totalSupply"))
+
+  (declare erc20-balance-of (provider:HttpProvider -> addr:Address -> addr:Address ->
+                             (types:Web3Result types:U256)))
+  (define (erc20-balance-of provider token-address owner)
+    "Get the token balance of an address"
+    (%call-decode-u256
+     provider token-address
+     (abi:abi-encode-with-selector
+      selector-balance-of
+      (Cons (abi:AbiAddressVal (addr:address-bytes owner)) Nil))
+     "balanceOf"))
+
+  (declare erc20-allowance (provider:HttpProvider -> addr:Address ->
+                            addr:Address -> addr:Address ->
+                            (types:Web3Result types:U256)))
+  (define (erc20-allowance provider token-address owner spender)
+    "Get the allowance for a spender on an owner's tokens"
+    (%call-decode-u256
+     provider token-address
+     (abi:abi-encode-with-selector
+      selector-allowance
+      (Cons (abi:AbiAddressVal (addr:address-bytes owner))
+            (Cons (abi:AbiAddressVal (addr:address-bytes spender)) Nil)))
+     "allowance"))
+
+  ;;; =========================================================================
   ;;; Write Function Calldata Builders
   ;;; =========================================================================
 
@@ -79,103 +164,4 @@
      selector-transfer-from
      (Cons (abi:AbiAddressVal (addr:address-bytes from))
            (Cons (abi:AbiAddressVal (addr:address-bytes to))
-                 (Cons (abi:AbiUintVal amount) Nil)))))
-
-  ;;; =========================================================================
-  ;;; Read Functions (View Calls)
-  ;;; =========================================================================
-
-  (declare erc20-name (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
-  (define (erc20-name provider token-address)
-    "Get the token name"
-    (let ((calldata selector-name))
-      (match (provider:eth-call provider None token-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiString Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-              (_ (Err (types:AbiError "Unexpected response format for name()"))))))))))
-
-  (declare erc20-symbol (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
-  (define (erc20-symbol provider token-address)
-    "Get the token symbol"
-    (let ((calldata selector-symbol))
-      (match (provider:eth-call provider None token-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiString Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-              (_ (Err (types:AbiError "Unexpected response format for symbol()"))))))))))
-
-  (declare erc20-decimals (provider:HttpProvider -> addr:Address -> (types:Web3Result U8)))
-  (define (erc20-decimals provider token-address)
-    "Get the token decimals (typically 18)"
-    (let ((calldata selector-decimals))
-      (match (provider:eth-call provider None token-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 8) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil))
-               (Ok (lisp U8 (u256)
-                     (cl:let ((n (web3/types:u256-to-integer
-                                  (coalton (lisp types:U256 () u256)))))
-                       (cl:min n 255)))))
-              (_ (Err (types:AbiError "Unexpected response format for decimals()"))))))))))
-
-  (declare erc20-total-supply (provider:HttpProvider -> addr:Address -> (types:Web3Result types:U256)))
-  (define (erc20-total-supply provider token-address)
-    "Get the total token supply"
-    (let ((calldata selector-total-supply))
-      (match (provider:eth-call provider None token-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
-              (_ (Err (types:AbiError "Unexpected response format for totalSupply()"))))))))))
-
-  (declare erc20-balance-of (provider:HttpProvider -> addr:Address -> addr:Address ->
-                             (types:Web3Result types:U256)))
-  (define (erc20-balance-of provider token-address owner)
-    "Get the token balance of an address"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-balance-of
-                     (Cons (abi:AbiAddressVal (addr:address-bytes owner)) Nil))))
-      (match (provider:eth-call provider None token-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
-              (_ (Err (types:AbiError "Unexpected response format for balanceOf()"))))))))))
-
-  (declare erc20-allowance (provider:HttpProvider -> addr:Address -> addr:Address -> addr:Address ->
-                            (types:Web3Result types:U256)))
-  (define (erc20-allowance provider token-address owner spender)
-    "Get the allowance for a spender on an owner's tokens"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-allowance
-                     (Cons (abi:AbiAddressVal (addr:address-bytes owner))
-                           (Cons (abi:AbiAddressVal (addr:address-bytes spender)) Nil)))))
-      (match (provider:eth-call provider None token-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
-              (_ (Err (types:AbiError "Unexpected response format for allowance()")))))))))))
+                 (Cons (abi:AbiUintVal amount) Nil))))))

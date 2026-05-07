@@ -43,6 +43,46 @@
     (abi:function-selector "setApprovalForAll(address,bool)"))
 
   ;;; =========================================================================
+  ;;; Internal helpers - eth_call -> abi-decode -> extract single value
+  ;;; =========================================================================
+
+  (declare %call-decode-string
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result String)))
+  (define (%call-decode-string provider contract-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None contract-address calldata))
+        (decoded <- (abi:abi-decode (Cons abi:AbiString Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc1155:~A: unexpected response format" fn-label))))))))
+
+  (declare %call-decode-u256
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result types:U256)))
+  (define (%call-decode-u256 provider contract-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None contract-address calldata))
+        (decoded <- (abi:abi-decode (Cons (abi:AbiUint 256) Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiUintVal u) (Nil)) (Ok u))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc1155:~A: unexpected response format" fn-label))))))))
+
+  (declare %call-decode-bool
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result Boolean)))
+  (define (%call-decode-bool provider contract-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None contract-address calldata))
+        (decoded <- (abi:abi-decode (Cons abi:AbiBool Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiBoolVal b) (Nil)) (Ok b))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc1155:~A: unexpected response format" fn-label))))))))
+
+  ;;; =========================================================================
   ;;; Write Function Calldata Builders
   ;;; =========================================================================
 
@@ -87,36 +127,24 @@
   (declare erc1155-uri (provider:HttpProvider -> addr:Address -> types:U256 -> (types:Web3Result String)))
   (define (erc1155-uri provider contract-address token-id)
     "Get the URI for a token's metadata"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-uri
-                     (Cons (abi:AbiUintVal token-id) Nil))))
-      (match (provider:eth-call provider None contract-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiString Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-              (_ (Err (types:AbiError "Unexpected response format for uri()"))))))))))
+    (%call-decode-string
+     provider contract-address
+     (abi:abi-encode-with-selector
+      selector-uri
+      (Cons (abi:AbiUintVal token-id) Nil))
+     "uri"))
 
   (declare erc1155-balance-of (provider:HttpProvider -> addr:Address -> addr:Address -> types:U256 ->
                                (types:Web3Result types:U256)))
   (define (erc1155-balance-of provider contract-address account token-id)
     "Get the balance of a specific token for an account"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-balance-of
-                     (Cons (abi:AbiAddressVal (addr:address-bytes account))
-                           (Cons (abi:AbiUintVal token-id) Nil)))))
-      (match (provider:eth-call provider None contract-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal balance) (Nil)) (Ok balance))
-              (_ (Err (types:AbiError "Unexpected response format for balanceOf()"))))))))))
+    (%call-decode-u256
+     provider contract-address
+     (abi:abi-encode-with-selector
+      selector-balance-of
+      (Cons (abi:AbiAddressVal (addr:address-bytes account))
+            (Cons (abi:AbiUintVal token-id) Nil)))
+     "balanceOf"))
 
   (declare erc1155-balance-of-batch
            (provider:HttpProvider -> addr:Address -> (List addr:Address) -> (List types:U256) ->
@@ -129,36 +157,26 @@
                        selector-balance-of-batch
                        (Cons (abi:AbiArrayVal accounts-abi)
                              (Cons (abi:AbiArrayVal ids-abi) Nil)))))
-        (match (provider:eth-call provider None contract-address calldata)
-          ((Err e) (Err e))
-          ((Ok result)
-           (match (abi:abi-decode (Cons (abi:AbiArray (abi:AbiUint 256)) Nil) result)
-             ((Err e) (Err e))
-             ((Ok decoded)
-              (match decoded
-                ((Cons (abi:AbiArrayVal balances) (Nil))
-                 (Ok (map (fn (v)
-                            (match v
-                              ((abi:AbiUintVal u) u)
-                              (_ types:u256-zero)))
-                          balances)))
-                (_ (Err (types:AbiError "Unexpected response format for balanceOfBatch()")))))))))))
+        (do (raw     <- (provider:eth-call provider None contract-address calldata))
+            (decoded <- (abi:abi-decode (Cons (abi:AbiArray (abi:AbiUint 256)) Nil) raw))
+            (match decoded
+              ((Cons (abi:AbiArrayVal balances) (Nil))
+               (Ok (map (fn (v)
+                          (match v
+                            ((abi:AbiUintVal u) u)
+                            (_ types:u256-zero)))
+                        balances)))
+              (_ (Err (types:AbiError "erc1155:balanceOfBatch: unexpected response format"))))))))
 
   (declare erc1155-is-approved-for-all
            (provider:HttpProvider -> addr:Address -> addr:Address -> addr:Address ->
             (types:Web3Result Boolean)))
   (define (erc1155-is-approved-for-all provider contract-address account operator)
     "Check if an operator is approved for all tokens of an account"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-is-approved-for-all
-                     (Cons (abi:AbiAddressVal (addr:address-bytes account))
-                           (Cons (abi:AbiAddressVal (addr:address-bytes operator)) Nil)))))
-      (match (provider:eth-call provider None contract-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiBool Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiBoolVal b) (Nil)) (Ok b))
-              (_ (Err (types:AbiError "Unexpected response format for isApprovedForAll()")))))))))))
+    (%call-decode-bool
+     provider contract-address
+     (abi:abi-encode-with-selector
+      selector-is-approved-for-all
+      (Cons (abi:AbiAddressVal (addr:address-bytes account))
+            (Cons (abi:AbiAddressVal (addr:address-bytes operator)) Nil)))
+     "isApprovedForAll")))

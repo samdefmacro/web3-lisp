@@ -86,6 +86,59 @@
     (abi:function-selector "tokenOfOwnerByIndex(address,uint256)"))
 
   ;;; =========================================================================
+  ;;; Internal helpers - eth_call -> abi-decode -> extract single value
+  ;;; =========================================================================
+
+  (declare %call-decode-string
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result String)))
+  (define (%call-decode-string provider nft-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None nft-address calldata))
+        (decoded <- (abi:abi-decode (Cons abi:AbiString Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc721:~A: unexpected response format" fn-label))))))))
+
+  (declare %call-decode-u256
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result types:U256)))
+  (define (%call-decode-u256 provider nft-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None nft-address calldata))
+        (decoded <- (abi:abi-decode (Cons (abi:AbiUint 256) Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiUintVal u) (Nil)) (Ok u))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc721:~A: unexpected response format" fn-label))))))))
+
+  (declare %call-decode-address
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result addr:Address)))
+  (define (%call-decode-address provider nft-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None nft-address calldata))
+        (decoded <- (abi:abi-decode (Cons abi:AbiAddress Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiAddressVal addr-bytes) (Nil))
+           (addr:address-from-bytes addr-bytes))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc721:~A: unexpected response format" fn-label))))))))
+
+  (declare %call-decode-bool
+           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
+            -> (types:Web3Result Boolean)))
+  (define (%call-decode-bool provider nft-address calldata fn-label)
+    (do (raw     <- (provider:eth-call provider None nft-address calldata))
+        (decoded <- (abi:abi-decode (Cons abi:AbiBool Nil) raw))
+        (match decoded
+          ((Cons (abi:AbiBoolVal b) (Nil)) (Ok b))
+          (_ (Err (types:AbiError
+                   (lisp String (fn-label)
+                     (cl:format cl:nil "erc721:~A: unexpected response format" fn-label))))))))
+
+  ;;; =========================================================================
   ;;; Write Function Calldata Builders
   ;;; =========================================================================
 
@@ -140,118 +193,68 @@
   (declare erc721-name (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
   (define (erc721-name provider nft-address)
     "Get the NFT collection name"
-    (let ((calldata selector-name))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiString Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-              (_ (Err (types:AbiError "Unexpected response format for name()"))))))))))
+    (%call-decode-string provider nft-address selector-name "name"))
 
   (declare erc721-symbol (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
   (define (erc721-symbol provider nft-address)
     "Get the NFT collection symbol"
-    (let ((calldata selector-symbol))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiString Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-              (_ (Err (types:AbiError "Unexpected response format for symbol()"))))))))))
+    (%call-decode-string provider nft-address selector-symbol "symbol"))
 
   (declare erc721-token-uri (provider:HttpProvider -> addr:Address -> types:U256 -> (types:Web3Result String)))
   (define (erc721-token-uri provider nft-address token-id)
     "Get the token URI for metadata"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-token-uri
-                     (Cons (abi:AbiUintVal token-id) Nil))))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiString Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-              (_ (Err (types:AbiError "Unexpected response format for tokenURI()"))))))))))
+    (%call-decode-string
+     provider nft-address
+     (abi:abi-encode-with-selector
+      selector-token-uri
+      (Cons (abi:AbiUintVal token-id) Nil))
+     "tokenURI"))
 
   (declare erc721-balance-of (provider:HttpProvider -> addr:Address -> addr:Address ->
                               (types:Web3Result types:U256)))
   (define (erc721-balance-of provider nft-address owner)
     "Get the number of NFTs owned by an address"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-balance-of
-                     (Cons (abi:AbiAddressVal (addr:address-bytes owner)) Nil))))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
-              (_ (Err (types:AbiError "Unexpected response format for balanceOf()"))))))))))
+    (%call-decode-u256
+     provider nft-address
+     (abi:abi-encode-with-selector
+      selector-balance-of
+      (Cons (abi:AbiAddressVal (addr:address-bytes owner)) Nil))
+     "balanceOf"))
 
   (declare erc721-owner-of (provider:HttpProvider -> addr:Address -> types:U256 ->
                             (types:Web3Result addr:Address)))
   (define (erc721-owner-of provider nft-address token-id)
     "Get the owner of a specific token"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-owner-of
-                     (Cons (abi:AbiUintVal token-id) Nil))))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiAddress Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiAddressVal addr-bytes) (Nil))
-               (addr:address-from-bytes addr-bytes))
-              (_ (Err (types:AbiError "Unexpected response format for ownerOf()"))))))))))
+    (%call-decode-address
+     provider nft-address
+     (abi:abi-encode-with-selector
+      selector-owner-of
+      (Cons (abi:AbiUintVal token-id) Nil))
+     "ownerOf"))
 
   (declare erc721-get-approved (provider:HttpProvider -> addr:Address -> types:U256 ->
                                 (types:Web3Result addr:Address)))
   (define (erc721-get-approved provider nft-address token-id)
     "Get the approved address for a token"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-get-approved
-                     (Cons (abi:AbiUintVal token-id) Nil))))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiAddress Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiAddressVal addr-bytes) (Nil))
-               (addr:address-from-bytes addr-bytes))
-              (_ (Err (types:AbiError "Unexpected response format for getApproved()"))))))))))
+    (%call-decode-address
+     provider nft-address
+     (abi:abi-encode-with-selector
+      selector-get-approved
+      (Cons (abi:AbiUintVal token-id) Nil))
+     "getApproved"))
 
   (declare erc721-is-approved-for-all (provider:HttpProvider -> addr:Address ->
                                         addr:Address -> addr:Address ->
                                         (types:Web3Result Boolean)))
   (define (erc721-is-approved-for-all provider nft-address owner operator)
     "Check if an operator is approved for all tokens of an owner"
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-is-approved-for-all
-                     (Cons (abi:AbiAddressVal (addr:address-bytes owner))
-                           (Cons (abi:AbiAddressVal (addr:address-bytes operator)) Nil)))))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons abi:AbiBool Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiBoolVal b) (Nil)) (Ok b))
-              (_ (Err (types:AbiError "Unexpected response format for isApprovedForAll()"))))))))))
+    (%call-decode-bool
+     provider nft-address
+     (abi:abi-encode-with-selector
+      selector-is-approved-for-all
+      (Cons (abi:AbiAddressVal (addr:address-bytes owner))
+            (Cons (abi:AbiAddressVal (addr:address-bytes operator)) Nil)))
+     "isApprovedForAll"))
 
   ;;; =========================================================================
   ;;; Enumerable Extension
@@ -260,34 +263,19 @@
   (declare erc721-total-supply (provider:HttpProvider -> addr:Address -> (types:Web3Result types:U256)))
   (define (erc721-total-supply provider nft-address)
     "Get the total number of tokens in the collection (ERC-721 Enumerable)."
-    (let ((calldata selector-total-supply))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
-              (_ (Err (types:AbiError "Unexpected response format for totalSupply()"))))))))))
+    (%call-decode-u256 provider nft-address selector-total-supply "totalSupply"))
 
   (declare erc721-token-by-index (provider:HttpProvider -> addr:Address -> types:U256 ->
                                    (types:Web3Result types:U256)))
   (define (erc721-token-by-index provider nft-address index)
     "Get the token ID at a given index (ERC-721 Enumerable).
      Reverts if index >= totalSupply()."
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-token-by-index
-                     (Cons (abi:AbiUintVal index) Nil))))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
-              (_ (Err (types:AbiError "Unexpected response format for tokenByIndex()"))))))))))
+    (%call-decode-u256
+     provider nft-address
+     (abi:abi-encode-with-selector
+      selector-token-by-index
+      (Cons (abi:AbiUintVal index) Nil))
+     "tokenByIndex"))
 
   (declare erc721-token-of-owner-by-index (provider:HttpProvider -> addr:Address ->
                                             addr:Address -> types:U256 ->
@@ -295,16 +283,10 @@
   (define (erc721-token-of-owner-by-index provider nft-address owner index)
     "Get the token ID owned by an address at a given index (ERC-721 Enumerable).
      Reverts if index >= balanceOf(owner)."
-    (let ((calldata (abi:abi-encode-with-selector
-                     selector-token-of-owner-by-index
-                     (Cons (abi:AbiAddressVal (addr:address-bytes owner))
-                           (Cons (abi:AbiUintVal index) Nil)))))
-      (match (provider:eth-call provider None nft-address calldata)
-        ((Err e) (Err e))
-        ((Ok result)
-         (match (abi:abi-decode (Cons (abi:AbiUint 256) Nil) result)
-           ((Err e) (Err e))
-           ((Ok decoded)
-            (match decoded
-              ((Cons (abi:AbiUintVal u256) (Nil)) (Ok u256))
-              (_ (Err (types:AbiError "Unexpected response format for tokenOfOwnerByIndex()")))))))))))
+    (%call-decode-u256
+     provider nft-address
+     (abi:abi-encode-with-selector
+      selector-token-of-owner-by-index
+      (Cons (abi:AbiAddressVal (addr:address-bytes owner))
+            (Cons (abi:AbiUintVal index) Nil)))
+     "tokenOfOwnerByIndex")))

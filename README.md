@@ -1,234 +1,268 @@
 # web3-lisp
 
-Ethereum library implemented in [Coalton](https://github.com/coalton-lang/coalton), a statically typed language embedded in Common Lisp. Modeled after [ethers.js](https://github.com/ethers-io/ethers.js) and [viem](https://github.com/wevm/viem).
+Ethereum library for Common Lisp — typed core in [Coalton](https://github.com/coalton-lang/coalton), one-liner CL surface on top. Modeled after [ethers.js](https://github.com/ethers-io/ethers.js) and [viem](https://github.com/wevm/viem).
 
-Type-safe interfaces for all major Ethereum operations: transactions, ABI encoding, contract interaction, token standards, HD wallets, ENS, WebSocket subscriptions, and more.
+```lisp
+(asdf:load-system "web3")
 
-## Quickstart
+;; Read a balance from the REPL — no Coalton needed
+(web3:get-balance "https://eth.llamarpc.com"
+                  "0xd8da6bf26964af9d7eed9e03e53415d37aa96045")
+;; => 6739821000000000000  (wei, as a CL integer)
+
+;; Bind an ERC-20 contract to typed CL functions
+(web3:defcontract usdc
+  :address "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+  :abi-file "USDC.json")
+
+(usdc-symbol "https://eth.llamarpc.com")            ; => "USDC"
+(usdc-balance-of "https://eth.llamarpc.com" addr)   ; => integer
+
+;; Build calldata for write functions
+(usdc-transfer-data "0xrecipient..." 1000000)       ; => "0xa9059cbb..."
+```
+
+Three layers, pick the one that fits:
+
+| Layer        | Package         | Use case                                                          |
+|--------------|-----------------|-------------------------------------------------------------------|
+| **Easy**     | `web3` (CL)     | One-liners from CL/REPL. Strings/integers in, strings/integers out, conditions on errors. |
+| **Prelude**  | `web3/prelude`  | Curated re-exports for Coalton consumers — one import for the common surface. |
+| **Typed**    | `web3/types`, `web3/provider`, `web3/wallet`, `web3/erc20`, ... | Full Coalton API; reach for it when you want the type safety. |
+
+## Installation
 
 Requires [SBCL](http://www.sbcl.org/) and [Quicklisp](https://www.quicklisp.org/).
 
 ```lisp
-;; Load the full library
-(asdf:load-system "web3")
-
-;; Or load individual modules
-(asdf:load-system "web3/provider")
-(asdf:load-system "web3/wallet")
+(asdf:load-system "web3")              ; everything
+(asdf:load-system "web3/easy")         ; CL convenience only
+(asdf:load-system "web3/prelude")      ; Coalton prelude only
+(asdf:load-system "web3/provider")     ; or any individual subsystem
 ```
 
-## Usage
-
-### Connect to Ethereum
+## CL one-liners (`web3:` package)
 
 ```lisp
+;; Reads
+(web3:get-block-number url)
+(web3:chain-id url)
+(web3:get-balance url addr-hex)               ; -> integer wei
+(web3:get-transaction-count url addr-hex)     ; -> integer nonce
+(web3:gas-price url)
+(web3:max-priority-fee url)
+(web3:get-code url addr-hex)                  ; -> 0x...hex
+(web3:eth-call url to-hex data-hex)
+(web3:get-receipt url tx-hash)                ; nil if not yet mined
+(web3:wait-for-receipt url tx-hash :max-attempts 60 :poll-interval-ms 2000)
+
+;; Units
+(web3:parse-ether "1.5")           ; => 1500000000000000000
+(web3:format-ether 1500000000000000000)  ; => "1.5"
+(web3:parse-gwei "30")
+(web3:parse-units "100.50" 6)      ; USDC has 6 decimals
+
+;; Address + hashing
+(web3:checksum-address "0xd8da...")     ; -> EIP-55 mixed-case
+(web3:keccak256 "0x")                   ; -> 0xc5d2460186...
+
+;; ERC-20 reads
+(web3:erc20-name url usdc-address)
+(web3:erc20-balance url usdc-address holder-address)
+
+;; Wallets
+(let ((w (web3:make-wallet-from-hex "0x<private-key>" url)))
+  (web3:wallet-address w)
+  (web3:wallet-balance w)
+  (web3:wallet-send-eth w "0xrecipient..." (web3:parse-ether "0.1")
+                        :chain-id 1))
+```
+
+Errors signal `web3:web3-error`:
+
+```lisp
+(handler-case (web3:checksum-address "not-hex")
+  (web3:web3-error (c)
+    (format t "got: ~A" (web3:web3-error-message c))))
+```
+
+### Multicall (batched reads)
+
+Multicall3 lets you batch many `eth_call`s into a single round-trip. `web3:multicall` accepts a list of plists and returns one result per call:
+
+```lisp
+(web3:multicall url
+  (list (list :to usdc-address :data (usdc-balance-of-data holder))
+        (list :to weth-address :data (weth-balance-of-data holder))))
+;; => ((:success t :data "0x...balance1")
+;;     (:success t :data "0x...balance2"))
+```
+
+Default `:allow-failure` is `t` (one bad call doesn't fail the batch). Override per-call with `:allow-failure` inside the entry.
+
+### Block reads
+
+`web3:get-block` returns a CL plist instead of raw JSON:
+
+```lisp
+(web3:get-block url :latest)
+;; => (:number 19345672 :hash "0x..." :parent-hash "0x..."
+;;     :timestamp 1717593600 :miner "0x..." :gas-limit 30000000
+;;     :gas-used 14523456 :base-fee 12345678901
+;;     :transactions-count 142 :size 78912)
+```
+
+The tag accepts an integer block number, a keyword (`:latest`, `:earliest`, `:pending`, `:finalized`, `:safe`), or a hex string. Returns NIL if the block doesn't exist.
+
+### Retry + fallback
+
+Wrap any URL-based call with `web3:with-fallback` to get per-URL retries (with exponential backoff) and a fallback chain across multiple endpoints:
+
+```lisp
+(web3:with-fallback
+  '("https://primary-rpc.example" "https://backup-rpc.example")
+  (lambda (url) (web3:get-balance url addr-hex)))
+```
+
+The default retryable predicate matches HTTP 5xx, 429, timeouts, and connection refusals; permanent errors (e.g. malformed input) short-circuit so you don't burn the retry budget on bugs in your own code.
+
+## `defcontract` — ABI to CL functions
+
+`defcontract` parses a Solidity ABI at macroexpand time and generates one CL wrapper per function. View/pure functions take a JSON-RPC URL and return ordinary CL values; non-view functions get a `*-data` builder that returns calldata you can send through `wallet-send-transaction`.
+
+```lisp
+(web3:defcontract usdc
+  :address "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+  :abi-file "USDC.json")  ; or :abi "[ {...} ]"
+
+;; view/pure
+(usdc-name url)                       ; -> "USD Coin"
+(usdc-decimals url)                   ; -> 6
+(usdc-balance-of url holder-hex)      ; -> integer
+(usdc-allowance url owner spender)    ; -> integer
+
+;; nonpayable / payable -> calldata builder
+(usdc-transfer-data recipient 1000000)
+(usdc-approve-data spender 1000000)
+```
+
+Supported types: `uint*`, `int*`, `address`, `bool`, `string`, `bytes`, `bytesN`, plus arrays of any of the above (`T[]` and `T[N]`). Solidity tuples (`struct` returns) currently fall through to the typed `web3/contract` API — `defcontract` skips them with a compile-time warning rather than silently mis-encoding.
+
+For each ABI **event**, `defcontract` also generates:
+
+```lisp
+(usdc-event-transfer-topic)               ; -> "0xddf252ad..." (topic0)
+(usdc-event-transfer topics-hex data-hex) ; -> (:from "0x..." :to "0x..." :value 1500)
+```
+
+The decoder takes the topics list (including topic0) and data hex from a log entry and returns a plist of named fields. Indexed and non-indexed inputs are interleaved in declaration order, exactly as the ABI specifies.
+
+## Coalton prelude (typed)
+
+```lisp
+(defpackage #:my-app
+  (:use #:coalton #:coalton-prelude #:web3/prelude))
+(in-package #:my-app)
+(named-readtables:in-readtable coalton:coalton)
+
 (coalton-toplevel
-  (define provider (make-http-provider "https://eth-mainnet.g.alchemy.com/v2/YOUR-KEY"))
+  (define provider (make-http-provider "https://eth.llamarpc.com"))
 
-  ;; Get latest block number
-  (define block-num (eth-block-number provider))
-
-  ;; Get balance
-  (define balance
-    (match (address-from-hex "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")
-      ((Ok addr) (eth-get-balance provider addr))
-      ((Err e) (Err e)))))
+  (define (read-balance addr-hex)
+    (do (addr <- (address-from-hex addr-hex))
+        (eth-get-balance provider addr))))
 ```
 
-### Wallets & Transactions
-
-```lisp
-(coalton-toplevel
-  ;; Create wallet from private key
-  (define my-wallet
-    (wallet-with-provider
-      (hex-decode-unsafe "0x...")  ; private key bytes
-      (make-http-provider "https://...")))
-
-  ;; Build and sign an EIP-1559 transaction
-  (define tx
-    (make-transaction
-      EIP1559Tx
-      1          ; chain-id (mainnet)
-      0          ; nonce
-      (u256-from-integer 2000000000)   ; max priority fee
-      (u256-from-integer 30000000000)  ; max fee per gas
-      21000      ; gas limit
-      (Some to-address)
-      (u256-from-integer 1000000000000000000) ; 1 ETH
-      bytes-empty ; no calldata
-      Nil))       ; no access list
-
-  ;; Sign and send
-  (define tx-hash (wallet-send-transaction my-wallet tx)))
-```
-
-### ERC-20 Tokens
-
-```lisp
-(coalton-toplevel
-  ;; Read token info
-  (define name   (erc20-name provider usdt-address))
-  (define symbol (erc20-symbol provider usdt-address))
-  (define bal    (erc20-balance-of provider usdt-address holder))
-
-  ;; Build transfer calldata
-  (define data (erc20-transfer-data recipient amount)))
-```
-
-### HD Wallets (BIP-39 / BIP-32)
-
-```lisp
-(coalton-toplevel
-  ;; Generate a new 12-word mnemonic
-  (define mnemonic (generate-mnemonic 128))
-
-  ;; Derive Ethereum private key (m/44'/60'/0'/0/0)
-  (define private-key (mnemonic-to-private-key mnemonic ""))
-
-  ;; Or derive address directly
-  (define addr (mnemonic-to-address mnemonic "")))
-```
-
-### ABI Encoding/Decoding
-
-```lisp
-(coalton-toplevel
-  ;; Compute function selector
-  (define sel (function-selector "transfer(address,uint256)"))
-
-  ;; Encode arguments
-  (define calldata
-    (abi-encode-with-selector sel
-      (Cons (AbiAddressVal addr-bytes)
-            (Cons (AbiUintVal amount) Nil))))
-
-  ;; Decode return data
-  (define result
-    (abi-decode (Cons AbiUint256 (Cons AbiBool Nil)) return-bytes)))
-```
-
-### ENS Resolution
-
-```lisp
-(coalton-toplevel
-  ;; Compute namehash
-  (define node (namehash "vitalik.eth"))
-
-  ;; Resolve via provider
-  (define addr (ens-resolve provider "vitalik.eth")))
-```
-
-### WebSocket Subscriptions
-
-```lisp
-;; Connect (Common Lisp level)
-(let ((provider (web3/ws-provider:ws-connect "wss://eth-mainnet.g.alchemy.com/v2/YOUR-KEY")))
-  ;; Subscribe to new blocks
-  (web3/ws-provider:ws-subscribe provider
-    (coalton:coalton web3/ws-provider:SubNewHeads)
-    (lambda (json) (format t "New block: ~A~%" json)))
-
-  ;; ... later
-  (web3/ws-provider:ws-close provider))
-```
-
-### Unit Conversions
-
-```lisp
-(coalton-toplevel
-  ;; Parse "1.5" ETH to wei (1500000000000000000)
-  (define wei (parse-units "1.5" 18))
-
-  ;; Format wei back to ETH string
-  (define eth-str (format-units (u256-from-integer 1500000000000000000) 18)))
-```
+The prelude re-exports the high-traffic surface across `web3/types`, `web3/address`, `web3/units`, `web3/chain`, `web3/provider`, `web3/transaction`, `web3/wallet`, `web3/erc20`, `web3/abi`, `web3/contract`, and `web3/contract-write`. Everything not in the prelude is available by importing the dedicated module.
 
 ## Modules
 
-33 independent ASDF subsystems, loadable individually or all at once via `"web3"`.
+42 independent ASDF subsystems plus a meta-system `web3` that loads them all.
 
 | Module | Description |
 |--------|-------------|
-| `web3/types` | Core types: `Bytes`, `U256`, hex encoding |
+| `web3/easy` | Plain-CL convenience layer (`web3:` package) + `defcontract` |
+| `web3/prelude` | Curated Coalton re-exports — one import for the common surface |
+| `web3/types` | Core types: `Bytes`, `U256`, hex encoding, `Web3Error`/`Web3Result` |
 | `web3/rlp` | RLP encoding/decoding |
 | `web3/crypto` | keccak256, secp256k1, ECDSA signatures |
 | `web3/address` | Ethereum addresses with EIP-55 checksums |
-| `web3/abi` | ABI encoding/decoding (uint, bool, address, bytes, string, arrays, tuples) |
+| `web3/abi` | ABI encoding/decoding (uint, bool, address, bytes, string, arrays, tuples), `abi-encode-packed` |
 | `web3/abi-parser` | Parse Solidity JSON ABI files |
 | `web3/transaction` | Transaction types (legacy, EIP-2930, EIP-1559, EIP-4844), encoding, signing |
 | `web3/provider` | JSON-RPC HTTP provider with 18+ methods |
 | `web3/wallet` | Private key wallet with signing and sending |
 | `web3/contract` | High-level contract abstraction from ABI JSON |
-| `web3/erc20` | ERC-20 token standard (read + write calldata) |
-| `web3/erc721` | ERC-721 NFT standard |
-| `web3/erc1155` | ERC-1155 multi-token standard |
+| `web3/contract-write` | High-level send-transaction for contracts |
+| `web3/erc20` | ERC-20 token standard |
+| `web3/erc721`/`erc721-metadata` | ERC-721 NFT standard |
+| `web3/erc1155`/`erc1155-metadata` | ERC-1155 multi-token standard |
 | `web3/events` | Event log parsing and decoding |
 | `web3/logs` | Event log querying via `eth_getLogs` |
 | `web3/ens` | ENS namehash (EIP-137) |
-| `web3/ens-resolver` | Live ENS resolution via provider |
+| `web3/ens-resolver` | Live ENS resolution via provider (forward + reverse with confirmation) |
 | `web3/deploy` | CREATE/CREATE2 address computation |
 | `web3/multicall` | Multicall3 batching |
 | `web3/eip712` | EIP-712 typed data hashing and signing |
+| `web3/permit` | EIP-2612 gasless approvals |
 | `web3/signature` | EIP-191 personal sign and recovery |
 | `web3/siwe` | Sign-In with Ethereum (ERC-4361) |
 | `web3/hdwallet` | BIP-39 mnemonics + BIP-32 key derivation |
 | `web3/ws-provider` | WebSocket subscriptions (newHeads, logs, syncing, pendingTxs) |
-| `web3/gas` | EIP-1559 fee calculation and estimation |
-| `web3/simulate` | Transaction simulation and gas estimation |
+| `web3/gas` | EIP-1559 fee calculation |
+| `web3/simulate` | Transaction simulation, gas estimation, access lists |
 | `web3/nonce-manager` | Multi-address/chain nonce tracking |
 | `web3/receipt` | Transaction receipt parsing |
 | `web3/block` | Block and header parsing |
 | `web3/chain` | Pre-configured network settings |
-| `web3/units` | `parseUnits`/`formatUnits` with custom decimals |
-| `web3/blob` | EIP-4844 blob data encoding |
-| `web3/kzg` | KZG commitments for blob transactions (via FFI) |
+| `web3/units` | `parseUnits`/`formatUnits` |
+| `web3/blob`, `web3/kzg` | EIP-4844 blob data + KZG commitments (FFI) |
+| `web3/erc4337` | Account abstraction (UserOp types) |
+| `web3/batch-provider` | JSON-RPC batch requests |
+| `web3/erc165` | Interface detection |
+| `web3/revert` | Decode Solidity revert reasons |
 
 ## Architecture
 
 ```
-types (Bytes, U256, hex)
-├── rlp (RLP encoding/decoding)
-├── crypto (keccak256, secp256k1) [ironclad]
-│   └── address (EIP-55 checksum)
-│       ├── abi (ABI encode/decode)
-│       │   ├── events (log parsing)
-│       │   ├── deploy (CREATE/CREATE2)
-│       │   ├── ens (namehash)
-│       │   │   └── ens-resolver (live resolution via provider)
-│       │   ├── multicall (Multicall3 batching)
-│       │   ├── eip712 (typed data hashing)
-│       │   └── abi-parser (Solidity JSON ABI)
-│       │       └── contract (high-level abstraction)
-│       ├── transaction (tx types, encode, sign)
-│       │   └── provider (JSON-RPC) [dexador, cl-json]
-│       │       ├── wallet (private key + provider)
-│       │       ├── erc20, erc721, erc1155 (token standards)
-│       │       ├── nonce-manager (nonce tracking)
-│       │       ├── simulate (tx simulation)
-│       │       └── logs (eth_getLogs)
-│       └── signature (EIP-191 personal sign)
-│           └── siwe (ERC-4361)
-├── chain (network configs)
-├── units (parseUnits/formatUnits)
-├── gas (EIP-1559 fees) [cl-json]
-├── block (block parsing) [cl-json]
-├── receipt (receipt parsing) [cl-json]
-├── ws-provider (WebSocket subscriptions) [websocket-driver, bordeaux-threads]
-├── blob (EIP-4844 encoding) [ironclad]
-│   └── kzg (KZG commitments) [cffi]
-└── hdwallet (BIP-39/BIP-32) [ironclad]
+                 +---------------------------+
+                 |  web3/easy   (web3:)       |  CL one-liners + defcontract
+                 +-------------+-------------+
+                               |
+                               v
+                 +---------------------------+
+                 |  web3/prelude              |  curated Coalton re-exports
+                 +-------------+-------------+
+                               |
+                               v
+              +-----------------------------------+
+              |  Typed Coalton modules            |
+              |  types -> rlp/crypto/address ->   |
+              |  abi -> transaction -> provider   |
+              |  -> wallet/contract/erc20/etc.    |
+              +-----------------------------------+
+```
+
+## Examples
+
+Self-contained programs in [`examples/`](examples/):
+
+```bash
+sbcl --load examples/01-balance-read.lisp        # ETH + USDC balance from mainnet
+sbcl --load examples/02-defcontract-erc20.lisp   # defcontract over an inline ERC-20 ABI
+anvil &                                          # for the next one
+sbcl --load examples/03-send-eth.lisp            # sign + send + wait against Anvil
 ```
 
 ## Testing
 
 ```bash
-# Run all tests (837 tests)
+# Hermetic suite (1000 tests, no network)
 sbcl --non-interactive \
   --eval '(asdf:load-system "web3/tests")' \
   --eval '(web3-tests/runner:run-all-tests)'
 
-# Integration tests (requires Anvil or live node)
+# With Anvil or a live node for the integration tests
 WEB3_INTEGRATION=1 WEB3_TEST_RPC_URL=http://127.0.0.1:8545 \
 sbcl --non-interactive \
   --eval '(asdf:load-system "web3/tests")' \
@@ -246,7 +280,7 @@ sbcl --non-interactive \
 - [cffi](https://github.com/cffi/cffi) — C FFI (for KZG)
 - [split-sequence](https://github.com/sharplispers/split-sequence) — String splitting
 
-## Related Projects
+## Related projects
 
 - [ssz-lisp](https://github.com/samdefmacro/ssz-lisp) — Ethereum SSZ serialization in Coalton
 

@@ -477,7 +477,10 @@
   ;; Phase 31: ERC-165 Interface Detection
   (run-erc165-tests)
 
-  ;; Phase 32: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
+  ;; Phase 32: web3/easy + defcontract convenience layer
+  (run-easy-tests)
+
+  ;; Phase 33: Integration Tests (Anvil - skipped unless WEB3_INTEGRATION=1)
   (run-integration-tests)
 
   (format t "~%========================================~%")
