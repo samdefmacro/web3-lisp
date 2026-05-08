@@ -768,6 +768,7 @@
   :pathname "test/"
   :serial t
   :components ((:file "package")
+               (:file "test-harness")
                (:file "helpers")
                (:file "types-tests")
                (:file "rlp-tests")
