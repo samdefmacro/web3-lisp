@@ -75,21 +75,6 @@
     (lisp (types:Web3Result abi:AbiType) (s)
       (%parse-type-string-cl (cl:string-trim " " s))))
 
-  ;; Helper to unwrap Ok - used from CL level to extract values
-  (declare %unwrap-abi-type-ok ((types:Web3Result abi:AbiType) -> abi:AbiType))
-  (define (%unwrap-abi-type-ok result)
-    "Unwrap Ok value (only call when you know it's Ok!)"
-    (match result
-      ((Ok v) v)
-      ((Err _) abi:AbiAddress)))  ; Fallback, shouldn't be reached
-
-  ;; Check if a type result is Ok
-  (declare %type-result-ok? ((types:Web3Result abi:AbiType) -> Boolean))
-  (define (%type-result-ok? result)
-    (match result
-      ((Ok _) True)
-      ((Err _) False)))
-
 )
 
 ;;; CL-level type parser (cleaner than mixing Coalton string ops)

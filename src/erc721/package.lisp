@@ -6,6 +6,7 @@
    (#:types #:web3/types)
    (#:addr #:web3/address)
    (#:abi #:web3/abi)
+   (#:abi-call #:web3/abi-call)
    (#:provider #:web3/provider))
   (:export
    ;; Read functions (view calls via eth_call)

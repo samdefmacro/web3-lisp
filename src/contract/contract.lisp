@@ -91,17 +91,10 @@
       (fn (item)
         (match item
           ((abi-parser:AbiEvent ev)
-           (if (bytes-equal? (abi-parser:.event-topic ev) topic)
+           (if (types:bytes-equal? (abi-parser:.event-topic ev) topic)
                (Some ev)
                None))
           (_ None)))))
-
-  ;; Byte comparison helpers
-  (declare bytes-equal? (types:Bytes -> types:Bytes -> Boolean))
-  (define (bytes-equal? a b)
-    "Check if two byte arrays are equal"
-    (lisp Boolean (a b)
-      (cl:if (cl:equalp a b) cl:t cl:nil)))
 
   (declare bytes-prefix-equal? (types:Bytes -> types:Bytes -> UFix -> Boolean))
   (define (bytes-prefix-equal? a b len)

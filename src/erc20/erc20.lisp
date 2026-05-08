@@ -53,46 +53,18 @@
     (abi:function-selector "transferFrom(address,address,uint256)"))
 
   ;;; =========================================================================
-  ;;; Internal helpers - eth_call -> abi-decode -> extract single value
-  ;;; =========================================================================
-
-  (declare %call-decode-string
-           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
-            -> (types:Web3Result String)))
-  (define (%call-decode-string provider token-address calldata fn-label)
-    (do (raw     <- (provider:eth-call provider None token-address calldata))
-        (decoded <- (abi:abi-decode (Cons abi:AbiString Nil) raw))
-        (match decoded
-          ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-          (_ (Err (types:AbiError
-                   (lisp String (fn-label)
-                     (cl:format cl:nil "erc20:~A: unexpected response format" fn-label))))))))
-
-  (declare %call-decode-u256
-           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
-            -> (types:Web3Result types:U256)))
-  (define (%call-decode-u256 provider token-address calldata fn-label)
-    (do (raw     <- (provider:eth-call provider None token-address calldata))
-        (decoded <- (abi:abi-decode (Cons (abi:AbiUint 256) Nil) raw))
-        (match decoded
-          ((Cons (abi:AbiUintVal u) (Nil)) (Ok u))
-          (_ (Err (types:AbiError
-                   (lisp String (fn-label)
-                     (cl:format cl:nil "erc20:~A: unexpected response format" fn-label))))))))
-
-  ;;; =========================================================================
   ;;; Read Functions (View Calls)
   ;;; =========================================================================
 
   (declare erc20-name (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
   (define (erc20-name provider token-address)
     "Get the token name"
-    (%call-decode-string provider token-address selector-name "name"))
+    (abi-call:call-decode-string provider token-address selector-name "erc20:name"))
 
   (declare erc20-symbol (provider:HttpProvider -> addr:Address -> (types:Web3Result String)))
   (define (erc20-symbol provider token-address)
     "Get the token symbol"
-    (%call-decode-string provider token-address selector-symbol "symbol"))
+    (abi-call:call-decode-string provider token-address selector-symbol "erc20:symbol"))
 
   (declare erc20-decimals (provider:HttpProvider -> addr:Address -> (types:Web3Result U8)))
   (define (erc20-decimals provider token-address)
@@ -111,31 +83,31 @@
                                (types:Web3Result types:U256)))
   (define (erc20-total-supply provider token-address)
     "Get the total token supply"
-    (%call-decode-u256 provider token-address selector-total-supply "totalSupply"))
+    (abi-call:call-decode-u256 provider token-address selector-total-supply "erc20:totalSupply"))
 
   (declare erc20-balance-of (provider:HttpProvider -> addr:Address -> addr:Address ->
                              (types:Web3Result types:U256)))
   (define (erc20-balance-of provider token-address owner)
     "Get the token balance of an address"
-    (%call-decode-u256
+    (abi-call:call-decode-u256
      provider token-address
      (abi:abi-encode-with-selector
       selector-balance-of
       (Cons (abi:AbiAddressVal (addr:address-bytes owner)) Nil))
-     "balanceOf"))
+     "erc20:balanceOf"))
 
   (declare erc20-allowance (provider:HttpProvider -> addr:Address ->
                             addr:Address -> addr:Address ->
                             (types:Web3Result types:U256)))
   (define (erc20-allowance provider token-address owner spender)
     "Get the allowance for a spender on an owner's tokens"
-    (%call-decode-u256
+    (abi-call:call-decode-u256
      provider token-address
      (abi:abi-encode-with-selector
       selector-allowance
       (Cons (abi:AbiAddressVal (addr:address-bytes owner))
             (Cons (abi:AbiAddressVal (addr:address-bytes spender)) Nil)))
-     "allowance"))
+     "erc20:allowance"))
 
   ;;; =========================================================================
   ;;; Write Function Calldata Builders

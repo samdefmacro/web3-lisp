@@ -140,6 +140,21 @@
   :components ((:file "package")
                (:file "wallet")))
 
+;;; Shared eth_call -> abi-decode singleton helpers
+(asdf:defsystem "web3/abi-call"
+  :description "Shared helpers for eth_call + abi-decode of singleton return values"
+  :author "Web3-Coalton Project"
+  :license "MIT"
+  :version "0.1.0"
+  :depends-on ("web3/types"
+               "web3/address"
+               "web3/abi"
+               "web3/provider")
+  :pathname "src/abi-call/"
+  :serial t
+  :components ((:file "package")
+               (:file "abi-call")))
+
 ;;; ERC-20 token standard
 (asdf:defsystem "web3/erc20"
   :description "ERC-20 token standard support"
@@ -149,6 +164,7 @@
   :depends-on ("web3/types"
                "web3/address"
                "web3/abi"
+               "web3/abi-call"
                "web3/provider")
   :pathname "src/erc20/"
   :serial t
@@ -164,6 +180,7 @@
   :depends-on ("web3/types"
                "web3/address"
                "web3/abi"
+               "web3/abi-call"
                "web3/provider")
   :pathname "src/erc721/"
   :serial t
@@ -213,6 +230,7 @@
   :depends-on ("web3/types"
                "web3/address"
                "web3/abi"
+               "web3/abi-call"
                "web3/provider")
   :pathname "src/erc1155/"
   :serial t
@@ -703,6 +721,7 @@
                "web3/crypto"
                "web3/address"
                "web3/abi"
+               "web3/abi-call"
                "web3/transaction"
                "web3/provider"
                "web3/wallet"

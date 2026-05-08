@@ -43,46 +43,6 @@
     (abi:function-selector "setApprovalForAll(address,bool)"))
 
   ;;; =========================================================================
-  ;;; Internal helpers - eth_call -> abi-decode -> extract single value
-  ;;; =========================================================================
-
-  (declare %call-decode-string
-           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
-            -> (types:Web3Result String)))
-  (define (%call-decode-string provider contract-address calldata fn-label)
-    (do (raw     <- (provider:eth-call provider None contract-address calldata))
-        (decoded <- (abi:abi-decode (Cons abi:AbiString Nil) raw))
-        (match decoded
-          ((Cons (abi:AbiStringVal s) (Nil)) (Ok s))
-          (_ (Err (types:AbiError
-                   (lisp String (fn-label)
-                     (cl:format cl:nil "erc1155:~A: unexpected response format" fn-label))))))))
-
-  (declare %call-decode-u256
-           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
-            -> (types:Web3Result types:U256)))
-  (define (%call-decode-u256 provider contract-address calldata fn-label)
-    (do (raw     <- (provider:eth-call provider None contract-address calldata))
-        (decoded <- (abi:abi-decode (Cons (abi:AbiUint 256) Nil) raw))
-        (match decoded
-          ((Cons (abi:AbiUintVal u) (Nil)) (Ok u))
-          (_ (Err (types:AbiError
-                   (lisp String (fn-label)
-                     (cl:format cl:nil "erc1155:~A: unexpected response format" fn-label))))))))
-
-  (declare %call-decode-bool
-           (provider:HttpProvider -> addr:Address -> types:Bytes -> String
-            -> (types:Web3Result Boolean)))
-  (define (%call-decode-bool provider contract-address calldata fn-label)
-    (do (raw     <- (provider:eth-call provider None contract-address calldata))
-        (decoded <- (abi:abi-decode (Cons abi:AbiBool Nil) raw))
-        (match decoded
-          ((Cons (abi:AbiBoolVal b) (Nil)) (Ok b))
-          (_ (Err (types:AbiError
-                   (lisp String (fn-label)
-                     (cl:format cl:nil "erc1155:~A: unexpected response format" fn-label))))))))
-
-  ;;; =========================================================================
   ;;; Write Function Calldata Builders
   ;;; =========================================================================
 
@@ -127,24 +87,24 @@
   (declare erc1155-uri (provider:HttpProvider -> addr:Address -> types:U256 -> (types:Web3Result String)))
   (define (erc1155-uri provider contract-address token-id)
     "Get the URI for a token's metadata"
-    (%call-decode-string
+    (abi-call:call-decode-string
      provider contract-address
      (abi:abi-encode-with-selector
       selector-uri
       (Cons (abi:AbiUintVal token-id) Nil))
-     "uri"))
+     "erc1155:uri"))
 
   (declare erc1155-balance-of (provider:HttpProvider -> addr:Address -> addr:Address -> types:U256 ->
                                (types:Web3Result types:U256)))
   (define (erc1155-balance-of provider contract-address account token-id)
     "Get the balance of a specific token for an account"
-    (%call-decode-u256
+    (abi-call:call-decode-u256
      provider contract-address
      (abi:abi-encode-with-selector
       selector-balance-of
       (Cons (abi:AbiAddressVal (addr:address-bytes account))
             (Cons (abi:AbiUintVal token-id) Nil)))
-     "balanceOf"))
+     "erc1155:balanceOf"))
 
   (declare erc1155-balance-of-batch
            (provider:HttpProvider -> addr:Address -> (List addr:Address) -> (List types:U256) ->
@@ -173,10 +133,10 @@
             (types:Web3Result Boolean)))
   (define (erc1155-is-approved-for-all provider contract-address account operator)
     "Check if an operator is approved for all tokens of an account"
-    (%call-decode-bool
+    (abi-call:call-decode-bool
      provider contract-address
      (abi:abi-encode-with-selector
       selector-is-approved-for-all
       (Cons (abi:AbiAddressVal (addr:address-bytes account))
             (Cons (abi:AbiAddressVal (addr:address-bytes operator)) Nil)))
-     "isApprovedForAll")))
+     "erc1155:isApprovedForAll")))
