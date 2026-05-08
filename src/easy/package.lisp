@@ -68,7 +68,6 @@
    #:event-arg-address
    #:event-arg-bytes
    ;; multicall3 helpers
-   #:multicall3-canonical-address
    #:make-call3
    #:encode-aggregate3
    #:decode-aggregate3-response

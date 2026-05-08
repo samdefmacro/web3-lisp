@@ -32,7 +32,11 @@
 
    ;; Low-level
    #:json-rpc-call
-   #:json-rpc-call-nullable))
+   #:json-rpc-call-nullable
+
+   ;; Hex result parsers (shared with simulate/gas/etc.)
+   #:%hex-result-to-u64
+   #:%hex-result-to-u256))
 
 (in-package #:web3/provider)
 (named-readtables:in-readtable coalton:coalton)

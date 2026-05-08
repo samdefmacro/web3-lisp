@@ -441,11 +441,6 @@
   ;;; Multicall3 — CL-driven aggregate3
   ;;; -------------------------------------------------------------------------
 
-  (declare multicall3-canonical-address String)
-  (define multicall3-canonical-address
-    "Multicall3 deployed at the canonical CREATE2 address on most chains."
-    web3/multicall:multicall3-address)
-
   (declare make-call3
            (web3/address:Address -> Boolean -> web3/types:Bytes
             -> web3/multicall:Call3))

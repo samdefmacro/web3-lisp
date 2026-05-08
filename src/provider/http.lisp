@@ -25,7 +25,9 @@
                                     (cl:string= hex-str "0x" :end1 2))
                             (cl:subseq hex-str 2)
                             hex-str))
-                (n (cl:parse-integer str :radix 16)))
+                (n (cl:if (cl:zerop (cl:length str))
+                          0
+                          (cl:parse-integer str :radix 16))))
         (web3/types:u256-from-integer n))))
 
   (declare eth-chain-id (HttpProvider -> (types:Web3Result U64)))

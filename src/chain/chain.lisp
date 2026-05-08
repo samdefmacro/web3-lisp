@@ -112,9 +112,6 @@
   (declare ether NativeCurrency)
   (define ether (NativeCurrency "Ether" "ETH" 18))
 
-  (declare matic NativeCurrency)
-  (define matic (NativeCurrency "MATIC" "MATIC" 18))
-
   (declare pol NativeCurrency)
   (define pol (NativeCurrency "POL" "POL" 18))
 
@@ -417,32 +414,16 @@
   (declare all-chains (List Chain))
   (define all-chains
     "Get all pre-configured chains"
-    (Cons ethereum-mainnet
-          (Cons sepolia
-                (Cons holesky
-                      (Cons polygon
-                            (Cons polygon-amoy
-                                  (Cons arbitrum-one
-                                        (Cons arbitrum-sepolia
-                                              (Cons optimism
-                                                    (Cons optimism-sepolia
-                                                          (Cons base
-                                                                (Cons base-sepolia
-                                                                      (Cons bsc
-                                                                            (Cons bsc-testnet
-                                                                                  (Cons avalanche
-                                                                                        (Cons avalanche-fuji
-                                                                                              (Cons gnosis
-                                                                                                    (Cons fantom
-                                                                                                          (Cons celo
-                                                                                                                (Cons zksync-era
-                                                                                                                      (Cons linea
-                                                                                                                            (Cons scroll
-                                                                                                                                  (Cons mantle
-                                                                                                                                        (Cons blast
-                                                                                                                                              (Cons localhost
-                                                                                                                                                    (Cons hardhat
-                                                                                                                                                          (Cons anvil Nil)))))))))))))))))))))))))))
+    (make-list ethereum-mainnet sepolia holesky
+               polygon polygon-amoy
+               arbitrum-one arbitrum-sepolia
+               optimism optimism-sepolia
+               base base-sepolia
+               bsc bsc-testnet
+               avalanche avalanche-fuji
+               gnosis fantom celo
+               zksync-era linea scroll mantle blast
+               localhost hardhat anvil))
 
   (declare mainnet-chains (List Chain))
   (define mainnet-chains

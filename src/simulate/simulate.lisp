@@ -95,31 +95,6 @@
   ;;; Internal Helpers
   ;;; =========================================================================
 
-  (declare %hex-result-to-u64 (String -> U64))
-  (define (%hex-result-to-u64 hex-str)
-    "Parse hex string to U64"
-    (lisp U64 (hex-str)
-      (cl:let ((str (cl:if (cl:and (cl:>= (cl:length hex-str) 2)
-                                   (cl:string= hex-str "0x" :end1 2))
-                           (cl:subseq hex-str 2)
-                           hex-str)))
-        (cl:if (cl:zerop (cl:length str))
-               0
-               (cl:parse-integer str :radix 16)))))
-
-  (declare %hex-result-to-u256 (String -> types:U256))
-  (define (%hex-result-to-u256 hex-str)
-    "Parse hex string to U256"
-    (lisp types:U256 (hex-str)
-      (cl:let* ((str (cl:if (cl:and (cl:>= (cl:length hex-str) 2)
-                                    (cl:string= hex-str "0x" :end1 2))
-                            (cl:subseq hex-str 2)
-                            hex-str))
-                (n (cl:if (cl:zerop (cl:length str))
-                          0
-                          (cl:parse-integer str :radix 16))))
-        (web3/types:u256-from-integer n))))
-
   (declare %optional-address-to-json (String -> (Optional addr:Address) -> String))
   (define (%optional-address-to-json prefix opt-addr)
     "Convert optional address to JSON field or empty string"
@@ -169,9 +144,8 @@
          (let ((params (lisp String (to-hex data-hex block-str from-json gas-json price-json value-json)
                          (cl:format cl:nil "[{\"to\":\"~A\",\"data\":\"~A\"~A~A~A~A},~A]"
                                     to-hex data-hex from-json gas-json price-json value-json block-str))))
-           (match (provider:json-rpc-call provider "eth_call" params)
-             ((Err e) (Err e))
-             ((Ok result) (types:hex-decode result))))))))
+           (do (result <- (provider:json-rpc-call provider "eth_call" params))
+               (types:hex-decode result)))))))
 
   (declare simulate-transaction (provider:HttpProvider -> tx:Transaction ->
                                  CallOptions -> (types:Web3Result types:Bytes)))
@@ -191,9 +165,8 @@
             (let ((params (lisp String (to-hex data-hex value-hex gas-limit block-str from-json)
                             (cl:format cl:nil "[{\"to\":\"~A\",\"data\":\"~A\",\"value\":\"~A\",\"gas\":\"0x~X\"~A},~A]"
                                        to-hex data-hex value-hex gas-limit from-json block-str))))
-              (match (provider:json-rpc-call provider "eth_call" params)
-                ((Err e) (Err e))
-                ((Ok result) (types:hex-decode result))))))))))
+              (do (result <- (provider:json-rpc-call provider "eth_call" params))
+                  (types:hex-decode result)))))))))
 
   ;;; =========================================================================
   ;;; Gas Estimation Functions
@@ -214,59 +187,36 @@
          (let ((params (lisp String (to-hex data-hex value-hex block-str from-json)
                          (cl:format cl:nil "[{\"to\":\"~A\",\"data\":\"~A\",\"value\":\"~A\"~A},~A]"
                                     to-hex data-hex value-hex from-json block-str))))
-           (match (provider:json-rpc-call provider "eth_estimateGas" params)
-             ((Err e) (Err e))
-             ((Ok result) (Ok (%hex-result-to-u64 result)))))))))
+           (map provider:%hex-result-to-u64
+                (provider:json-rpc-call provider "eth_estimateGas" params)))))))
 
   (declare estimate-transaction-gas (provider:HttpProvider -> tx:Transaction ->
                                      (types:Web3Result U64)))
   (define (estimate-transaction-gas provider transaction)
     "Estimate gas for a full transaction object"
     (let ((data-hex (types:hex-encode-prefixed (tx:.tx-data transaction)))
-          (value-hex (types:hex-encode-prefixed (types:u256-to-bytes (tx:.tx-value transaction)))))
-      (match (tx:.tx-to transaction)
-        ((None)
-         (let ((params (lisp String (value-hex data-hex)
-                         (cl:format cl:nil "[{\"value\":\"~A\",\"data\":\"~A\"}]"
-                                    value-hex data-hex))))
-           (match (provider:json-rpc-call provider "eth_estimateGas" params)
-             ((Err e) (Err e))
-             ((Ok result) (Ok (%hex-result-to-u64 result))))))
-        ((Some to-addr)
-         (let ((to-hex (addr:address-to-hex to-addr)))
-           (let ((params (lisp String (to-hex value-hex data-hex)
-                           (cl:format cl:nil "[{\"to\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"}]"
-                                      to-hex value-hex data-hex))))
-             (match (provider:json-rpc-call provider "eth_estimateGas" params)
-               ((Err e) (Err e))
-               ((Ok result) (Ok (%hex-result-to-u64 result))))))))))
+          (value-hex (types:hex-encode-prefixed (types:u256-to-bytes (tx:.tx-value transaction))))
+          (to-json (%optional-address-to-json "to" (tx:.tx-to transaction))))
+      (let ((params (lisp String (value-hex data-hex to-json)
+                      (cl:format cl:nil "[{\"value\":\"~A\",\"data\":\"~A\"~A}]"
+                                 value-hex data-hex to-json))))
+        (map provider:%hex-result-to-u64
+             (provider:json-rpc-call provider "eth_estimateGas" params)))))
 
   (declare estimate-transaction-cost (provider:HttpProvider -> tx:Transaction ->
                                       (types:Web3Result GasEstimate)))
   (define (estimate-transaction-cost provider transaction)
     "Estimate total cost including gas price from network"
-    (match (estimate-transaction-gas provider transaction)
-      ((Err e) (Err e))
-      ((Ok gas-limit)
-       (let ((buffered-gas (gas:add-gas-buffer (lisp UFix (gas-limit) gas-limit) 20)))
-         (match (provider:eth-gas-price provider)
-           ((Err e) (Err e))
-           ((Ok gas-price)
-            (let ((priority-fee-result
-                    (provider:json-rpc-call provider "eth_maxPriorityFeePerGas" "[]")))
-              (match priority-fee-result
-                ((Err _)
-                 (let ((total-cost (types:u256-mul gas-price
-                                                   (types:u256-from-integer (into buffered-gas)))))
-                   (Ok (GasEstimate (lisp U64 (buffered-gas) buffered-gas) gas-price gas-price
-                                    types:u256-zero total-cost))))
-                ((Ok priority-hex)
-                 (let ((priority-fee (%hex-result-to-u256 priority-hex))
-                       (max-fee gas-price))
-                   (let ((total-cost (types:u256-mul max-fee
-                                                     (types:u256-from-integer (into buffered-gas)))))
-                     (Ok (GasEstimate (lisp U64 (buffered-gas) buffered-gas) gas-price max-fee
-                                      priority-fee total-cost)))))))))))))
+    (do (gas-limit <- (estimate-transaction-gas provider transaction))
+        (gas-price <- (provider:eth-gas-price provider))
+        (let buffered-gas = (gas:add-gas-buffer (lisp UFix (gas-limit) gas-limit) 20))
+        (let buffered-u64 = (lisp U64 (buffered-gas) buffered-gas))
+        (let priority-fee = (match (provider:json-rpc-call provider "eth_maxPriorityFeePerGas" "[]")
+                              ((Err _) types:u256-zero)
+                              ((Ok hex) (provider:%hex-result-to-u256 hex))))
+        (let total-cost = (types:u256-mul gas-price
+                                          (types:u256-from-integer (into buffered-gas))))
+        (Ok (GasEstimate buffered-u64 gas-price gas-price priority-fee total-cost))))
 
   ;;; =========================================================================
   ;;; Access List Creation (EIP-2930)
@@ -284,10 +234,8 @@
       (let ((params (lisp String (to-hex value-hex data-hex from-json)
                       (cl:format cl:nil "[{\"to\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"~A},\"latest\"]"
                                  to-hex value-hex data-hex from-json))))
-        (match (provider:json-rpc-call provider "eth_createAccessList" params)
-          ((Err e) (Err e))
-          ((Ok result)
-           (lisp (types:Web3Result AccessListResult) (result)
+        (do (result <- (provider:json-rpc-call provider "eth_createAccessList" params))
+            (lisp (types:Web3Result AccessListResult) (result)
              (cl:handler-case
                  (cl:let* ((json (cl-json:decode-json-from-string result))
                            (access-list-json (cl:cdr (cl:assoc :access-list json)))
@@ -320,7 +268,7 @@
                (cl:error (e)
                  (coalton-prelude:Err
                   (web3/types:ProviderError
-                   (cl:format cl:nil "Failed to parse access list: ~A" e)))))))))))
+                   (cl:format cl:nil "Failed to parse access list: ~A" e))))))))))
 
   ;;; =========================================================================
   ;;; Transaction Population Helper
@@ -332,70 +280,43 @@
                                  (types:Web3Result tx:Transaction)))
   (define (populate-transaction provider from tx-type to value data)
     "Populate a transaction with network values (nonce, gas, fees)"
-    (match (provider:eth-get-transaction-count provider from)
-      ((Err e) (Err e))
-      ((Ok nonce)
-       (let ((from-hex (addr:address-to-hex from))
-             (data-hex (types:hex-encode-prefixed data))
-             (value-hex (types:hex-encode-prefixed (types:u256-to-bytes value))))
-         ;; from must be passed to eth_estimateGas — without it,
-         ;; access-controlled functions (msg.sender checks) revert and gas
-         ;; estimation fails or returns wrong values.
-         (let ((gas-result
-                 (match to
-                   ((Some to-addr)
-                    (let ((to-hex (addr:address-to-hex to-addr)))
-                      (let ((params (lisp String (from-hex to-hex value-hex data-hex)
-                                      (cl:format cl:nil "[{\"from\":\"~A\",\"to\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"}]"
-                                                 from-hex to-hex value-hex data-hex))))
-                        (match (provider:json-rpc-call provider "eth_estimateGas" params)
-                          ((Err e) (Err e))
-                          ((Ok result) (Ok (%hex-result-to-u64 result)))))))
-                   ((None)
-                    (let ((params (lisp String (from-hex value-hex data-hex)
-                                    (cl:format cl:nil "[{\"from\":\"~A\",\"value\":\"~A\",\"data\":\"~A\"}]"
-                                               from-hex value-hex data-hex))))
-                      (match (provider:json-rpc-call provider "eth_estimateGas" params)
-                        ((Err e) (Err e))
-                        ((Ok result) (Ok (%hex-result-to-u64 result)))))))))
-           (match gas-result
-             ((Err e) (Err e))
-             ((Ok estimated-gas)
-              (let ((gas-limit-ufix (gas:add-gas-buffer (lisp UFix (estimated-gas) estimated-gas) 20)))
-                (let ((gas-limit (lisp U64 (gas-limit-ufix) gas-limit-ufix)))
-                  (match (provider:eth-chain-id provider)
-                    ((Err e) (Err e))
-                    ((Ok chain-id)
-                     (match tx-type
-                       ((tx:LegacyTx)
-                        (match (provider:eth-gas-price provider)
-                          ((Err e) (Err e))
-                          ((Ok gas-price)
-                           (Ok (tx:make-transaction tx:LegacyTx chain-id nonce gas-price
-                                                    types:u256-zero gas-limit to value data Nil)))))
-                       ((tx:EIP2930Tx)
-                        (match (provider:eth-gas-price provider)
-                          ((Err e) (Err e))
-                          ((Ok gas-price)
-                           (Ok (tx:make-transaction tx:EIP2930Tx chain-id nonce gas-price
-                                                    types:u256-zero gas-limit to value data Nil)))))
-                       ((tx:EIP1559Tx)
-                        (match (provider:eth-gas-price provider)
-                          ((Err e) (Err e))
-                          ((Ok base-fee)
-                           (let ((priority-result
-                                   (provider:json-rpc-call provider "eth_maxPriorityFeePerGas" "[]")))
-                             (let ((priority-fee
-                                     (match priority-result
+    ;; from must be passed to eth_estimateGas — without it, access-controlled
+    ;; functions (msg.sender checks) revert and gas estimation fails or
+    ;; returns wrong values.
+    (let ((from-hex (addr:address-to-hex from))
+          (data-hex (types:hex-encode-prefixed data))
+          (value-hex (types:hex-encode-prefixed (types:u256-to-bytes value)))
+          (to-json (%optional-address-to-json "to" to))
+          (gas-params (lisp String (from-hex value-hex data-hex to-json)
+                        (cl:format cl:nil "[{\"from\":\"~A\"~A,\"value\":\"~A\",\"data\":\"~A\"}]"
+                                   from-hex to-json value-hex data-hex))))
+      (do (nonce         <- (provider:eth-get-transaction-count provider from))
+          (estimated-gas <- (map provider:%hex-result-to-u64
+                                 (provider:json-rpc-call provider "eth_estimateGas" gas-params)))
+          (chain-id      <- (provider:eth-chain-id provider))
+          (let gas-limit-ufix = (gas:add-gas-buffer (lisp UFix (estimated-gas) estimated-gas) 20))
+          (let gas-limit = (lisp U64 (gas-limit-ufix) gas-limit-ufix))
+          (match tx-type
+            ((tx:LegacyTx)
+             (do (gas-price <- (provider:eth-gas-price provider))
+                 (Ok (tx:make-transaction tx:LegacyTx chain-id nonce gas-price
+                                          types:u256-zero gas-limit to value data Nil))))
+            ((tx:EIP2930Tx)
+             (do (gas-price <- (provider:eth-gas-price provider))
+                 (Ok (tx:make-transaction tx:EIP2930Tx chain-id nonce gas-price
+                                          types:u256-zero gas-limit to value data Nil))))
+            ((tx:EIP1559Tx)
+             (do (base-fee <- (provider:eth-gas-price provider))
+                 (let priority-fee = (match (provider:json-rpc-call provider "eth_maxPriorityFeePerGas" "[]")
                                        ((Err _) (types:u256-from-integer 1500000000))
-                                       ((Ok hex) (%hex-result-to-u256 hex)))))
-                               (let ((max-fee (types:u256-add
-                                               (types:u256-mul base-fee (types:u256-from-integer 2))
-                                               priority-fee)))
-                                 (Ok (tx:make-transaction tx:EIP1559Tx chain-id nonce priority-fee
-                                                          max-fee gas-limit to value data Nil))))))))
-                       ((tx:EIP4844Tx)
-                        (Err (types:TransactionError
-                              "Use make-blob-transaction for EIP-4844 transactions")))))))))))))))
+                                       ((Ok hex) (provider:%hex-result-to-u256 hex))))
+                 (let max-fee = (types:u256-add
+                                 (types:u256-mul base-fee (types:u256-from-integer 2))
+                                 priority-fee))
+                 (Ok (tx:make-transaction tx:EIP1559Tx chain-id nonce priority-fee
+                                          max-fee gas-limit to value data Nil))))
+            ((tx:EIP4844Tx)
+             (Err (types:TransactionError
+                   "Use make-blob-transaction for EIP-4844 transactions")))))))
 
 ) ; end coalton-toplevel
