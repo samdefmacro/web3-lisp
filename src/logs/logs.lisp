@@ -60,7 +60,7 @@
               ((cl:null result-val)
                (Ok coalton:Nil))
               ((cl:listp result-val)
-               (Ok (%parse-logs result-val)))
+               (Ok (web3/receipt::%parse-logs result-val)))
               (cl:t
                (Err (web3/types:ProviderError "Invalid eth_getLogs response format")))))
         (cl:error (e)
@@ -92,57 +92,6 @@
                    (Some address)
                    Nil))))
 
-
-;;; =========================================================================
-;;; CL-Level Helper Functions
-;;; =========================================================================
-
-(cl:defun %parse-address (hex-str)
-  "Parse hex string to Address"
-  (cl:if hex-str
-         (cl:let ((result (coalton:coalton
-                           (web3/address:address-from-hex
-                            (coalton:lisp coalton:String () hex-str)))))
-           (cl:if (web3/types:%result-ok-p result)
-                  (web3/types:%unwrap-ok result)
-                  cl:nil))
-         cl:nil))
-
-(cl:defun %parse-topics (topics-list)
-  "Parse list of topic hex strings to Coalton list of Bytes"
-  (cl:if (cl:null topics-list)
-         coalton:Nil
-         (coalton:Cons (web3/types:%parse-hex-bytes32 (cl:first topics-list))
-                       (%parse-topics (cl:rest topics-list)))))
-
-(cl:defun %parse-single-log (log-obj)
-  "Parse a single log entry from alist. Returns a LogEntry or signals an error."
-  (cl:let* ((address-hex (cl:cdr (cl:assoc :address log-obj)))
-            (addr (%parse-address address-hex)))
-    (cl:unless addr
-      (cl:error "Invalid address in log entry: ~A" address-hex))
-    (cl:let* ((topics-list (cl:cdr (cl:assoc :topics log-obj)))
-              (data-hex (cl:cdr (cl:assoc :data log-obj)))
-              (block-num-hex (cl:cdr (cl:assoc :block-number log-obj)))
-              (tx-hash-hex (cl:cdr (cl:assoc :transaction-hash log-obj)))
-              (tx-idx-hex (cl:cdr (cl:assoc :transaction-index log-obj)))
-              (block-hash-hex (cl:cdr (cl:assoc :block-hash log-obj)))
-              (log-idx-hex (cl:cdr (cl:assoc :log-index log-obj)))
-              (removed (cl:cdr (cl:assoc :removed log-obj))))
-      (web3/receipt:make-log-entry
-       addr
-       (%parse-topics topics-list)
-       (web3/types:%parse-hex-bytes data-hex)
-       (web3/types:%parse-hex-ufix block-num-hex)
-       (web3/types:%parse-hex-bytes32 tx-hash-hex)
-       (web3/types:%parse-hex-ufix tx-idx-hex)
-       (web3/types:%parse-hex-bytes32 block-hash-hex)
-       (web3/types:%parse-hex-ufix log-idx-hex)
-       (cl:if removed coalton:True coalton:False)))))
-
-(cl:defun %parse-logs (logs-list)
-  "Parse list of log objects to Coalton list (iterative to avoid stack overflow on large result sets)"
-  (cl:mapcar #'%parse-single-log logs-list))
 
 ;;; =========================================================================
 ;;; Filter Serialization
