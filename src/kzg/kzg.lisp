@@ -93,21 +93,8 @@
   (declare blobs-to-commitments ((List types:Bytes) -> KZGContext -> (types:Web3Result (List KZGCommitment))))
   (define (blobs-to-commitments blobs ctx)
     "Compute KZG commitments for a list of blobs"
-    (let ((results
-            (map (fn (b) (blob-to-commitment b ctx)) blobs)))
-      ;; Check if any failed
-      (lisp (types:Web3Result (List KZGCommitment)) (results)
-        (cl:let ((commitments cl:nil)
-                 (err-val cl:nil))
-          (cl:dolist (r results)
-            (cl:typecase r
-              (coalton-library/classes::result/ok
-               (cl:push (cl:slot-value r 'coalton-library/classes::_0) commitments))
-              (coalton-library/classes::result/err
-               (cl:setf err-val (cl:slot-value r 'coalton-library/classes::_0)))))
-          (cl:if err-val
-                 (coalton-prelude:Err err-val)
-                 (coalton-prelude:Ok (cl:nreverse commitments)))))))
+    (types:traverse-result-list
+     (map (fn (b) (blob-to-commitment b ctx)) blobs)))
 
   ;;; =========================================================================
   ;;; Proof Functions

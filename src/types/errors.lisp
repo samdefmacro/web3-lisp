@@ -14,4 +14,16 @@
     (ProviderError String)
     (WalletError String))
 
-  (define-type-alias (Web3Result :a) (Result Web3Error :a)))
+  (define-type-alias (Web3Result :a) (Result Web3Error :a))
+
+  ;;; Result combinators
+
+  (declare traverse-result-list ((List (Result :e :a)) -> (Result :e (List :a))))
+  (define (traverse-result-list xs)
+    "Sequence a list of Results: Ok of all values, or the first Err."
+    (match xs
+      ((Nil) (Ok Nil))
+      ((Cons head tail)
+       (do (h <- head)
+           (rest <- (traverse-result-list tail))
+           (Ok (Cons h rest)))))))

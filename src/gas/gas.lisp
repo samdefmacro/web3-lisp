@@ -252,12 +252,7 @@
   (declare list-ref-u256-opt ((List types:U256) -> UFix -> (Optional types:U256)))
   (define (list-ref-u256-opt lst idx)
     "Get element at index as Optional"
-    (match lst
-      ((Nil) None)
-      ((Cons x rest)
-       (if (== idx 0)
-           (Some x)
-           (list-ref-u256-opt rest (- idx 1))))))
+    (list:index idx lst))
 
   ;;; =========================================================================
   ;;; Unit Conversions (convenience wrappers that work with UFix)

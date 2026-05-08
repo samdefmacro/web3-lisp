@@ -18,6 +18,9 @@
    #:WalletError
    #:Web3Result
 
+   ;; Result combinators
+   #:traverse-result-list
+
    ;; Bytes type
    #:Bytes
    #:bytes-length

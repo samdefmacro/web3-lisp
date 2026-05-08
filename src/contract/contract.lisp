@@ -109,13 +109,13 @@
 
   (declare collect-function-names ((List abi-parser:AbiItem) -> (List String)))
   (define (collect-function-names items)
-    (match items
-      ((Nil) Nil)
-      ((Cons item rest)
+    (list:foldr
+     (fn (item acc)
        (match item
-         ((abi-parser:AbiFunction fn)
-          (Cons (abi-parser:.fn-name fn) (collect-function-names rest)))
-         (_ (collect-function-names rest))))))
+         ((abi-parser:AbiFunction fn) (Cons (abi-parser:.fn-name fn) acc))
+         (_ acc)))
+     Nil
+     items))
 
   (declare list-events (Contract -> (List String)))
   (define (list-events contract)
@@ -124,13 +124,13 @@
 
   (declare collect-event-names ((List abi-parser:AbiItem) -> (List String)))
   (define (collect-event-names items)
-    (match items
-      ((Nil) Nil)
-      ((Cons item rest)
+    (list:foldr
+     (fn (item acc)
        (match item
-         ((abi-parser:AbiEvent ev)
-          (Cons (abi-parser:.event-name ev) (collect-event-names rest)))
-         (_ (collect-event-names rest))))))
+         ((abi-parser:AbiEvent ev) (Cons (abi-parser:.event-name ev) acc))
+         (_ acc)))
+     Nil
+     items))
 
   ;;; =========================================================================
   ;;; Encoding Functions
