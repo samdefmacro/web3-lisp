@@ -105,12 +105,9 @@
 
 (cl:defun %serialize-optional-bytes-topic (opt-bytes)
   "Serialize an Optional Bytes topic to JSON (null or hex string)"
-  ;; Check if it's None
-  (cl:if (cl:eq opt-bytes coalton-library/classes:None)
-         cl:nil  ;; Will become JSON null
-         ;; It's Some - extract the inner bytes
-         (cl:let ((bytes (cl:slot-value opt-bytes 'coalton-library/classes::|_0|)))
-           (web3/types:hex-encode-prefixed bytes))))
+  (cl:if (web3/types:%is-some-p opt-bytes)
+         (web3/types:hex-encode-prefixed (web3/types:%unwrap-some opt-bytes))
+         cl:nil))  ; -> JSON null
 
 ;; Note: Coalton Lists are CL cons cells, so no conversion needed.
 ;; coalton:Cons creates CL cons, coalton:Nil is CL nil.
@@ -129,21 +126,17 @@
             (topics (coalton:coalton
                       (web3/logs:.filter-topics
                        (coalton:lisp web3/logs:LogFilter () log-filter))))
-            ;; Build the filter object as alist
             (filter-alist cl:nil))
-    ;; Add fromBlock if present
-    (cl:unless (cl:eq from-block coalton-library/classes:None)
-      (cl:push (cl:cons "fromBlock" (%block-tag-to-json
-                                      (cl:slot-value from-block 'coalton-library/classes::|_0|)))
+    (cl:when (web3/types:%is-some-p from-block)
+      (cl:push (cl:cons "fromBlock"
+                        (%block-tag-to-json (web3/types:%unwrap-some from-block)))
                filter-alist))
-    ;; Add toBlock if present
-    (cl:unless (cl:eq to-block coalton-library/classes:None)
-      (cl:push (cl:cons "toBlock" (%block-tag-to-json
-                                    (cl:slot-value to-block 'coalton-library/classes::|_0|)))
+    (cl:when (web3/types:%is-some-p to-block)
+      (cl:push (cl:cons "toBlock"
+                        (%block-tag-to-json (web3/types:%unwrap-some to-block)))
                filter-alist))
-    ;; Add address if present
-    (cl:unless (cl:eq address coalton-library/classes:None)
-      (cl:let ((addr-val (cl:slot-value address 'coalton-library/classes::|_0|)))
+    (cl:when (web3/types:%is-some-p address)
+      (cl:let ((addr-val (web3/types:%unwrap-some address)))
         (cl:push (cl:cons "address"
                           (coalton:coalton
                            (addr:address-to-hex

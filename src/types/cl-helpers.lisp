@@ -60,6 +60,10 @@
   "Extract the inner value from Ok"
   (cl:slot-value result 'coalton-library/classes::|_0|))
 
+(cl:defun %unwrap-err (result)
+  "Extract the error value from Err"
+  (cl:slot-value result 'coalton-library/classes::|_0|))
+
 (cl:defun %is-some-p (opt)
   "Check if Coalton Optional is Some"
   (cl:typep opt 'coalton-library/classes::optional/some))
@@ -67,6 +71,14 @@
 (cl:defun %unwrap-some (opt)
   "Extract the inner value from Some"
   (cl:slot-value opt 'coalton-library/classes::|_0|))
+
+(cl:defun %tuple-0 (tup)
+  "Extract the first component of a Coalton (Tuple a b)."
+  (cl:slot-value tup 'coalton-library/classes::_0))
+
+(cl:defun %tuple-1 (tup)
+  "Extract the second component of a Coalton (Tuple a b)."
+  (cl:slot-value tup 'coalton-library/classes::_1))
 
 ;; Export CL-level helpers
 (cl:eval-when (:compile-toplevel :load-toplevel :execute)
@@ -76,6 +88,9 @@
                %parse-hex-bytes32
                %result-ok-p
                %unwrap-ok
+               %unwrap-err
                %is-some-p
-               %unwrap-some)
+               %unwrap-some
+               %tuple-0
+               %tuple-1)
              (cl:find-package '#:web3/types)))

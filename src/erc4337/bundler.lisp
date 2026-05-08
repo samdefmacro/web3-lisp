@@ -69,11 +69,9 @@
                          (unpack-account-gas-limits
                           (.packed-op-account-gas-limits (coalton:lisp PackedUserOperation () op)))))
             (verification-gas-limit
-              (web3/types:u256-to-integer
-               (cl:slot-value gas-limits 'coalton-library/classes::_0)))
+              (web3/types:u256-to-integer (web3/types:%tuple-0 gas-limits)))
             (call-gas-limit
-              (web3/types:u256-to-integer
-               (cl:slot-value gas-limits 'coalton-library/classes::_1)))
+              (web3/types:u256-to-integer (web3/types:%tuple-1 gas-limits)))
             (pre-verification-gas (web3/types:u256-to-integer
                                    (coalton:coalton
                                     (.packed-op-pre-verification-gas (coalton:lisp PackedUserOperation () op)))))
@@ -82,11 +80,9 @@
                    (unpack-gas-fees
                     (.packed-op-gas-fees (coalton:lisp PackedUserOperation () op)))))
             (max-priority-fee
-              (web3/types:u256-to-integer
-               (cl:slot-value fees 'coalton-library/classes::_0)))
+              (web3/types:u256-to-integer (web3/types:%tuple-0 fees)))
             (max-fee-per-gas
-              (web3/types:u256-to-integer
-               (cl:slot-value fees 'coalton-library/classes::_1)))
+              (web3/types:u256-to-integer (web3/types:%tuple-1 fees)))
             ;; Split initCode into factory + factoryData (first 20 bytes = factory address)
             (init-code-len (cl:length init-code))
             (paymaster-and-data (coalton:coalton

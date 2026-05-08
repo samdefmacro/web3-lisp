@@ -26,7 +26,7 @@
 
 (defun %unwrap-err (result)
   "Extract the Web3Error inside an Err result."
-  (slot-value result 'coalton-library/classes::|_0|))
+  (web3/types:%unwrap-err result))
 
 (defun %web3-error->string (err)
   "Pull the message string out of a Web3Error variant.
@@ -585,11 +585,10 @@
                         (web3/easy-bridge:decode-aggregate3-response
                          (coalton:lisp web3/types:Bytes () raw-bytes))))
              d)))
-    ;; decoded is a CL list of (Tuple Boolean Bytes). Tuple is a Coalton
-    ;; struct with two slots; reach in via slot-value to keep this CL.
+    ;; decoded is a CL list of (Tuple Boolean Bytes).
     (mapcar (lambda (tup)
-              (let ((success (slot-value tup 'coalton-library/classes::|_0|))
-                    (data    (slot-value tup 'coalton-library/classes::|_1|)))
+              (let ((success (web3/types:%tuple-0 tup))
+                    (data    (web3/types:%tuple-1 tup)))
                 (list :success (and success t)
                       :data    (%bytes-to-hex data))))
             decoded)))

@@ -43,8 +43,7 @@
       (cl:let ((found cl:nil)
                (result cl:nil))
         (cl:dolist (entry entries)
-          (cl:let ((k (cl:slot-value entry 'coalton-library/classes::_0))
-                   (v (cl:slot-value entry 'coalton-library/classes::_1)))
+          (cl:let ((k (web3/types:%tuple-0 entry)))
             (cl:if (coalton (nonce-key-equal? (lisp NonceKey () key)
                                                (lisp NonceKey () k)))
                    (cl:progn
@@ -61,7 +60,7 @@
     (lisp (List (Tuple NonceKey U64)) (key entries)
       (cl:let ((result cl:nil))
         (cl:dolist (entry entries)
-          (cl:let ((k (cl:slot-value entry 'coalton-library/classes::_0)))
+          (cl:let ((k (web3/types:%tuple-0 entry)))
             (cl:unless (coalton (nonce-key-equal? (lisp NonceKey () key)
                                                    (lisp NonceKey () k)))
               (cl:push entry result))))
