@@ -20,57 +20,40 @@
 
   ;;; Internal encoding
 
+  (declare %head-tail-parts (UFix -> (List types:Bytes) -> (List Boolean) ->
+                             (Tuple (List types:Bytes) (List types:Bytes))))
+  (define (%head-tail-parts tail-offset encs dyns)
+    "Walk the (encoded-value, is-dynamic) lists in lockstep, returning
+     (head-parts, tail-parts) for ABI head/tail encoding. Static values
+     occupy a 32-byte slot in the head; dynamic values get an offset in
+     the head and the encoded payload in the tail."
+    (match (Tuple encs dyns)
+      ((Tuple (Nil) _) (Tuple Nil Nil))
+      ((Tuple _ (Nil)) (Tuple Nil Nil))
+      ((Tuple (Cons enc rest-encs) (Cons dyn rest-dyns))
+       (if dyn
+           (match (%head-tail-parts (+ tail-offset (types:bytes-length enc))
+                                    rest-encs rest-dyns)
+             ((Tuple heads tails)
+              (Tuple (Cons (%encode-uint256-ufix tail-offset) heads)
+                     (Cons enc tails))))
+           (match (%head-tail-parts tail-offset rest-encs rest-dyns)
+             ((Tuple heads tails)
+              (Tuple (Cons (types:bytes-pad-right 32 enc) heads)
+                     tails)))))))
+
   (declare %encode-tuple ((List AbiValue) -> types:Bytes))
   (define (%encode-tuple values)
     "Encode a tuple of values using head/tail encoding"
     (let ((n (list:length values)))
       (if (== n 0)
           types:bytes-empty
-          ;; Calculate head size: each value gets 32 bytes in the head
-          ;; (either the value itself for static, or an offset for dynamic)
-          (let ((head-size (* n 32)))
-            ;; First pass: encode all values and collect their encoded forms
-            (let ((encoded-values (map %encode-value values))
-                  (is-dynamic (map %value-is-dynamic? values)))
-              ;; Build head and tail
-              (lisp types:Bytes (encoded-values is-dynamic head-size)
-                (cl:let* ((head-parts cl:nil)
-                          (tail-parts cl:nil)
-                          (tail-offset head-size)
-                          (enc-list encoded-values)
-                          (dyn-list is-dynamic))
-                  ;; Process each value
-                  (cl:loop :while enc-list
-                           :for enc := (cl:first enc-list)
-                           :for dyn := (cl:first dyn-list)
-                           :do (cl:if (cl:eq dyn coalton:True)
-                                      ;; Dynamic: head = offset, tail = encoded data
-                                      (cl:progn
-                                        (cl:push (%encode-uint256-integer tail-offset) head-parts)
-                                        (cl:push enc tail-parts)
-                                        (cl:incf tail-offset (cl:length enc)))
-                                      ;; Static: head = encoded data (padded to 32), no tail
-                                      (cl:push (cl:let ((padded (cl:make-array 32 :fill-pointer 32
-                                                                                  :adjustable cl:t
-                                                                                  :initial-element 0)))
-                                                 (cl:loop :for i :from 0 :below (cl:min 32 (cl:length enc))
-                                                          :do (cl:setf (cl:aref padded i) (cl:aref enc i)))
-                                                 padded)
-                                               head-parts))
-                               (cl:setf enc-list (cl:rest enc-list))
-                               (cl:setf dyn-list (cl:rest dyn-list)))
-                  ;; Concatenate head (reversed) + tail (reversed)
-                  (cl:let* ((all-parts (cl:nconc (cl:nreverse head-parts)
-                                                 (cl:nreverse tail-parts)))
-                            (total-len (cl:reduce #'cl:+ all-parts :key #'cl:length))
-                            (result (cl:make-array total-len :fill-pointer total-len
-                                                             :adjustable cl:t))
-                            (pos 0))
-                    (cl:dolist (part all-parts)
-                      (cl:loop :for i :from 0 :below (cl:length part)
-                               :do (cl:setf (cl:aref result pos) (cl:aref part i))
-                                   (cl:incf pos)))
-                    result))))))))
+          (let ((head-size (* n 32))
+                (encoded-values (map %encode-value values))
+                (is-dynamic (map %value-is-dynamic? values)))
+            (match (%head-tail-parts head-size encoded-values is-dynamic)
+              ((Tuple heads tails)
+               (types:bytes-concat-many (list:append heads tails))))))))
 
   (declare %value-is-dynamic? (AbiValue -> Boolean))
   (define (%value-is-dynamic? val)
@@ -184,13 +167,3 @@
           (if (== rem 0)
               n
               (+ n (- 32 rem)))))))
-
-;;; CL helper for encoding integers
-(cl:defun %encode-uint256-integer (n)
-  "Encode an integer as a 32-byte big-endian uint256"
-  (cl:let ((result (cl:make-array 32 :fill-pointer 32 :adjustable cl:t
-                                     :initial-element 0)))
-    (cl:loop :for i :from 0 :below 32
-             :do (cl:setf (cl:aref result (cl:- 31 i))
-                          (cl:ldb (cl:byte 8 (cl:* i 8)) n)))
-    result))
