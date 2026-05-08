@@ -4,7 +4,8 @@
         #:coalton-prelude)
   (:local-nicknames
    (#:types #:web3/types)
-   (#:crypto #:web3/crypto))
+   (#:crypto #:web3/crypto)
+   (#:rlp #:web3/rlp))
   (:export
    ;; Address type
    #:Address

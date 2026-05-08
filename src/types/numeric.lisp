@@ -135,13 +135,17 @@
          (== (u256-word 2 u) 0)
          (== (u256-word 3 u) 0)))
 
+  (define-instance (Eq U256)
+    (define (== a b)
+      (and (== (u256-word 0 a) (u256-word 0 b))
+           (== (u256-word 1 a) (u256-word 1 b))
+           (== (u256-word 2 a) (u256-word 2 b))
+           (== (u256-word 3 a) (u256-word 3 b)))))
+
   (declare u256-equal? (U256 -> U256 -> Boolean))
   (define (u256-equal? a b)
-    "Check if two U256 values are equal"
-    (and (== (u256-word 0 a) (u256-word 0 b))
-         (== (u256-word 1 a) (u256-word 1 b))
-         (== (u256-word 2 a) (u256-word 2 b))
-         (== (u256-word 3 a) (u256-word 3 b))))
+    "Check if two U256 values are equal. Wrapper around `==`."
+    (== a b))
 
   (declare u256-less-than? (U256 -> U256 -> Boolean))
   (define (u256-less-than? a b)

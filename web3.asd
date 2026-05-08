@@ -52,7 +52,8 @@
   :license "MIT"
   :version "0.1.0"
   :depends-on ("web3/types"
-               "web3/crypto")
+               "web3/crypto"
+               "web3/rlp")
   :pathname "src/address/"
   :serial t
   :components ((:file "package")

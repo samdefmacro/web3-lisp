@@ -47,11 +47,7 @@
       (fn (item)
         (match item
           ((abi-parser:AbiFunction fn)
-           (if (lisp Boolean (fn name)
-                 (cl:string= (coalton:coalton
-                              (abi-parser:.fn-name
-                               (coalton:lisp abi-parser:ParsedFunction () fn)))
-                             name))
+           (if (== (abi-parser:.fn-name fn) name)
                (Some fn)
                None))
           (_ None)))))
@@ -63,11 +59,7 @@
       (fn (item)
         (match item
           ((abi-parser:AbiEvent ev)
-           (if (lisp Boolean (ev name)
-                 (cl:string= (coalton:coalton
-                              (abi-parser:.event-name
-                               (coalton:lisp abi-parser:ParsedEvent () ev)))
-                             name))
+           (if (== (abi-parser:.event-name ev) name)
                (Some ev)
                None))
           (_ None)))))

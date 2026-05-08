@@ -14,6 +14,10 @@
     "Get the raw 20 bytes of an address"
     (match addr ((%Address b) b)))
 
+  (define-instance (Eq Address)
+    (define (== a b)
+      (types:bytes-equal? (address-bytes a) (address-bytes b))))
+
   (declare address-zero Address)
   (define address-zero
     "The zero address (0x0000...0000)"
@@ -85,98 +89,33 @@
 
   ;;; Contract address computation
 
+  (declare %u64-to-be-bytes (U64 -> types:Bytes))
+  (define (%u64-to-be-bytes n)
+    "Encode a U64 as minimal big-endian bytes (zero -> empty)."
+    (lisp types:Bytes (n)
+      (cl:if (cl:zerop n)
+             (cl:make-array 0 :fill-pointer 0 :adjustable cl:t)
+             (cl:let* ((byte-count (cl:ceiling (cl:integer-length n) 8))
+                       (result (cl:make-array byte-count
+                                              :fill-pointer byte-count
+                                              :adjustable cl:t)))
+               (cl:loop :for i :from 0 :below byte-count
+                        :do (cl:setf (cl:aref result (cl:- byte-count 1 i))
+                                     (cl:ldb (cl:byte 8 (cl:* i 8)) n)))
+               result))))
+
   (declare compute-contract-address (Address -> U64 -> Address))
   (define (compute-contract-address deployer nonce)
     "Compute contract address using CREATE: keccak256(rlp([sender, nonce]))[12:]"
-    ;; RLP encode [sender_address, nonce]
-    ;; For simplicity, we build the RLP manually
-    (let ((sender-bytes (address-bytes deployer))
-          (nonce-bytes (lisp types:Bytes (nonce)
-                        (cl:if (cl:zerop nonce)
-                               ;; RLP: 0 encodes as empty byte string
-                               (cl:make-array 0 :fill-pointer 0 :adjustable cl:t)
-                               (cl:let* ((byte-count (cl:ceiling (cl:integer-length nonce) 8))
-                                         (result (cl:make-array byte-count
-                                                                :fill-pointer byte-count
-                                                                :adjustable cl:t)))
-                                 (cl:loop :for i :from 0 :below byte-count
-                                          :do (cl:setf (cl:aref result (cl:- byte-count 1 i))
-                                                       (cl:ldb (cl:byte 8 (cl:* i 8)) nonce)))
-                                 result)))))
-      ;; Build RLP list: [address (20 bytes), nonce]
-      (let ((rlp-encoded
-              (lisp types:Bytes (sender-bytes nonce-bytes)
-                ;; Build RLP encoding of [sender, nonce]
-                (cl:let* (;; RLP encode sender address (20 bytes -> 0x94 prefix)
-                          (rlp-sender (cl:make-array 21 :fill-pointer 21 :adjustable cl:t))
-                          ;; RLP encode nonce
-                          (rlp-nonce
-                            (cl:cond
-                              ;; Empty nonce (0) -> 0x80
-                              ((cl:zerop (cl:length nonce-bytes))
-                               (cl:let ((r (cl:make-array 1 :fill-pointer 1 :adjustable cl:t)))
-                                 (cl:setf (cl:aref r 0) #x80)
-                                 r))
-                              ;; Single byte <= 0x7f
-                              ((cl:and (cl:= (cl:length nonce-bytes) 1)
-                                       (cl:<= (cl:aref nonce-bytes 0) #x7f))
-                               nonce-bytes)
-                              ;; Length-prefixed
-                              (cl:t
-                               (cl:let* ((len (cl:length nonce-bytes))
-                                         (r (cl:make-array (cl:1+ len)
-                                                           :fill-pointer (cl:1+ len)
-                                                           :adjustable cl:t)))
-                                 (cl:setf (cl:aref r 0) (cl:+ #x80 len))
-                                 (cl:loop :for i :from 0 :below len
-                                          :do (cl:setf (cl:aref r (cl:1+ i))
-                                                       (cl:aref nonce-bytes i)))
-                                 r))))
-                          ;; Total payload length
-                          (payload-len (cl:+ 21 (cl:length rlp-nonce)))
-                          ;; List prefix
-                          (list-prefix
-                            (cl:if (cl:< payload-len 56)
-                                   (cl:let ((r (cl:make-array 1 :fill-pointer 1 :adjustable cl:t)))
-                                     (cl:setf (cl:aref r 0) (cl:+ #xc0 payload-len))
-                                     r)
-                                   ;; Long list (unlikely for address+nonce)
-                                   (cl:let* ((len-bytes-count (cl:ceiling (cl:integer-length payload-len) 8))
-                                             (r (cl:make-array (cl:1+ len-bytes-count)
-                                                               :fill-pointer (cl:1+ len-bytes-count)
-                                                               :adjustable cl:t)))
-                                     (cl:setf (cl:aref r 0) (cl:+ #xf7 len-bytes-count))
-                                     (cl:loop :for i :from 0 :below len-bytes-count
-                                              :do (cl:setf (cl:aref r (cl:- len-bytes-count i))
-                                                           (cl:ldb (cl:byte 8 (cl:* i 8)) payload-len)))
-                                     r))))
-                  ;; Build sender RLP (0x94 || address)
-                  (cl:setf (cl:aref rlp-sender 0) #x94)
-                  (cl:loop :for i :from 0 :below 20
-                           :do (cl:setf (cl:aref rlp-sender (cl:1+ i))
-                                        (cl:aref sender-bytes i)))
-                  ;; Concatenate: list-prefix || rlp-sender || rlp-nonce
-                  (cl:let* ((total-len (cl:+ (cl:length list-prefix)
-                                             (cl:length rlp-sender)
-                                             (cl:length rlp-nonce)))
-                            (result (cl:make-array total-len
-                                                   :fill-pointer total-len
-                                                   :adjustable cl:t))
-                            (pos 0))
-                    (cl:loop :for b :across list-prefix
-                             :do (cl:setf (cl:aref result pos) b)
-                                 (cl:incf pos))
-                    (cl:loop :for b :across rlp-sender
-                             :do (cl:setf (cl:aref result pos) b)
-                                 (cl:incf pos))
-                    (cl:loop :for b :across rlp-nonce
-                             :do (cl:setf (cl:aref result pos) b)
-                                 (cl:incf pos))
-                    result)))))
-        (let ((addr-hash (crypto:keccak256 rlp-encoded)))
-          (match (address-from-bytes (types:bytes-drop 12 addr-hash))
-            ((Ok addr) addr)
-            ((Err _) address-zero))))))
+    (let ((rlp-encoded (rlp:rlp-encode
+                        (rlp:RlpList
+                         (Cons (rlp:RlpBytes (address-bytes deployer))
+                               (Cons (rlp:RlpBytes (%u64-to-be-bytes nonce))
+                                     Nil))))))
+      (let ((addr-hash (crypto:keccak256 rlp-encoded)))
+        (match (address-from-bytes (types:bytes-drop 12 addr-hash))
+          ((Ok addr) addr)
+          ((Err _) address-zero)))))
 
   (declare compute-create2-address (Address -> types:Bytes -> types:Bytes -> Address))
   (define (compute-create2-address deployer salt init-code-hash)
