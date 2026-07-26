@@ -1,2 +1,5 @@
 # Reference implementations (clone manually, not tracked)
 refs/
+
+# Agent dev-runtime (cl-agent-repl)
+.dev-runtime/
