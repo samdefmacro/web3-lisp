@@ -33,6 +33,9 @@ Three layers, pick the one that fits:
 ## Installation
 
 Requires [SBCL](http://www.sbcl.org/) and [Quicklisp](https://www.quicklisp.org/).
+The code targets the Coalton shipped in the Quicklisp **2025-06-22** dist; a
+newer Coalton master renames internals the library reaches into (see
+[Development](#development)).
 
 ```lisp
 (asdf:load-system "web3")              ; everything
@@ -254,20 +257,52 @@ anvil &                                          # for the next one
 sbcl --load examples/03-send-eth.lisp            # sign + send + wait against Anvil
 ```
 
+Inside this repository, `sbcl` means the project container:
+`scripts/docker-sbcl.sh --non-interactive --load examples/01-balance-read.lisp`.
+
+## Development
+
+This is a Common Lisp Workbench (`cl-workbench`)
+managed project: SBCL never runs on the host. Every build, eval, and test runs
+in the pinned container image `web3-lisp-sbcl:2.5.2-1` (`docker/Dockerfile`),
+which installs the Quicklisp 2025-06-22 dist and therefore the Coalton release
+the code is written against. The full loop, eval exit codes, and restart rules
+are in `.cl-workbench/WORKFLOW.md`; in short:
+
+```bash
+cl-workbench doctor --strict     # once per session, from the repo root
+scripts/dev.sh start             # warm image (first start builds the image and compiles Coalton: minutes)
+scripts/dev.sh eval '(+ 1 2)'    # ~0.3 s per eval
+scripts/dev.sh test rlp          # one module: (web3-tests/runner::run-rlp-tests)
+scripts/dev.sh test              # the whole suite in the warm image
+scripts/dev.sh stop
+```
+
+`refs/` (git-ignored, see [CLAUDE.md](CLAUDE.md)) holds reference clones for
+**reading only** — ethers.js, viem, and a newer Coalton master. The container's
+ASDF registry excludes `refs/` on purpose: loading `refs/coalton` fails with a
+package-lock error on `coalton-library/classes::optional/some`, because the
+newer master renames the internals this library reaches into.
+
 ## Testing
 
 ```bash
-# Hermetic suite (1000 tests, no network)
-sbcl --non-interactive \
-  --eval '(asdf:load-system "web3/tests")' \
-  --eval '(web3-tests/runner:run-all-tests)'
+# Hermetic suite (1000 tests, no network) in a fresh container — the verification of record
+scripts/docker-test.sh
+scripts/docker-test.sh rlp       # one module
 
-# With Anvil or a live node for the integration tests
-WEB3_INTEGRATION=1 WEB3_TEST_RPC_URL=http://127.0.0.1:8545 \
-sbcl --non-interactive \
-  --eval '(asdf:load-system "web3/tests")' \
-  --eval '(web3-tests/runner:run-all-tests)'
+# The same suite in the warm image, for iteration (see Development above)
+scripts/dev.sh test
 ```
+
+Both entry points run the same Lisp form, fail on any failing test or on a
+selection that runs zero tests, and print `cl-workbench-checks: N` for the
+counted gate.
+
+The integration tests read `WEB3_INTEGRATION=1` and `WEB3_TEST_RPC_URL` from
+the SBCL process's environment (Anvil or a live node). The generated container
+wrappers do not forward those variables yet, so the hermetic battery is what
+the commands above run.
 
 ## Dependencies
 
