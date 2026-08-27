@@ -300,9 +300,25 @@ selection that runs zero tests, and print `cl-workbench-checks: N` for the
 counted gate.
 
 The integration tests read `WEB3_INTEGRATION=1` and `WEB3_TEST_RPC_URL` from
-the SBCL process's environment (Anvil or a live node). The generated container
-wrappers do not forward those variables yet, so the hermetic battery is what
-the commands above run.
+the SBCL process's environment. Both wrappers forward those two variables into
+the container whenever they are set in the calling shell (unset variables are
+not forwarded, so the hermetic battery never sees an empty override):
+
+```bash
+# Cold battery against a live node or Anvil
+WEB3_INTEGRATION=1 WEB3_TEST_RPC_URL=https://rpc.example \
+  scripts/docker-test.sh
+
+# Warm image: the container inherits the variables at START, so set them on
+# the shell that starts it (or stop + start to change them)
+WEB3_INTEGRATION=1 WEB3_TEST_RPC_URL=https://rpc.example scripts/dev.sh start
+scripts/dev.sh identity passthrough-env   # lists the forwarded variables currently set
+scripts/dev.sh test
+```
+
+The URL is resolved from inside the container: `127.0.0.1` there is the
+container itself, so an Anvil must be reachable over Docker networking
+(for example `http://host.docker.internal:8545`).
 
 ## Dependencies
 
