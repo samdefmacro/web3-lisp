@@ -1,0 +1,4 @@
+# The toolchain image copies nothing from the repository; keep the build
+# context empty so vendored checkouts and state never upload to the daemon.
+*
+!docker/
