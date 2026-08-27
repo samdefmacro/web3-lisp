@@ -121,33 +121,30 @@ git clone --depth 1 https://github.com/coalton-lang/coalton.git refs/coalton
 - `refs/viem/` — wevm/viem
 - `refs/coalton/` — coalton-lang/coalton
 
-## The development loop (warm image, not cold sbcl runs) — cl-agent-repl
+## The development loop (cl-workbench managed, containerized warm image)
+
+This is a Common Lisp Workbench managed project: the loop, the eval exit
+codes, the restart rules, and how to record lessons are in
+`.cl-workbench/WORKFLOW.md` — read it first. In short:
 
 ```
-scripts/dev.sh start          # warm SBCL + Swank image, port 4008 (once; Coalton compile takes minutes first time)
-scripts/dev.sh eval '(+ 1 2)' # ~0.1s per eval against the warm image
-scripts/dev.sh test rlp       # one module: (web3-tests/runner::run-rlp-tests)
-scripts/dev.sh test-all       # full suite; fails if any test fails
-scripts/dev.sh docs-check     # PAX doc transcripts (once docs/ manuals exist)
+cl-workbench doctor --strict     # once per session, from the repo root
+scripts/dev.sh start             # warm image in the project container (first start builds
+                                 # web3-lisp-sbcl:2.5.2-1 and compiles Coalton: minutes)
+scripts/dev.sh eval '(+ 1 2)'    # ~0.3 s per eval
+scripts/dev.sh test rlp          # one module: (web3-tests/runner::run-rlp-tests)
+scripts/dev.sh test              # the whole suite in the warm image
+scripts/docker-test.sh           # the cold battery in a fresh container: verification of record
+scripts/dev.sh stop
 ```
 
-Workflow discipline (in order):
-1. **Ground before writing**: check symbols exist in the live image —
-   `dev.sh eval '(describe (quote web3:get-balance))'`, `(apropos "erc20")`.
-   Do not guess APIs.
-2. **Develop in small evals**; for Coalton code eval `(coalton:coalton ...)`
-   forms through the same channel.
-3. **Edit files, then re-load and verify**: `dev.sh eval '(asdf:load-system "web3/tests")'`
-   and re-run the relevant module tests. Reload is YOUR job.
-4. Coalton type/struct layout changes and `defstruct`/`defconstant` changes
-   cannot be hot-patched: restart (`dev.sh stop && dev.sh start`).
+SBCL never runs on the host. The container pins Coalton from the Quicklisp
+2025-06-22 dist (docker/Dockerfile), which is what the code is written against;
+`refs/coalton` is a newer master kept for READING and is excluded from the
+ASDF registry inside the container. Coalton type/struct layout changes and `defstruct`/
+`defconstant` changes cannot be hot-patched: restart the image. Workbench
+queues payload-free outcome records under `.cl-workbench/state/` (git-ignored).
 
-Eval contract (scripts/dev-swank-eval.lisp): exit 0 ok / 1 lisp error (with
-backtrace frames) / 2 connection error (image down — NOT your code; run
-dev.sh start) / 3 timed out and interrupted (default 20s, image survived;
-raise DEV_EVAL_TIMEOUT for long forms) / 4 hard hang (restart the image).
-Output capped at 10k chars with a TRUNCATED marker. Every eval is logged to
-.dev-runtime/swank-dev/eval-metrics.log — do not delete it.
-
-A PostToolUse hook (scripts/paren-hook.sh) checks delimiter balance on every
-.lisp/.asd edit and feeds errors straight back — fix them in the same turn.
+A PostToolUse hook (`cl-workbench hook claude-code parens`, wired in the
+tracked `.claude/settings.json`) checks delimiter balance on every .lisp/.asd
+edit and feeds errors straight back — fix them in the same turn.

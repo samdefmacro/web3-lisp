@@ -3,3 +3,6 @@ refs/
 
 # Agent dev-runtime (cl-agent-repl)
 .dev-runtime/
+/.cl-workbench/state/
+/.claude/settings.local.json
+/.claude/worktrees/
